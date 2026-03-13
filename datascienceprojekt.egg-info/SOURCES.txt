@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+ai/ollama.py
+dashboard/streamlit.py
+database/config_defaults.py
+datascienceprojekt.egg-info/PKG-INFO
+datascienceprojekt.egg-info/SOURCES.txt
+datascienceprojekt.egg-info/dependency_links.txt
+datascienceprojekt.egg-info/top_level.txt
+scraper/vinted_scraper.py

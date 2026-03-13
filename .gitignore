@@ -1,0 +1,13 @@
+# Secrets – niemals committen!
+#secrets/config.json
+#secrets/vinted_ergebnisse.json
+#secrets/vinted_empfehlungen.json
+ 
+# Python
+__pycache__/
+*.pyc
+.venv/
+ 
+# Debug
+debug.png
+debug_vinted.html

@@ -8,7 +8,9 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
 
-from scraper.vinted_scraper import scrape_artikel_details, scrape_suchergebnisse, analysiere_artikel, lade_config
+from scraper.vinted_scraper import scrape_artikel_details, scrape_suchergebnisse
+from ai.ollama import analysiere_artikel
+from database.config_defaults import lade_config
 
 # ─────────────────────────────────────────────
 #  MAIN

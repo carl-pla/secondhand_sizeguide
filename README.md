@@ -6,7 +6,6 @@ Ein automatisierter Secondhand-Artikel-Finder mit KI-gestützter Passform-Analys
 
 ## Projektstruktur
 
-```
 DataScienceProjekt/
 ├── dashboard/
 │   └── dashboard.py          # Streamlit UI – Einstellungen & Ergebnisse
@@ -24,9 +23,6 @@ DataScienceProjekt/
 │   └── vinted.yml            # CI/CD Pipeline (GitHub Actions)
 ├── .gitignore
 └── pyproject.toml            # Package-Definition für modulübergreifende Imports
-```
-
----
 
 ## Setup
 
@@ -48,7 +44,7 @@ cd dashboard
 streamlit run dashboard.py
 
 # 6. Scraper manuell starten
-python3 scraper/vinted_scraper.py --config secrets/config.json
+python3 main.py
 ```
 
 ---
@@ -56,6 +52,7 @@ python3 scraper/vinted_scraper.py --config secrets/config.json
 ## Stand der Dinge ✅
 
 ### Scraping
+
 - [x] Vinted Suchergebnisseiten scrapen (gefiltert nach Größe, Preis, Suchbegriff)
 - [x] Einzelartikel aufrufen: Titel, Preis, Beschreibung extrahieren
 - [x] Anti-Ban-Maßnahmen: randomisierte Pausen, Stealth-Modus, realistischer User-Agent
@@ -63,6 +60,7 @@ python3 scraper/vinted_scraper.py --config secrets/config.json
 - [x] Deduplizierung gefundener Artikel
 
 ### KI-Analyse (Ollama / llama3, lokal)
+
 - [x] Maße aus Artikelbeschreibung extrahieren (Brust, Taille, Hüfte, Schulter, Länge, Ärmel, Innennaht)
 - [x] Zustand & Material aus Beschreibung erkennen
 - [x] Stil-Matching (Vintage, Retro, Y2K, etc.)
@@ -71,13 +69,15 @@ python3 scraper/vinted_scraper.py --config secrets/config.json
 - [x] Strukturierte JSON-Ausgabe pro Artikel
 
 ### Konfiguration & UI
+
 - [x] Zentrale `config_defaults.py` (ein Single Source of Truth für alle Module)
 - [x] Streamlit Dashboard: Präferenzen, Maße, Suche, Ollama-Einstellungen
 - [x] Config wird in `secrets/config.json` gespeichert (nicht im Repo)
 - [x] Ergebnisse & Empfehlungen als JSON in `secrets/`
 
 ### CI/CD
-- [x] GitHub Actions Pipeline (Mo/Mi/Fr 09:00 Uhr automatisch)
+
+- [x] GitHub Actions Pipeline (irgendwann automatisch)
 - [x] Config sicher via GitHub Secrets
 - [x] Ergebnisse als Workflow-Artifact herunterladbar
 - [x] Optional: automatischer Commit der Ergebnisse ins Repo
@@ -87,9 +87,11 @@ python3 scraper/vinted_scraper.py --config secrets/config.json
 ## Roadmap 🚀
 
 ### Nächster Schritt: Web-Recherche für fehlende Maße
+
 Wenn ein Artikel keine oder unvollständige Maßangaben in der Beschreibung hat, soll das System automatisch im Internet nach den Originalmaßen suchen.
 
 **Geplanter Ablauf:**
+
 1. Ollama erkennt dass Maße fehlen oder unvollständig sind
 2. Suchquery wird automatisch generiert z.B. `"Levi's 501 W30 L32 Maße Brust Taille"`
 3. Gezielte Suche auf Referenzseiten:
@@ -100,6 +102,7 @@ Wenn ein Artikel keine oder unvollständige Maßangaben in der Beschreibung hat,
 5. Ollama bewertet erneut mit vollständigen Informationen
 
 **Technisch geplant:**
+
 - [ ] Web-Search-Modul in `ai/` integrieren (httpx + HTML-Parsing oder Search-API)
 - [ ] Ollama-Prompt erweitern: "Welche Maße fehlen? Generiere Suchquery."
 - [ ] Fallback-Logik: Beschreibung → Web-Recherche → Markentabelle
@@ -107,6 +110,7 @@ Wenn ein Artikel keine oder unvollständige Maßangaben in der Beschreibung hat,
 - [ ] Quellenangabe pro Maß im JSON (`"brust_quelle": "levis.com/sizeguide"`)
 
 ### Weitere geplante Features
+
 - [ ] Vinted Benachrichtigung: Push-Notification bei neuen Top-Artikeln
 - [ ] Preishistorie: Artikel über Zeit beobachten
 - [ ] Mehrere Nutzerprofile (z.B. für verschiedene Personen)
@@ -121,7 +125,7 @@ Wenn ein Artikel keine oder unvollständige Maßangaben in der Beschreibung hat,
 Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `secrets/config.json` gespeichert:
 
 | Parameter | Beschreibung | Beispiel |
-|---|---|---|
+
 | `groesse` | Kleidungsgröße | `"M / 38"` |
 | `stile` | Bevorzugte Stile | `["Vintage", "Retro"]` |
 | `max_preis` | Maximaler Preis in € | `50` |

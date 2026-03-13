@@ -2,28 +2,6 @@
 
 Ein automatisierter Secondhand-Artikel-Finder mit KI-gestützter Passform-Analyse.
 
----
-
-## Projektstruktur
-
-DataScienceProjekt/
-├── dashboard/
-│   └── dashboard.py          # Streamlit UI – Einstellungen & Ergebnisse
-├── scraper/
-│   └── vinted_scraper.py     # Playwright-basierter Vinted Scraper
-├── ai/
-│   └── ollama.py             # LLM-Analyse & Maß-Extraktion
-├── database/
-│   └── config_defaults.py    # Zentrale Konfiguration & Konstanten
-├── secrets/                  # Lokal, nicht im Repo (via .gitignore)
-│   ├── config.json           # Nutzer-Präferenzen
-│   ├── vinted_ergebnisse.json
-│   └── vinted_empfehlungen.json
-├── .github/workflows/
-│   └── vinted.yml            # CI/CD Pipeline (GitHub Actions)
-├── .gitignore
-└── pyproject.toml            # Package-Definition für modulübergreifende Imports
-
 ## Setup
 
 ```bash
@@ -77,8 +55,7 @@ python3 main.py
 
 ### CI/CD
 
-- [x] GitHub Actions Pipeline (irgendwann automatisch)
-- [x] Config sicher via GitHub Secrets
+- [x] GitHub Actions Pipeline (noch nicht automatisch)
 - [x] Ergebnisse als Workflow-Artifact herunterladbar
 - [x] Optional: automatischer Commit der Ergebnisse ins Repo
 

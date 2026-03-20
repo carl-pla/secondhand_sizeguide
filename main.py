@@ -70,7 +70,7 @@ async def main(config: dict):
             seen.add(a["url"])
             unique.append(a)
 
-    print(f"\n📦 {len(unique)} Artikel → Ollama analysiert...\n")
+    print(f"\n {len(unique)} Artikel → Ollama analysiert...\n")
 
     ergebnisse = [analysiere_artikel(a, config) for a in unique]
     ergebnisse.sort(key=lambda x: x.get("bewertung") or 0, reverse=True)

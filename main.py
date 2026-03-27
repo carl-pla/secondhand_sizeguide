@@ -6,7 +6,7 @@ import argparse
 import httpx
 from pathlib import Path
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth_async
+from playwright_stealth import Stealth
 
 from scraper.vinted_scraper import scrape_artikel_details, scrape_suchergebnisse
 from ai.ollama import analysiere_artikel
@@ -46,7 +46,7 @@ async def main(config: dict):
             timezone_id="Europe/Berlin",
         )
         page = await context.new_page()
-        await stealth_async(page)
+        await Stealth().apply_stealth_async(page)
 
         for suchbegriff in config["suchbegriffe"][:max_suchen]:
             try:

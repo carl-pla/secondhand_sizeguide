@@ -1,6 +1,10 @@
 import streamlit as st
 import json
 from pathlib import Path
+import sys, os
+
+# Fügt den Projekt-Hauptordner zum Pfad hinzu
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
     SECRETS_DIR, CONFIG_FILE, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE,
@@ -301,12 +305,12 @@ elif "Suche" in seite:
 
         # Skript mit aktueller Config aufrufen
         st.markdown("**Starte Scraper...**")
-        cmd = f"python3 vinted_ollama.py --config {CONFIG_FILE}"
+        cmd = f"python3 main.py --config {CONFIG_FILE}"
         st.code(cmd)
         st.success("Config gespeichert. Führe den obigen Befehl im Terminal aus.")
         st.markdown("Oder starte direkt:")
         st.code(f"""cd /pfad/zu/deinem/projekt
-python3 vinted_ollama.py --config secrets/config.json""")
+python3 main.py --config secrets/config.json""")
 
 
 # ═══════════════════════════════════════════════

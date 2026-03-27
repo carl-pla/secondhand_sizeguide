@@ -15,7 +15,11 @@ playwright install chromium
 pip install -e .
 
 # 4. Ollama starten (in separatem Terminal)
+Mac:
 OLLAMA_HOST=0.0.0.0:11435 ollama serve
+Windows (Powershell):
+$env:OLLAMA_HOST="0.0.0.0:11435"
+ollama serve
 
 # 5. Dashboard starten
 cd dashboard

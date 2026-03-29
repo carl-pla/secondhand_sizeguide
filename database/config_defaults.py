@@ -1,14 +1,14 @@
 from pathlib import Path
 import json
 
-# ─────────────────────────────────────────────
-#  PFADE
-# ─────────────────────────────────────────────
-SECRETS_DIR = Path("secrets")
+BASE_DIR    = Path(__file__).parent.parent
+SECRETS_DIR = BASE_DIR / "dashboard" / "secrets" 
+RESULTS = BASE_DIR / "dashboard" / "secrets" / "results"
 SECRETS_DIR.mkdir(exist_ok=True)
-CONFIG_FILE = SECRETS_DIR / "config.json"
-ERGEBNISSE_FILE = SECRETS_DIR / "vinted_ergebnisse.json"
-EMPFEHLUNGEN_FILE = SECRETS_DIR / "vinted_empfehlungen.json"
+
+CONFIG_FILE       = SECRETS_DIR / "config.json"
+ERGEBNISSE_FILE   = RESULTS / "vinted_ergebnisse.json"
+EMPFEHLUNGEN_FILE = RESULTS / "vinted_empfehlungen.json"
 
 # ─────────────────────────────────────────────
 #  LOOKUP-TABELLEN
@@ -41,18 +41,23 @@ DEFAULT_CONFIG = {
 }
 
 # ─────────────────────────────────────────────
-#  LADEN / SPEICHERN
+#  LADEN & SPEICHERN
 # ─────────────────────────────────────────────
+
+# config_defaults.py — am Ende hinzufügen
 def lade_config(config_path: Path | str = CONFIG_FILE) -> dict:
     p = Path(config_path)
+    result = DEFAULT_CONFIG.copy() # Starte immer mit den Defaults
+    
+    # Prüfen: Existiert die Datei UND ist sie nicht leer (Größe > 0)?
     if p.exists():
         with open(p, "r") as f:
-            print(f"✓ Config geladen: {p}")
-            return json.load(f)
-    print("⚠️  Keine config.json gefunden – nutze Defaults")
-    return DEFAULT_CONFIG.copy()
+            gespeichert = json.load(f)
+            result.update(gespeichert)  # ← überschreibe nur was vorhanden ist
+    return result
+        
 
 def speichere_config(config: dict, config_path: Path | str = CONFIG_FILE):
     with open(config_path, "w") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
-    print(f"✓ Config gespeichert: {config_path}")
+    print(f"✅ Datei geschrieben: {config_path} mit {config.get('max_preis')}€")

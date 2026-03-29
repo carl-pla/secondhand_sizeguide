@@ -1,5 +1,0 @@
-ai
-dashboard
-database
-scraper
-tests

@@ -3,6 +3,9 @@
 __pycache__/
 *.pyc
 .venv/
+.env 
+env
+venv
  
 # Debug
 debug.png

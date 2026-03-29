@@ -7,35 +7,10 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
-    SECRETS_DIR, CONFIG_FILE, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE,
-    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_OPTIONEN,
-    lade_config, speichere_config
+    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_OPTIONEN, DEFAULT_CONFIG, CONFIG_FILE, ERGEBNISSE_FILE,
+    EMPFEHLUNGEN_FILE, speichere_config, lade_config
 )
 
-# ─────────────────────────────────────────────
-#  CONFIG LADEN / SPEICHERN
-# ─────────────────────────────────────────────
-def lade_config() -> dict:
-    if CONFIG_FILE.exists():
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    return {
-        "groesse": "M / 38",
-        "stile": ["Vintage", "Retro"],
-        "max_preis": 50,
-        "min_zustand": "Gut",
-        "suchbegriffe": ["vintage", "retro 90s", "y2k"],
-        "eigene_masse": {"brust": 88, "taille": 70, "huefte": 96, "schulter": 38},
-        "ollama_url": "http://localhost:11435/api/generate",
-        "ollama_modell": "llama3",
-        "max_artikel_pro_suche": 5,
-        "pause_zwischen_artikeln": [4, 7],
-        "pause_zwischen_suchen": [6, 10],
-    }
-
-def speichere_config(config: dict):
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
 
 # ─────────────────────────────────────────────
 #  SEITEN-KONFIGURATION
@@ -148,6 +123,7 @@ textarea {
 if "config" not in st.session_state:
     st.session_state.config = lade_config()
 
+# Jede Änderung direkt in session_state schreiben:
 config = st.session_state.config
 
 # ─────────────────────────────────────────────
@@ -180,7 +156,7 @@ with st.sidebar:
 # ═══════════════════════════════════════════════
 if "Einstellungen" in seite:
     st.markdown("# Einstellungen")
-    st.markdown("Konfiguriere deine Präferenzen. Wird in `secrets/config.json` gespeichert.")
+    st.markdown("Konfiguriere deine Präferenzen. Wird in `dashboard/secrets/config.json` gespeichert.")
     st.markdown("---")
 
     tab1, tab2, tab3, tab4 = st.tabs(["👗  Stil & Größe", "📐  Maße", "🔍  Suche", "🤖  Ollama"])
@@ -189,98 +165,110 @@ if "Einstellungen" in seite:
     with tab1:
         col1, col2 = st.columns(2)
         with col1:
-            config["groesse"] = st.selectbox(
+            st.session_state.config["groesse"] = st.selectbox(
                 "Kleidungsgröße",
                 list(VINTED_GROESSEN.keys()),
-                index=list(VINTED_GROESSEN.keys()).index(config.get("groesse", "M / 38"))
+                index=list(VINTED_GROESSEN.keys()).index(
+                    st.session_state.config.get("groesse", "M / 38")
+                )
             )
-            config["max_preis"] = st.slider(
-                "Maximaler Preis (€)", 5, 200, config.get("max_preis", 50), step=5
+            st.session_state.config["max_preis"] = st.slider(
+                "Maximaler Preis (€)", 5, 200,
+                st.session_state.config.get("max_preis", 50), step=5
             )
         with col2:
-            config["stile"] = st.multiselect(
+            st.session_state.config["stile"] = st.multiselect(
                 "Bevorzugte Stile",
                 STIL_OPTIONEN,
-                default=config.get("stile", ["Vintage", "Retro"])
+                default=st.session_state.config.get("stile", ["Vintage", "Retro"])
             )
-            config["min_zustand"] = st.selectbox(
+            st.session_state.config["min_zustand"] = st.selectbox(
                 "Mindest-Zustand",
                 ZUSTAND_OPTIONEN,
-                index=ZUSTAND_OPTIONEN.index(config.get("min_zustand", "Gut"))
+                index=ZUSTAND_OPTIONEN.index(
+                    st.session_state.config.get("min_zustand", "Gut")
+                )
             )
 
     # ── TAB 2: Maße ──
     with tab2:
         st.markdown("Trage deine Maße ein – das LLM vergleicht sie mit den Angaben in der Beschreibung.")
-        masse = config.get("eigene_masse", {})
+        masse = st.session_state.config.get("eigene_masse", {})
         col1, col2 = st.columns(2)
         with col1:
-            masse["brust"] = st.number_input("Brustumfang (cm)", 60, 130, masse.get("brust", 88))
-            masse["taille"] = st.number_input("Taillenumfang (cm)", 50, 120, masse.get("taille", 70))
-            masse["huefte"] = st.number_input("Hüftumfang (cm)", 70, 140, masse.get("huefte", 96))
+            masse["brust"]   = st.number_input("Brustumfang (cm)",   60, 130, masse.get("brust", 88))
+            masse["taille"]  = st.number_input("Taillenumfang (cm)", 50, 120, masse.get("taille", 70))
+            masse["huefte"]  = st.number_input("Hüftumfang (cm)",    70, 140, masse.get("huefte", 96))
         with col2:
-            masse["schulter"] = st.number_input("Schulterbreite (cm)", 30, 60, masse.get("schulter", 38))
-            masse["laenge_oberteil"] = st.number_input("Bevorzugte Länge Oberteil (cm)", 40, 100, masse.get("laenge_oberteil", 60))
-            masse["innennaht"] = st.number_input("Innennaht / Schrittlänge (cm)", 60, 100, masse.get("innennaht", 78))
-        config["eigene_masse"] = masse
+            masse["schulter"]       = st.number_input("Schulterbreite (cm)",           30, 60,  masse.get("schulter", 38))
+            masse["laenge_oberteil"]= st.number_input("Bevorzugte Länge Oberteil (cm)",40, 100, masse.get("laenge_oberteil", 60))
+            masse["innennaht"]      = st.number_input("Innennaht / Schrittlänge (cm)", 60, 100, masse.get("innennaht", 78))
+        st.session_state.config["eigene_masse"] = masse
 
     # ── TAB 3: Suche ──
     with tab3:
         suchbegriffe_raw = st.text_area(
             "Suchbegriffe (einer pro Zeile)",
-            "\n".join(config.get("suchbegriffe", ["vintage", "retro 90s", "y2k"])),
+            "\n".join(st.session_state.config.get("suchbegriffe", ["vintage", "retro 90s", "y2k"])),
             height=150
         )
-        config["suchbegriffe"] = [s.strip() for s in suchbegriffe_raw.splitlines() if s.strip()]
+        st.session_state.config["suchbegriffe"] = [
+            s.strip() for s in suchbegriffe_raw.splitlines() if s.strip()
+        ]
 
         col1, col2 = st.columns(2)
         with col1:
-            config["max_artikel_pro_suche"] = st.slider(
-                "Artikel pro Suchbegriff", 1, 20, config.get("max_artikel_pro_suche", 5)
+            st.session_state.config["max_artikel_pro_suche"] = st.slider(
+                "Artikel pro Suchbegriff", 1, 20,
+                st.session_state.config.get("max_artikel_pro_suche", 5)
             )
         with col2:
-            max_suchen = st.slider(
-                "Maximale Anzahl Suchbegriffe", 1, len(config["suchbegriffe"]),
-                min(2, len(config["suchbegriffe"]))
+            suchbegriffe = st.session_state.config["suchbegriffe"]
+            st.session_state.config["max_suchen"] = st.slider(
+                "Maximale Anzahl Suchbegriffe", 1, max(1, len(suchbegriffe)),
+                min(2, max(1, len(suchbegriffe)))
             )
-            config["max_suchen"] = max_suchen
 
         st.markdown("**Anti-Ban Pausen (Sekunden)**")
         col1, col2 = st.columns(2)
         with col1:
-            p_art = st.slider("Pause zwischen Artikeln", 1, 15,
-                (config["pause_zwischen_artikeln"][0], config["pause_zwischen_artikeln"][1]))
-            config["pause_zwischen_artikeln"] = list(p_art)
+            p_art = st.slider(
+                "Pause zwischen Artikeln", 1, 15,
+                tuple(st.session_state.config.get("pause_zwischen_artikeln", [4, 7]))
+            )
+            st.session_state.config["pause_zwischen_artikeln"] = list(p_art)
         with col2:
-            p_such = st.slider("Pause zwischen Suchen", 3, 30,
-                (config["pause_zwischen_suchen"][0], config["pause_zwischen_suchen"][1]))
-            config["pause_zwischen_suchen"] = list(p_such)
+            p_such = st.slider(
+                "Pause zwischen Suchen", 3, 30,
+                tuple(st.session_state.config.get("pause_zwischen_suchen", [6, 10]))
+            )
+            st.session_state.config["pause_zwischen_suchen"] = list(p_such)
 
     # ── TAB 4: Ollama ──
     with tab4:
-        config["ollama_url"] = st.text_input(
+        st.session_state.config["ollama_url"] = st.text_input(
             "Ollama API URL",
-            config.get("ollama_url", "http://localhost:11435/api/generate")
+            st.session_state.config.get("ollama_url", "http://localhost:11435/api/generate")
         )
-        config["ollama_modell"] = st.selectbox(
+        st.session_state.config["ollama_modell"] = st.selectbox(
             "Modell",
             OLLAMA_MODELLE,
-            index=OLLAMA_MODELLE.index(config.get("ollama_modell", "llama3"))
-            if config.get("ollama_modell") in OLLAMA_MODELLE else 0
+            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3"))
+            if st.session_state.config.get("ollama_modell") in OLLAMA_MODELLE else 0
         )
         st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
 
     st.markdown("---")
     if st.button("💾  Einstellungen speichern"):
-        st.session_state.config = config
-        speichere_config(config)
+        speichere_config(st.session_state.config)
         st.success(f"✓ Gespeichert in `{CONFIG_FILE}`")
+        st.json(st.session_state.config)  # zur Kontrolle, danach entfernen
 
 
 # ═══════════════════════════════════════════════
 #  SEITE: SUCHE STARTEN
 # ═══════════════════════════════════════════════
-elif "Suche" in seite:
+elif "Suche" in seite:   # ← elif statt if, und "Suche" check
     st.markdown("# Suche starten")
 
     col1, col2, col3 = st.columns(3)
@@ -297,21 +285,29 @@ elif "Suche" in seite:
         st.markdown(f'<span class="badge">{s}</span>', unsafe_allow_html=True)
 
     st.markdown("---")
-    st.info("💡 Das Scraper-Skript läuft separat im Terminal. Klicke unten um es zu starten.")
 
     if st.button("🚀  Scraper starten"):
-        # Config speichern bevor Start
-        speichere_config(config)
+        speichere_config(st.session_state.config)
+        st.info(f"✓ Gespeichert in `{CONFIG_FILE}`")
 
-        # Skript mit aktueller Config aufrufen
-        st.markdown("**Starte Scraper...**")
-        cmd = f"python3 main.py --config {CONFIG_FILE}"
-        st.code(cmd)
-        st.success("Config gespeichert. Führe den obigen Befehl im Terminal aus.")
-        st.markdown("Oder starte direkt:")
-        st.code(f"""cd /pfad/zu/deinem/projekt
-python3 main.py --config secrets/config.json""")
 
+        import subprocess, os
+        projekt_pfad = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+        with st.spinner("Scraper läuft... (kann einige Minuten dauern)"):
+            result = subprocess.run(
+                ["python3", "main.py", "--config", str(CONFIG_FILE)],
+                capture_output=True,
+                text=True,
+                cwd=projekt_pfad
+            )
+
+        if result.returncode == 0:
+            st.success("✅ Fertig!")
+            st.code(result.stdout[-3000:])
+        else:
+            st.error("❌ Fehler!")
+            st.code(result.stderr[-1000:])
 
 # ═══════════════════════════════════════════════
 #  SEITE: ERGEBNISSE
@@ -393,36 +389,3 @@ elif "Ergebnisse" in seite:
 """, unsafe_allow_html=True)
 
 
-# ═══════════════════════════════════════════════
-#  SEITE: STATISTIKEN
-# ═══════════════════════════════════════════════
-elif "Statistiken" in seite:
-    st.markdown("# Statistiken")
-
-    if not ERGEBNISSE_FILE.exists():
-        st.warning("Noch keine Ergebnisse vorhanden.")
-    else:
-        with open(ERGEBNISSE_FILE, "r") as f:
-            ergebnisse = json.load(f)
-
-        empfohlen = [a for a in ergebnisse if a.get("empfohlen")]
-
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Artikel gesamt</div><div class="metric-value">{len(ergebnisse)}</div></div>', unsafe_allow_html=True)
-        with col2:
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Empfohlen</div><div class="metric-value">{len(empfohlen)}</div></div>', unsafe_allow_html=True)
-        with col3:
-            avg = sum(a.get("bewertung",0) for a in ergebnisse if a.get("bewertung")) / max(len(ergebnisse),1)
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Ø Bewertung</div><div class="metric-value">{avg:.1f}</div></div>', unsafe_allow_html=True)
-        with col4:
-            mit_massen = sum(1 for a in ergebnisse if any(v for v in (a.get("masse") or {}).values() if v))
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Mit Maßangaben</div><div class="metric-value">{mit_massen}</div></div>', unsafe_allow_html=True)
-
-        st.markdown("---")
-        st.markdown("**Bewertungsverteilung**")
-        bewertungen = [a.get("bewertung",0) for a in ergebnisse if a.get("bewertung")]
-        if bewertungen:
-            import pandas as pd
-            df = pd.DataFrame({"Bewertung": bewertungen})
-            st.bar_chart(df["Bewertung"].value_counts().sort_index())

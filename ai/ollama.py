@@ -7,15 +7,21 @@ from pathlib import Path
 #  OLLAMA
 # ─────────────────────────────────────────────
 def frage_ollama(prompt: str, ollama_url: str, modell: str) -> str:
+    if not modell:
+        print("  ⚠️  Fehler: Kein Modellname übergeben!")
+        return ""
     try:
-        response = httpx.post(
-            ollama_url,
-            json={"model": modell, "prompt": prompt, "stream": False, "options": {"temperature": 0.1}},
-            timeout=120.0
-        )
-        return response.json()["response"].strip()
+        payload = {"model": modell, "prompt": prompt, "stream": False}
+        response = httpx.post(ollama_url, json=payload, timeout=120.0)
+        
+        # Debug: Zeige was wirklich zurückkommt, wenn es kein 200 OK ist
+        if response.status_code != 200:
+            print(f"  ⚠️  Ollama HTTP Fehler {response.status_code}: {response.text}")
+            return ""
+
+        return response.json().get("response", "").strip()
     except Exception as e:
-        print(f"  ⚠️  Ollama-Fehler: {e}")
+        print(f"  ⚠️  Ollama-Verbindungsfehler: {e}")
         return ""
 
 def analysiere_artikel(artikel: dict, config: dict) -> dict:
@@ -26,7 +32,7 @@ def analysiere_artikel(artikel: dict, config: dict) -> dict:
 Buyer preferences: {stile} style, size {config['groesse']}, max price {config['max_preis']}€.
 Buyer measurements: bust {eigene.get('brust','?')}cm, waist {eigene.get('taille','?')}cm, hips {eigene.get('huefte','?')}cm, shoulders {eigene.get('schulter','?')}cm.
 
-Listing:
+Listing: 
 Title: {artikel['titel']}
 Price: {artikel['preis']}
 Description: {artikel['beschreibung']}

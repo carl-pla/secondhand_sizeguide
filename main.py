@@ -1,7 +1,6 @@
 import json
 import asyncio
 import random
-import json
 import argparse
 import httpx
 from pathlib import Path
@@ -10,7 +9,8 @@ from playwright_stealth import Stealth
 
 from scraper.vinted_scraper import scrape_artikel_details, scrape_suchergebnisse
 from ai.ollama import analysiere_artikel
-from database.config_defaults import lade_config
+from database.config_defaults import lade_config, ERGEBNISSE_FILE,  EMPFEHLUNGEN_FILE, VINTED_GROESSEN
+
 
 # ─────────────────────────────────────────────
 #  MAIN
@@ -18,12 +18,13 @@ from database.config_defaults import lade_config
 async def main(config: dict):
     database_dir = Path("database")
     database_dir.mkdir(exist_ok=True)
+    
+    # Nutze .get(schlüssel, standardwert)
+    modell = config.get('ollama_modell', 'Noch nicht gewählt')
+    groesse = config.get('groesse', '-')
+    max_preis = config.get('max_preis', 0)
 
-    # Ausgabepfade in secrets/
-    ergebnisse_path = database_dir / "vinted_ergebnisse.json"
-    empfehlungen_path = database_dir / "vinted_empfehlungen.json"
-
-    print(f"🚀 Vinted Scraper | Modell: {config['ollama_modell']} | {config['groesse']} | max {config['max_preis']}€\n")
+    print(f"🚀 Vinted Scraper | Modell: {modell} | {groesse} | max {max_preis}€\n")
 
     try:
         httpx.get(config["ollama_url"].replace("/api/generate", ""), timeout=3)
@@ -77,20 +78,32 @@ async def main(config: dict):
     empfohlen = [a for a in ergebnisse if a.get("empfohlen")]
 
     # In secrets/ speichern
-    with open(ergebnisse_path, "w", encoding="utf-8") as f:
+    ERGEBNISSE_FILE.parent.mkdir(exist_ok=True)
+    with open(ERGEBNISSE_FILE, "w", encoding="utf-8") as f:
         json.dump(ergebnisse, f, ensure_ascii=False, indent=2)
-    with open(empfehlungen_path, "w", encoding="utf-8") as f:
+    with open(EMPFEHLUNGEN_FILE, "w", encoding="utf-8") as f:
         json.dump(empfohlen, f, ensure_ascii=False, indent=2)
+
 
     print(f"\n{'='*60}")
     print(f"✅ {len(empfohlen)} von {len(ergebnisse)} empfohlen")
-    print(f"💾 {ergebnisse_path}")
-    print(f"💾 {empfehlungen_path}")
+    print(f"💾 {ERGEBNISSE_FILE}")
+    print(f"💾 {EMPFEHLUNGEN_FILE}")
     print("="*60)
+    
+    return ergebnisse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="secrets/config.json", help="Pfad zur config.json")
+    parser.add_argument("--config", default="dashboard/secrets/config.json")
     args = parser.parse_args()
+    
+    # Debug-Print einfügen:
+    print(f"DEBUG: Lade Config von {args.config}")
     cfg = lade_config(args.config)
+    
+    # Prüfen, ob nach dem Laden Daten da sind
+    if not cfg.get("ollama_modell"):
+        print("❌ KRITISCH: ollama_modell ist leer! Prüfe dashboard/secrets/config.json")
+    
     asyncio.run(main(cfg))

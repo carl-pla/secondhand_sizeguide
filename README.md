@@ -48,31 +48,25 @@ python3 main.py
 - [x] Stil-Matching (Vintage, Retro, Y2K, etc.)
 - [x] Passform-Vergleich mit eigenen Maßen (Differenz in cm)
 - [x] Bewertung 1–10 + Empfehlung ja/nein
-- [x] Strukturierte JSON-Ausgabe pro Artikel
+- [x] Strukturierte JSON-Ausgabe pro Artikel, die in MongoDB gespeichert wird
 
 ### Konfiguration & UI
 
 - [x] Zentrale `config_defaults.py` (ein Single Source of Truth für alle Module)
 - [x] Streamlit Dashboard: Präferenzen, Maße, Suche, Ollama-Einstellungen
-- [x] Config wird in `secrets/config.json` gespeichert (nicht im Repo)
-- [x] Ergebnisse & Empfehlungen als JSON in `secrets/`
+- [x] Ergebnisse & Empfehlungen als JSON 
 
 ### CI/CD
 
-- [x] GitHub Actions Pipeline (noch nicht automatisch)
+- [ ] GitHub Actions Pipeline (noch nicht automatisch --> bzw. tests, security, docker, deploy unvollständig)
 - [x] Ergebnisse als Workflow-Artifact herunterladbar
-- [x] Optional: automatischer Commit der Ergebnisse ins Repo
 
 ---
 
-## Roadmap 🚀
 
-### Nächster Schritt: Web-Recherche für fehlende Maße
+### Weitere geplante Features
 
-Wenn ein Artikel keine oder unvollständige Maßangaben in der Beschreibung hat, soll das System automatisch im Internet nach den Originalmaßen suchen.
-
-**Geplanter Ablauf:**
-
+- [ ] Wenn ein Artikel keine oder unvollständige Maßangaben in der Beschreibung hat, soll das System automatisch im Internet nach den Originalmaßen suchen.
 1. Ollama erkennt dass Maße fehlen oder unvollständig sind
 2. Suchquery wird automatisch generiert z.B. `"Levi's 501 W30 L32 Maße Brust Taille"`
 3. Gezielte Suche auf Referenzseiten:
@@ -82,28 +76,22 @@ Wenn ein Artikel keine oder unvollständige Maßangaben in der Beschreibung hat,
 4. Gefundene Maße werden mit Artikeldaten zusammengeführt
 5. Ollama bewertet erneut mit vollständigen Informationen
 
-**Technisch geplant:**
-
-- [ ] Web-Search-Modul in `ai/` integrieren (httpx + HTML-Parsing oder Search-API)
-- [ ] Ollama-Prompt erweitern: "Welche Maße fehlen? Generiere Suchquery."
-- [ ] Fallback-Logik: Beschreibung → Web-Recherche → Markentabelle
-- [ ] Konfidenz-Score: wie sicher sind die gefundenen Maße (direkt vs. recherchiert)
-- [ ] Quellenangabe pro Maß im JSON (`"brust_quelle": "levis.com/sizeguide"`)
-
-### Weitere geplante Features
-
-- [ ] Vinted Benachrichtigung: Push-Notification bei neuen Top-Artikeln
-- [ ] Preishistorie: Artikel über Zeit beobachten
-- [ ] Mehrere Nutzerprofile (z.B. für verschiedene Personen)
-- [ ] Sellpy-Support (sobald Anti-Bot-Schutz umgehbar)
-- [ ] Bildanalyse: Stil-Erkennung anhand des Artikelfotos (LLaVA oder ähnlich)
-- [ ] Exportfunktion im Dashboard (CSV, PDF)
+- [ ] E-mail Benachrichtung als eine Art "Newsletter"
+1. Daten aus Scrapper identifiziert 
+2. in JSON Datei gespeichert, gleichzeitig landen Empfehlungen in MongoDB
+3. Empfehlungen werden pro Recherche agregiert und dann in einen Newsletter verpackt 
+4. Newsletter soll automatisiert 1mal pro Woche kommen
 
 ---
 
+## Aufgetretene Probleme
+
+- Synchronisieren der Variablen des streamlit Dashboards und der JSON Dateien
+- Scraper öfters blockiert, besonders sensibel ist Sellpy 
+
 ## Konfiguration
 
-Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `secrets/config.json` gespeichert:
+Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.json` gespeichert:
 
 | Parameter | Beschreibung | Beispiel |
 
@@ -121,7 +109,6 @@ Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `secrets/
 
 ## Hinweise
 
-- `secrets/` wird via `.gitignore` nie ins Repository gepusht
 - Für CI/CD den Inhalt von `secrets/config.json` als GitHub Secret `VINTED_CONFIG` hinterlegen
 - Ollama muss lokal laufen – kein externer API-Key nötig
 - Für die CI/CD Pipeline `headless=True` in `vinted_scraper.py` setzen

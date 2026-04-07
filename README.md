@@ -40,6 +40,8 @@ python3 main.py
 - [x] Cookie-Banner automatisch wegklicken
 - [x] Deduplizierung gefundener Artikel
 
+--> dauert sehr lange! Scrapt nur sehr wenig Volumen!
+
 ### KI-Analyse (Ollama / llama3, lokal)
 
 - [x] Maße aus Artikelbeschreibung extrahieren (Brust, Taille, Hüfte, Schulter, Länge, Ärmel, Innennaht)
@@ -58,12 +60,16 @@ python3 main.py
 ### CI/CD
 
 - [ ] GitHub Actions Pipeline (noch nicht automatisch --> bzw. tests, security, docker, deploy unvollständig)
-- [x] Ergebnisse als Workflow-Artifact herunterladbar
+- [ ] Ergebnisse als Workflow-Artifact herunterladbar
 
 ---
 
 
 ### Weitere geplante Features
+
+- [ ] MongoDB aufsetzen und dort JSON speichern lassen
+- [ ] Volumen des Scrapers erhöhen --> noch unzufriedene Ergebnisse!
+- [ ] Zeit des Scrapers und AI-Analyse reduzieren 
 
 - [ ] Wenn ein Artikel keine oder unvollständige Maßangaben in der Beschreibung hat, soll das System automatisch im Internet nach den Originalmaßen suchen.
 1. Ollama erkennt dass Maße fehlen oder unvollständig sind
@@ -77,7 +83,7 @@ python3 main.py
 
 - [ ] E-mail Benachrichtung als eine Art "Newsletter"
 1. Daten aus Scrapper identifiziert 
-2. in JSON Datei gespeichert, gleichzeitig landen Empfehlungen in MongoDB
+2. in JSON Datei gespeichert, gleichzeitig landen Empfehlungen in MongoDB 
 3. Empfehlungen werden pro Recherche agregiert und dann in einen Newsletter verpackt 
 4. Newsletter soll automatisiert 1mal pro Woche kommen
 
@@ -111,3 +117,4 @@ Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.j
 - Für CI/CD den Inhalt von `secrets/config.json` als GitHub Secret `VINTED_CONFIG` hinterlegen
 - Ollama muss lokal laufen – kein externer API-Key nötig
 - Für die CI/CD Pipeline `headless=True` in `vinted_scraper.py` setzen
+

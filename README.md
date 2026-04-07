@@ -29,6 +29,11 @@ python3 main.py
 ```
 
 ---
+## Workflow 
+--> Konfiguration (Input) über das Streamlit Dashboard, Konfigurationsdaten landen in der config.json 
+--> Datengewinnung durch Scraper: Biblitothek "Playwright" um Rohtext und Beschreibungen zu extrahieren, ohne geblockt zu werden
+--> Auswertung der Scraping Ergebnisse mit ollama lokal. LLM fungiert als Parser: unstrukturiertre Daten zu harten Daten 
+--> Specherung und Output: LLM gibt sauberes JSON zurück mit Empfehlungen (Grundlage für relationale Datenbank und dementesprechend Newsletter (Github kann automatisieren)
 
 ## Stand der Dinge ✅
 
@@ -40,7 +45,9 @@ python3 main.py
 - [x] Cookie-Banner automatisch wegklicken
 - [x] Deduplizierung gefundener Artikel
 
---> dauert sehr lange! Scrapt nur sehr wenig Volumen!
+--> dauert sehr lange! Scrapt nur sehr wenig Volumen! 
+==> Lösung?: zunächst nur erste Parameter des Artikels scannen, wenn true dann weiter 
+==> Lösung?: Cookie-Persistenz, speichern der Cookies unter selben IP-Adresse, sonst wirkt auf hohes Volumen "verdächtig"
 
 ### KI-Analyse (Ollama / llama3, lokal)
 

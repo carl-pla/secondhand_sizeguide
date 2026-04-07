@@ -6,7 +6,7 @@ Ein automatisierter Secondhand-Artikel-Finder mit KI-gestützter Passform-Analys
 
 ```bash
 # 1. Abhängigkeiten installieren
-pip install streamlit playwright playwright-stealth httpx
+pip(3) install -r requirements.txt --> "(3)", wenn Mac User
 
 # 2. Playwright Browser
 playwright install chromium
@@ -22,8 +22,7 @@ $env:OLLAMA_HOST="0.0.0.0:11435"
 ollama serve
 
 # 5. Dashboard starten
-cd dashboard
-streamlit run dashboard.py
+streamlit run dashboard/dashboard.py
 
 # 6. Scraper manuell starten
 python3 main.py

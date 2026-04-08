@@ -67,7 +67,12 @@ python3 main.py
 ### CI/CD
 
 - [ ] GitHub Actions Pipeline (noch nicht automatisch --> bzw. tests, security, docker, deploy unvollständig)
+- [ ] Für die GitHub Actions brauchen wir in der Ergebnis Json ein Zeitfeld, also bei jedem gespeicherten Objekt ein "created_at"-item, damit die Actions wissen, was jede Woche neu ist 
 - [ ] Ergebnisse als Workflow-Artifact herunterladbar
+- [ ] Github Actions timed die Code Ausführung und "Resend" verschickt die Mail (sehr simple API, weil wir brauchen nur API-Key, Absender-/ Empfängeradresse)
+- [ ] ### wichtig: GitHub erreicht MongoDB nur, wenn die Datenbank öffentlich erreichbar ist (mit Connection URI in MongoDB-Atlas)
+- [ ] Wir brauchen jetzt eine weekly_newsletter.YML Datei im /workflow Ordner auf dem Default Branch (GitHub erkennt automatisch den Flow) und eine workflow_dispatch Datei. Dann erscheint bei den Actions ein Button mit "Run Workflow"
+- [ ] Auch brauchen wir in den Secrets: MONGO_URI, RESEND_API_KEY und MAIL_FROM und MAIL_TO
 
 ---
 
@@ -76,17 +81,7 @@ python3 main.py
 
 - [ ] MongoDB aufsetzen und dort JSON speichern lassen
 - [ ] Volumen des Scrapers erhöhen --> noch unzufriedene Ergebnisse!
-- [ ] Zeit des Scrapers und AI-Analyse reduzieren 
-
-- [ ] Wenn ein Artikel keine oder unvollständige Maßangaben in der Beschreibung hat, soll das System automatisch im Internet nach den Originalmaßen suchen.
-1. Ollama erkennt dass Maße fehlen oder unvollständig sind
-2. Suchquery wird automatisch generiert z.B. `"Levi's 501 W30 L32 Maße Brust Taille"`
-3. Gezielte Suche auf Referenzseiten:
-   - Marken-Größentabellen (z.B. levis.com, adidas.com)
-   - Vintage-Maßtabellen (z.B. vintageshirts.com, sizecharter.com)
-   - Allgemeine Modedatenbanken
-4. Gefundene Maße werden mit Artikeldaten zusammengeführt
-5. Ollama bewertet erneut mit vollständigen Informationen
+- [ ] LLm-Analyse zu wenig kritisch
 
 - [ ] E-mail Benachrichtung als eine Art "Newsletter"
 1. Daten aus Scrapper identifiziert 
@@ -99,7 +94,8 @@ python3 main.py
 ## Aufgetretene Probleme
 
 - Synchronisieren der Variablen des streamlit Dashboards und der JSON Dateien
-- Scraper öfters blockiert, besonders sensibel ist Sellpy 
+- Scraper öfters blockiert, besonders sensibel ist Sellpy
+- Überblick geht schenll verloren, über Service 
 
 ## Konfiguration
 

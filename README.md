@@ -67,7 +67,12 @@ python3 main.py
 ### CI/CD
 
 - [ ] GitHub Actions Pipeline (noch nicht automatisch --> bzw. tests, security, docker, deploy unvollständig)
+- [ ] Für die GitHub Actions brauchen wir in der Ergebnis Json ein Zeitfeld, also bei jedem gespeicherten Objekt ein "created_at"-item, damit die Actions wissen, was jede Woche neu ist 
 - [ ] Ergebnisse als Workflow-Artifact herunterladbar
+- [ ] Github Actions timed die Code Ausführung und "Resend" verschickt die Mail (sehr simple API, weil wir brauchen nur API-Key, Absender-/ Empfängeradresse)
+- [ ] ### wichtig: GitHub erreicht MongoDB nur, wenn die Datenbank öffentlich erreichbar ist (mit Connection URI in MongoDB-Atlas)
+- [ ] Wir brauchen jetzt eine weekly_newsletter.YML Datei im /workflow Ordner auf dem Default Branch (GitHub erkennt automatisch den Flow) und eine workflow_dispatch Datei. Dann erscheint bei den Actions ein Button mit "Run Workflow"
+- [ ] Auch brauchen wir in den Secrets: MONGO_URI, RESEND_API_KEY und MAIL_FROM und MAIL_TO
 
 ---
 

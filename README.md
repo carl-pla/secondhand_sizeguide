@@ -62,7 +62,7 @@ python3 main.py
 
 - [x] Zentrale `config_defaults.py` (ein Single Source of Truth für alle Module)
 - [x] Streamlit Dashboard: Präferenzen, Maße, Suche, Ollama-Einstellungen
-- [x] Ergebnisse & Empfehlungen als JSON 
+- [x] Ergebnisse & Empfehlungen als JSON
 
 ### CI/CD
 
@@ -81,13 +81,17 @@ python3 main.py
 
 - [ ] MongoDB aufsetzen und dort JSON speichern lassen
 - [ ] Volumen des Scrapers erhöhen --> noch unzufriedene Ergebnisse!
-- [ ] LLm-Analyse zu wenig kritisch
+- [ ] LLM-Analyse zu wenig kritisch
+- [ ] Pytests schreiben
+- [ ] App containerisieren
+- [ ] Deployen der streamlit App
+- [ ] CI/CD Pipeline integrieren
 
 - [ ] E-mail Benachrichtung als eine Art "Newsletter"
-1. Daten aus Scrapper identifiziert 
-2. in JSON Datei gespeichert, gleichzeitig landen Empfehlungen in MongoDB 
-3. Empfehlungen werden pro Recherche agregiert und dann in einen Newsletter verpackt 
-4. Newsletter soll automatisiert 1mal pro Woche kommen
+    1. Daten aus Scrapper identifiziert
+    2. in JSON Datei gespeichert, gleichzeitig landen Empfehlungen in MongoDB 
+    3. Empfehlungen werden pro Recherche agregiert und dann in einen Newsletter verpackt
+    4. Newsletter soll automatisiert 1mal pro Woche kommen
 
 ---
 
@@ -95,7 +99,8 @@ python3 main.py
 
 - Synchronisieren der Variablen des streamlit Dashboards und der JSON Dateien
 - Scraper öfters blockiert, besonders sensibel ist Sellpy
-- Überblick geht schenll verloren, über Service 
+- Überblick geht schenll verloren, über Service
+- Robustness Strategy beim Scraping anspruchsvoll zu wissen, da sich Seiten mit den Metadaten und keys ständig ändern
 
 ## Konfiguration
 
@@ -120,4 +125,3 @@ Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.j
 - Für CI/CD den Inhalt von `secrets/config.json` als GitHub Secret `VINTED_CONFIG` hinterlegen
 - Ollama muss lokal laufen – kein externer API-Key nötig
 - Für die CI/CD Pipeline `headless=True` in `vinted_scraper.py` setzen
-

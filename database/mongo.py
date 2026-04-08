@@ -1,8 +1,10 @@
 import pymongo
 import json
+import os
 
+dir = os.path.dirname(__file__)
 uri = "mongodb://localhost:27017/"
-file = "/Users/carlplacek/Desktop/Uni/DataScienceProjekt/secrets/vinted_empfehlungen.json"
+file = os.path.join(dir, "../secrets/vinted_empfehlungen.json")
 
 # Verbindung zur MongoDB herstellen
 my_client = pymongo.MongoClient(uri)
@@ -10,7 +12,7 @@ my_client = pymongo.MongoClient(uri)
 mydb = my_client["Secondhand_db"]
 
 # collection erstellen (eine Gruppe von Dokumenten)
-collection = mydb[file]
+collection = mydb["vinted_empfehlungen"]
 
 # Deine JSON-Datei laden 
 with open(file, "r", encoding="utf-8") as file:

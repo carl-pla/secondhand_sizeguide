@@ -1,5 +1,6 @@
 import json
 import httpx
+import datetime
 from pathlib import Path
 
 
@@ -62,7 +63,7 @@ Respond ONLY with JSON, no text before or after:
     print(f"    🤖 Analysiere: {artikel['titel'][:50]}...")
     antwort = frage_ollama(prompt, config["ollama_url"], config["ollama_modell"])
     if not antwort:
-        return {**artikel, "analyse_fehler": True}
+        return {**artikel, "analyse_fehler": True, "sent": False, "timestamp": datetime.datetime.now()}
 
     try:
         analyse = json.loads(antwort)
@@ -72,7 +73,7 @@ Respond ONLY with JSON, no text before or after:
             end = antwort.rfind("}") + 1
             analyse = json.loads(antwort[start:end])
         except:
-            return {**artikel, "analyse_fehler": True, "raw": antwort[:200]}
+            return {**artikel, "analyse_fehler": True, "raw": antwort[:200], "sent": False, "timestamp": datetime.datetime.now()}
 
     # Passform-Vergleich
     passform_hinweise = []
@@ -106,4 +107,6 @@ Respond ONLY with JSON, no text before or after:
         "begruendung": analyse.get("begruendung"),
         "bewertung": analyse.get("bewertung"),
         "empfohlen": analyse.get("empfohlen", False),
+        "sent": False,
+        "timestamp": datetime.datetime.now()
     }

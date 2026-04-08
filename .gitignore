@@ -6,6 +6,10 @@ __pycache__/
 .env 
 env
 venv
+dashboard/secrets/results/vinted_empfehlungen.json
+dashboard/secrets/results/vinted_ergebnisse.json
+node_modules
+datascienceprojekt.egg-info
  
 # Debug
 debug.png

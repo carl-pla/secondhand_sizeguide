@@ -34,8 +34,8 @@ DEFAULT_CONFIG = {
                      "laenge_oberteil": 60, "innennaht": 78},
     "ollama_url": "http://localhost:11435/api/generate",
     "ollama_modell": "llama3",
-    "max_artikel_pro_suche": 5,
-    "max_suchen": 2,
+    "max_artikel_pro_suche": 3,
+    "max_suchen": 1,
     "pause_zwischen_artikeln": [4, 7],
     "pause_zwischen_suchen": [6, 10],
 }

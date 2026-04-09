@@ -134,7 +134,7 @@ with st.sidebar:
     st.markdown("---")
     seite = st.radio(
         "",
-        ["⚙️  Einstellungen", "🔍  Suche starten", "📋  Ergebnisse", "📊  Statistiken"],
+        ["⚙️  Einstellungen", "🔍  Suche starten", "📋  Ergebnisse"],
         label_visibility="collapsed"
     )
     st.markdown("---")
@@ -180,7 +180,7 @@ if "Einstellungen" in seite:
             st.session_state.config["stile"] = st.multiselect(
                 "Bevorzugte Stile",
                 STIL_OPTIONEN,
-                default=st.session_state.config.get("stile", ["Vintage", "Retro"])
+                default=st.session_state.config.get("stile", ["Vintage"])
             )
             st.session_state.config["min_zustand"] = st.selectbox(
                 "Mindest-Zustand",
@@ -219,16 +219,18 @@ if "Einstellungen" in seite:
         col1, col2 = st.columns(2)
         with col1:
             st.session_state.config["max_artikel_pro_suche"] = st.slider(
-                "Artikel pro Suchbegriff", 1, 20,
+                "Artikel pro Suchbegriff", 1, 60,
                 st.session_state.config.get("max_artikel_pro_suche", 5)
             )
         with col2:
             suchbegriffe = st.session_state.config["suchbegriffe"]
+            anzahl = max(2, len(suchbegriffe))  # minimum 2 damit Slider nicht crasht
             st.session_state.config["max_suchen"] = st.slider(
-                "Maximale Anzahl Suchbegriffe", 1, max(1, len(suchbegriffe)),
-                min(2, max(1, len(suchbegriffe)))
+                "Maximale Anzahl Suchbegriffe", 1, anzahl,
+                min(st.session_state.config.get("max_suchen", 1), anzahl)
             )
-
+            
+            
         st.markdown("**Anti-Ban Pausen (Sekunden)**")
         col1, col2 = st.columns(2)
         with col1:

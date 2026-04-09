@@ -2,3 +2,4 @@ streamlit
 playwright 
 playwright-stealth 
 httpx
+pymongo

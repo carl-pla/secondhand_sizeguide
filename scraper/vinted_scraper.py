@@ -23,9 +23,9 @@ Daten-Check: Mit _parse_preis wird sichergestellt, dass das Budget wirklich eing
 3 wichtigsten Parameter nach denen vorgefiltert wird, um nicht alles bis ins detail zu analysieren
 """
 async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
-    groesse_id = VINTED_GROESSEN.get(config["groesse"], "207")
-    max_artikel = VINTED_GROESSEN.get(config["max_suchen"], 100)
-    max_preis   = VINTED_GROESSEN.get(config["max_preis"], 50)
+    groesse_id  = VINTED_GROESSEN.get(config["groesse"], "207")  # ← richtig, aus VINTED_GROESSEN
+    max_artikel = config.get("max_artikel_pro_suche", 50)        # ← aus config, nicht VINTED_GROESSEN
+    max_preis   = config.get("max_preis", 50)     
 
     """
     spezieller Link für Vinted, um die Konfiguration zu finden --> Hier eventuell try/except Block einbauen, 
@@ -44,9 +44,9 @@ async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
     Vinted-URL wird mit Playwright geöffnet, wartet bis Seite "fertig" geladen ist, 
     muss durch asyncio "nachdenken" o-ä. simulieren, dass Anfrage des Scrapers nicht gleich gesperrt wird 
     """ 
-    print(f"\nGrobe Suche: '{suchbegriff}' | Größe: {config['groesse']} | Max_Preis: {'max_preis'}€ | Max_Artikel: {'max_artikel'}")
-    await page.goto(url, wait_until="networkidle", timeout=60000)
-    await asyncio.sleep(random.uniform(2, 4))
+    print(f"\nGrobe Suche: '{suchbegriff}' | Größe: {config['groesse']} | Max_Preis: {max_preis}€ | Max_Artikel: {max_artikel}")
+    await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+    await asyncio.sleep(random.uniform(1, 2))
 
     """
     Cookie Banner werden weggeglickt, falls diese vorhanden sein sollten 
@@ -64,7 +64,7 @@ async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
     """
     artikel_links = []
     scroll_versuche = 0
-    max_scrolls = max_artikel // 20  # ~20 Artikel pro Scroll
+    max_scrolls = max(3, max_artikel // 20)  # ~20 Artikel pro Scroll
 
     """
     while-Schleife: prüft 1.max_artikel gesucht oder 2.max_scrolls erreicht, vermeidet nicht ewiges weiterlaufen 
@@ -97,7 +97,7 @@ async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
                 full_url = full_url.split("?")[0]
 
                 # Duplikat-Check
-                if full_url in [a["url"] for a in artikel_links]:
+                if full_url in [a["url"] for a in artikel_links]: 
                     continue
 
                 """
@@ -135,7 +135,7 @@ async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
         können neue Artikel geladen werden, was Infinte Scrolling auspielt:)
         """
         await page.evaluate("window.scrollBy(0, window.innerHeight * 2)")
-        await asyncio.sleep(random.uniform(1.5, 3))
+        await asyncio.sleep(random.uniform(1, 1.5))
         scroll_versuche += 1
 
     print(f"  ✓ {len(artikel_links)} Artikel nach Grob-Filter")
@@ -151,7 +151,7 @@ async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
 """
 async def scrape_artikel_details(page, url: str) -> dict | None:
     try:
-        await page.goto(url, wait_until="networkidle", timeout=45000)
+        await page.goto(url, wait_until="domcontentloaded", timeout=45000)
         await asyncio.sleep(random.uniform(1.5, 2.5))
         await page.wait_for_selector("h1", timeout=20000)
 

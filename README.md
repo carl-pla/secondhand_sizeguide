@@ -32,10 +32,31 @@ python3 main.py
 
 ## Workflow
 
---> Konfiguration (Input) über das Streamlit Dashboard, Konfigurationsdaten landen in der config.json
---> Datengewinnung durch Scraper: Biblitothek "Playwright" um Rohtext und Beschreibungen zu extrahieren, ohne geblockt zu werden
---> Auswertung der Scraping Ergebnisse mit ollama lokal. LLM fungiert als Parser: unstrukturiertre Daten zu harten Daten
---> Specherung und Output: LLM gibt sauberes JSON zurück mit Empfehlungen (Grundlage für relationale Datenbank und dementesprechend Newsletter (Github kann automatisieren)
+### 1. Systemarchitektur & Containerisierung (Docker)
+- Isolation der Abhängigkeiten: MongoDB und Ollama (Llama 3) laufen in isolierten Umgebungen. Das verhindert Konflikte mit dem Host-System 
+- Ressourcenmanagement: Du kannst genau steuern, wie viel RAM oder GPU-Leistung der Ollama-Container bekommt.
+- Skalierbarkeit: Theoretisch könntest du den MongoDB-Container auf einen Server auslagern, ohne eine Zeile Code in deiner main.py zu ändern (außer der URI).
+
+### 2. Asynchrone Datenakquise (Playwright & Asyncio)
+- Das ist technisch einer der anspruchsvollsten Teile. Stichwort synchrones vs. asynchrones Scraping
+- Non-blocking I/O: Während Playwright auf die Antwort von Vinted wartet (Netzwerk-Latenz), blockiert das Programm nicht. Das ist die Basis für die Effizienz.
+- Stealth-Technologie: Einsatz von playwright-stealth? Hier geht es um das "Fingerprinting". Vinted prüft Parameter wie navigator.webdriver. Stealth überschreibt diese im Browser-Kern, um die Automatisierung zu tarnen.
+- State-Management: Page durchreichen: Cookies und Session-Daten konsistent zu halten.
+
+### 3. Natural Language Processing (LLM-Inferenz)
+- Hier gehst du tief in die KI-Logik ein.
+- Prompt-Engineering als Interface: Beschreibe den Prompt nicht als "Text", sondern als Schnittstellen-Definition. Er wandelt unstrukturierte natürliche Sprache (Vinted-Beschreibung) in ein strukturiertes Datenschema (JSON) um.
+- Lokale Inferenz vs. API: Vorteil von Ollama: Datenschutz, keine Kosten pro Token, geringe Latenz im lokalen Netzwerk, gegenüber OpenAI bspw.
+- Concurrency (Threading): Erkläre, warum du für die KI-Analyse concurrent.futures.ThreadPoolExecutor nutzt. Da die KI-Analyse CPU/GPU-lastig ist und über HTTP-Requests läuft, ist Parallelisierung hier der größte Hebel für die Geschwindigkeit.
+
+### 4. Datenvalidierung & Business Logic (Die "Harten Checks")
+- wissenschaftliche Diskussion: Warum reicht die KI/LLM allein nicht aus?
+=> Deterministik vs. Probabilistik: Python-Code ist deterministisch (1+1 ist immer 2). Eine KI ist probabilistisch (sie rät basierend auf Wahrscheinlichkeiten)!!!
+- Validierungsschicht: hybride Architektur. Die KI übernimmt das Verständnis, aber die Validierung (Preis-Checks, Zustands-Ranking) übernimmt der Python-Code. Das erhöht die Zuverlässigkeit des Gesamtsystems ("Robust AI").
+
+### 5. Datenhaltung (NoSQL vs. Relational)
+- Warum MongoDB? Schema-Flexibilität: Da die JSON-Antworten der KI variieren können (z.B. findet sie mal Maße, mal nicht), ist ein starres SQL-Schema unpraktisch. MongoDB (BSON) speichert die Daten so, wie sie reinkommen.
+- JSON-Native: gesamter Workflow auf JSON basiert (Scraper -> Ollama -> MongoDB), gibt es keinen "Impedance Mismatch" (Daten müssen nicht umständlich umgewandelt werden).
 
 ## Stand der Dinge ✅
 
@@ -103,6 +124,29 @@ python3 main.py
 - Überblick geht schenll verloren, über Service
 - Robustness Strategy beim Scraping anspruchsvoll zu wissen, da sich Seiten mit den Metadaten und keys ständig ändern
 
+## Design Entscheidungen und Learnings
+- zentrale Ressourcensteuerung der main.py: Anstatt zustandslose Einzel-Scraper zu verwenden, verwaltet die Hauptsteuerung (main.py) den Browser-Kontext. Dies ermöglicht eine persistente Session über mehrere Suchbegriffe hinweg. Die anschließende Deduplizierung auf Applikationsebene stellt sicher, dass die rechenintensive KI-Analyse (LLM-Inferenz) für jeden Datensatz nur genau einmal ausgeführt wird, was die Gesamtlaufzeit des Prozesses signifikant reduziert.
+
+- Die „JSON-Klammer-Suche“ (Robustheit)
+Beobachtung: In deiner ollama.py versuchst du nicht nur json.loads(), sondern nutzt antwort.find("{").
+Warum das wichtig ist: KIs neigen dazu, zu „plappern“ (z. B. „Hier ist das Ergebnis: { ... }“). Ein normaler Parser würde abstürzen.
+Bericht-Argument: Du hast hier ein „Error-Handling für nicht-deterministische KI-Outputs“ implementiert. Du diskutierst die Schwierigkeit, eine Brücke zwischen der unstrukturierten Sprache der KI und der strukturierten Welt der Datenbanken (JSON/MongoDB) zu schlagen.
+
+- Der „Human-Mimicry“ Faktor (Stealth-Technik)
+Beobachtung: Du nutzt Stealth(), zufällige Pausen (random.uniform) und echte User-Agents.
+Warum das wichtig ist: Vinted nutzt hochentwickelte Bot-Detection (wie Cloudflare oder Akamai). Ohne diese Feinheiten würde dein Projekt nach 30 Sekunden gesperrt.
+Bericht-Argument: Diskussion über „Ethisches Scraping und Bot-Detection-Umgehung“. Du erklärst, wie du durch Simulation menschlichen Verhaltens (Latenzen, Viewport-Größen) die Verfügbarkeit deiner Datenquelle sicherstellst.
+
+- Das „Wahrheit-Problem“ (KI vs. Python-Code)
+Beobachtung: Du hast „Harte Checks“ eingebaut, die das Urteil der KI überschreiben (z. B. beim Preis-Parsing-Fix).
+Warum das wichtig ist: Eine KI ist gut im Verstehen von Kontext, aber oft schlecht im Rechnen (Halluzinationen bei Zahlen).
+Bericht-Argument: Du thematisiert die „Validierung von KI-generierten Inhalten“. Das ist ein hochaktuelles Thema: „Human-in-the-loop“ oder in diesem Fall „Code-in-the-loop“. Du zeigst auf, dass die KI die Vorarbeit leistet, aber die Letztentscheidung bei harten Regeln (Business Logic) verbleibt.
+
+- Parallelisierung (Effizienz vs. Rate-Limiting)
+Beobachtung: Du nutzt den ThreadPoolExecutor mit genau 3 Workern.
+Warum das wichtig ist: Würdest du 100 Artikel gleichzeitig an Ollama schicken, würde dein Mac/PC einfrieren. Würdest du sie nacheinander schicken, würde es ewig dauern.
+Bericht-Argument: Optimierung der „System-Performance durch Thread-Pooling“. Du erklärst die Abwägung zwischen Hardware-Ressourcen (CPU/RAM-Last durch Llama 3) und der benötigten Durchlaufzeit des Scrapers.
+
 ## Konfiguration
 
 Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.json` gespeichert:
@@ -120,7 +164,6 @@ Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.j
 | `pause_zwischen_artikeln` | Anti-Ban Pause (Sek.) | `[4, 7]` |
 
 ---
-
 ## Hinweise
 
 - Für CI/CD den Inhalt von `secrets/config.json` als GitHub Secret `VINTED_CONFIG` hinterlegen

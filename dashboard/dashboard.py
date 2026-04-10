@@ -8,8 +8,8 @@ import subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
-    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, DEFAULT_CONFIG, CONFIG_FILE, ERGEBNISSE_FILE,
-    EMPFEHLUNGEN_FILE, speichere_config, lade_config
+    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, 
+    speichere_config, lade_config
 )
 
 

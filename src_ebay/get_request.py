@@ -2,48 +2,72 @@ import requests
 from get_new_token import get_new_token
 
 
-def get_summary_of_articles_json(curr="EUR", price=(0,20), conditions=("NEW","USED"), buyopt=("FIXED_PRICE")):
+def get_summary_of_articles_json(
+
+        price=(0,100),
+        conditions=("NEW","USED"),
+        buyopt="FIXED_PRICE",
+        keywords="",
+        sort_type="+",
+        brand=None,
+        color=None
+
+):
     """
     Holt json mit Artikeln und allgemeinen zugehörigen Daten über Browse API.
     Enthält keine genauen Größen oder Artikelbeschreibung.
 
+    :param price: Preisbereich
+    :param conditions: Zustände des Zielprodukts
+    :param buyopt: Auktion oder Festpreis
+    :param keywords: Suchbegriffe
+    :param sort_type: Aufsteigend (+) oder absteigend (-) nach Preis sortiert
+    :param brand: Marke
+    :param color: Farbe
     :return: json mit Artikeln und zugehörigen Daten
     """
     user_token = get_new_token()
     url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
-    # Achtung: Holt nicht die lange Artikelbeschreibung, die manchmal genauere Maße enthält. FIX!!!
+    # Achtung: Holt nicht die lange Artikelbeschreibung, die manchmal genauere Maße enthält.
 
     headers = {
         "Authorization": f"Bearer {user_token}",
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"
     }
 
-    # Beispiel: Wir suchen eine Spanne für die Bundweite (Waist 32 bis 34)
-    # Syntax: aspectIds:{ID:(Wert1|Wert2|Wert3)}
-
-    # NOTIZ ZU IDS:
-    # 11427 = Bundweite (z.B. 32, 34)
-    # 11428 = Schrittlänge (z.B. 30, 32)
-    # 11429 = Konfektionsgröße (z.B. 48, 52, L)
-
-    selected_sizes = "32|33|34" # Hier deine Spanne als ODER-Verknüpfung
 
     filter_options = [
-        f"priceCurrency:{curr}",
+        f"priceCurrency:EUR", # kein ODER (|) erlaubt, deswegen hardgecodet (EUR macht für uns in DE am meisten Sinn)
         f"price:[{price[0]}..{price[1]}]",
         f"conditions:{{{"|".join(conditions)}}}",
-        f"buyingOptions:{{{buyopt}}}", # mit 
-        f"aspectIds:{{11427:({selected_sizes})}}"  # Filtert auf Bundweite 32, 33 oder 34
+        f"buyingOptions:{{{"|".join(buyopt)}}}"
     ]
 
+    dynamic_options = {
+        "conditions": conditions,
+        "buyingOptions": buyopt,
+        "Brand": brand,
+        "Color": color
+    }
+
+    # str als Werte für dynamische Optionen zulassen
+    for options_name, value in dynamic_options.items():
+        if value:
+            if not isinstance(value, str):
+                value = "|".join(value)
+
+            if options_name in {"Brand", "Color"}:
+                filter_options.append(f"aspectIds:{{{options_name}:({value})}}")
+
+            else:
+                filter_options.append(f"{options_name}:{{{value}}}")
+
     params = {
-        "q": "chino herren",
+        "q": keywords,
         "filter": ",".join(filter_options),
-        "category_ids": "11450",
-        "sort": "price",
-        "limit": "10",
-        # HINZUFÜGEN: Liefert die Liste aller verfügbaren Merkmale im JSON zurück
-        # "fieldgroups": "ASPECT_REFINEMENTS"
+        "category_ids": "11450", # ID für Kleidung & Accessoires
+        "sort": f"{sort_type}price",
+        "limit": "200" # Maximum
     }
 
     try:
@@ -55,17 +79,6 @@ def get_summary_of_articles_json(curr="EUR", price=(0,20), conditions=("NEW","US
 
         # JSON validieren: Prüft, ob Antwort valides JSON ist und in Python-Dict umformatiert werden kann
         summary_json = articles_raw.json()
-
-        # Zugriff auf die verfügbaren Größen in der Antwort (zum Debuggen oder für dynamische Menüs)
-        if 'aspectDistributions' in str(summary_json):
-
-            print("\n--- Verfügbare Filterwerte (Aspects) ---")
-            for aspect in summary_json['aspectDistributions']:
-                # Klarnamen der Merkmale ausgeben
-                print(f"Merkmal: {aspect['localizedAspectName']} (ID: {aspect.get('aspectId', 'N/A')})")
-                # Die ersten 3 verfügbaren Werte anzeigen
-                for value in aspect['aspectValues'][:3]:
-                    print(f"  - Wert: {value['localizedValue']} ({value['matchCount']} Treffer)")
 
         return summary_json
 
@@ -95,7 +108,7 @@ def get_single_item_details(item_id):
     """
     user_token = get_new_token()
     url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
-    # Achtung: Holt nicht die lange Artikelbeschreibung, die manchmal genauere Maße enthält. FIX!!!
+    # Achtung: Holt nicht die lange Artikelbeschreibung, die manchmal genauere Maße enthält.
 
     headers = {
         "Authorization": f"Bearer {user_token}",
@@ -111,16 +124,6 @@ def get_single_item_details(item_id):
 
         # JSON validieren: Prüft, ob Antwort valides JSON ist und in Python-Dict umformatiert werden kann
         single_json = articles_raw.json()
-
-        # Zugriff auf die verfügbaren Größen in der Antwort (zum Debuggen oder für dynamische Menüs)
-        if 'aspectDistributions' in single_json:
-            print("\n--- Verfügbare Filterwerte (Aspects) ---")
-            for aspect in single_json['aspectDistributions']:
-                # Klarnamen der Merkmale ausgeben
-                print(f"Merkmal: {aspect['localizedAspectName']} (ID: {aspect.get('aspectId', 'N/A')})")
-                # Die ersten 3 verfügbaren Werte anzeigen
-                for value in aspect['aspectValues'][:3]:
-                    print(f"  - Wert: {value['localizedValue']} ({value['matchCount']} Treffer)")
 
         return single_json
 
@@ -143,7 +146,7 @@ def get_single_item_details(item_id):
 
 
 # Tests (werden entfernt)
-res = get_summary_of_articles_json()
+res = get_summary_of_articles_json(keywords="chino herren", color="Rot")
 
 # Zugriff auf die Treffer
 if res and 'itemSummaries' in str(res):

@@ -29,10 +29,12 @@ python3 main.py
 ```
 
 ---
-## Workflow 
---> Konfiguration (Input) über das Streamlit Dashboard, Konfigurationsdaten landen in der config.json 
+
+## Workflow
+
+--> Konfiguration (Input) über das Streamlit Dashboard, Konfigurationsdaten landen in der config.json
 --> Datengewinnung durch Scraper: Biblitothek "Playwright" um Rohtext und Beschreibungen zu extrahieren, ohne geblockt zu werden
---> Auswertung der Scraping Ergebnisse mit ollama lokal. LLM fungiert als Parser: unstrukturiertre Daten zu harten Daten 
+--> Auswertung der Scraping Ergebnisse mit ollama lokal. LLM fungiert als Parser: unstrukturiertre Daten zu harten Daten
 --> Specherung und Output: LLM gibt sauberes JSON zurück mit Empfehlungen (Grundlage für relationale Datenbank und dementesprechend Newsletter (Github kann automatisieren)
 
 ## Stand der Dinge ✅
@@ -45,8 +47,8 @@ python3 main.py
 - [x] Cookie-Banner automatisch wegklicken
 - [x] Deduplizierung gefundener Artikel
 
---> dauert sehr lange! Scrapt nur sehr wenig Volumen! 
-==> Lösung?: zunächst nur erste Parameter des Artikels scannen, wenn true dann weiter 
+--> dauert sehr lange! Scrapt nur sehr wenig Volumen!
+==> Lösung?: zunächst nur erste Parameter des Artikels scannen, wenn true dann weiter
 ==> Lösung?: Cookie-Persistenz, speichern der Cookies unter selben IP-Adresse, sonst wirkt auf hohes Volumen "verdächtig"
 
 ### KI-Analyse (Ollama / llama3, lokal)
@@ -67,7 +69,7 @@ python3 main.py
 ### CI/CD
 
 - [ ] GitHub Actions Pipeline (noch nicht automatisch --> bzw. tests, security, docker, deploy unvollständig)
-- [ ] Für die GitHub Actions brauchen wir in der Ergebnis Json ein Zeitfeld, also bei jedem gespeicherten Objekt ein "created_at"-item, damit die Actions wissen, was jede Woche neu ist 
+- [ ] Für die GitHub Actions brauchen wir in der Ergebnis Json ein Zeitfeld, also bei jedem gespeicherten Objekt ein "created_at"-item, damit die Actions wissen, was jede Woche neu ist
 - [ ] Ergebnisse als Workflow-Artifact herunterladbar
 - [ ] Github Actions timed die Code Ausführung und "Resend" verschickt die Mail (sehr simple API, weil wir brauchen nur API-Key, Absender-/ Empfängeradresse)
 - [ ] ### wichtig: GitHub erreicht MongoDB nur, wenn die Datenbank öffentlich erreichbar ist (mit Connection URI in MongoDB-Atlas)
@@ -75,7 +77,6 @@ python3 main.py
 - [ ] Auch brauchen wir in den Secrets: MONGO_URI, RESEND_API_KEY und MAIL_FROM und MAIL_TO
 
 ---
-
 
 ### Weitere geplante Features
 
@@ -89,7 +90,7 @@ python3 main.py
 
 - [ ] E-mail Benachrichtung als eine Art "Newsletter"
     1. Daten aus Scrapper identifiziert
-    2. in JSON Datei gespeichert, gleichzeitig landen Empfehlungen in MongoDB 
+    2. in JSON Datei gespeichert, gleichzeitig landen Empfehlungen in MongoDB
     3. Empfehlungen werden pro Recherche agregiert und dann in einen Newsletter verpackt
     4. Newsletter soll automatisiert 1mal pro Woche kommen
 

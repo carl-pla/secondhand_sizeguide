@@ -84,7 +84,6 @@ async def main(config: dict):
             seen.add(a["url"])
             unique.append(a)
 
-    print(f"\n✨ {len(unique)} Artikel → Ollama (Stufe 3)...\n")
 
     # ── STUFE 3: Ollama-Analyse (parallel) ───────────────────
     print(f"\n✨ {len(unique)} Artikel → Ollama (parallel, 3 gleichzeitig)...\n")

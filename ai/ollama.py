@@ -1,10 +1,12 @@
 import json
 import httpx
+from database.config_defaults import ZUSTAND_RANG
 
-ZUSTAND_RANG = {
-    "Neu mit Etikett": 5, "Neu ohne Etikett": 4,
-    "Sehr gut": 3, "Gut": 2, "Befriedigend": 1
-}
+"""
+=== WORKFLOW GROB ===
+
+"""
+
 
 def frage_ollama(prompt: str, ollama_url: str, modell: str) -> str:
     if not modell:
@@ -32,21 +34,38 @@ def analysiere_artikel(artikel: dict, config: dict) -> dict:
     min_zustand = config.get("min_zustand", "Gut")
     min_rang    = ZUSTAND_RANG.get(min_zustand, 2)
 
-    prompt = f"""You are a strict fashion buyer. Reject items that don't fit.
+    prompt = f"""You are an expert vintage fashion curator. Your goal is to find the best items for a client.
 
-Buyer: {stile} style, size {config['groesse']}, max {config['max_preis']}€, min condition: {min_zustand}
-Measurements: bust {eigene.get('brust','?')}cm, waist {eigene.get('taille','?')}cm, hips {eigene.get('huefte','?')}cm, shoulders {eigene.get('schulter','?')}cm
+Client Preferences:
+- Style: {stile}
+- Targeted Size: {config['groesse']} (Note: vintage sizes vary, trust measurements more than tags)
+- Max Price: {config['max_preis']}€
+- Min Condition: {min_zustand}
+- Client Body Measurements: Bust {eigene.get('brust','?')}cm, Waist {eigene.get('taille','?')}cm, Hips {eigene.get('huefte','?')}cm
 
-Listing:
-Title: {artikel['titel']}
-Price: {artikel['preis']}
-Description: {artikel['beschreibung']}
+Listing Data:
+- Title: {artikel['titel']}
+- Price: {artikel['preis']}
+- Description: {artikel['beschreibung']}
 
-Reject (empfohlen: false) if: wrong style, wrong size, price too high, bad condition, measurements off >6cm.
-Score 1-10. Only empfohlen: true if score >= 7. Be strict.
+Evaluation Rules:
+1. MANDATORY: If you find measurements (cm) in the description, compare them strictly with the client's body data.
+2. TOLERANCE: For explicit measurements, allow a max difference of +/- 4cm for a "perfect fit".
+3. NO MEASUREMENTS? If cm-data is missing, you MUST estimate based on the brand's typical fit for size {config['groesse']}. 
+4. SCORE WEIGHTING: 
+   - 9-10: Style matches AND measurements are perfect.
+   - 7-8: Style matches AND size is {config['groesse']}, but no exact cm-measurements found.
+   - <7: Style mismatch or size/price concerns.
 
-JSON only:
-{{"masse":{{"brust_cm":null,"taille_cm":null,"huefte_cm":null,"schulter_cm":null,"laenge_cm":null,"aermel_cm":null,"innennaht_cm":null}},"zustand":null,"material":null,"passt_groesse":false,"passt_stil":false,"begruendung":"Begründung auf Deutsch","bewertung":5,"empfohlen":false}}"""
+JSON format only:
+{{
+  "masse": {{"brust_cm":null,"taille_cm":null,"laenge_cm":null}},
+  "zustand": "kurze Einschätzung",
+  "passt_groesse": true/false,
+  "begruendung": "Begründung auf Deutsch (max 2 Sätze)",
+  "bewertung": 1-10,
+  "empfohlen": true/false
+}}"""
 
     print(f"    🤖 Analysiere: {artikel['titel'][:50]}...")
     antwort = frage_ollama(prompt, config["ollama_url"], config["ollama_modell"])
@@ -68,15 +87,26 @@ JSON only:
     # ── Harte Python-Checks ──────────────────────────
     # 1. Preis nochmal prüfen (Ollama könnte falsch liegen)
     try:
-        preis_zahl = float(''.join(
-            c for c in artikel["preis"] if c.isdigit() or c == '.'
-        ).strip('.'))
+        # Ersetze Komma durch Punkt, falls vorhanden
+        preis_roh = artikel["preis"].replace(',', '.')
+        
+        # Extrahiere nur Ziffern und den (jetzt vorhandenen) Punkt
+        preis_bereinigt = ''.join(c for c in preis_roh if c.isdigit() or c == '.')
+        
+       # Falls mehrere Punkte entstanden sind (z.B. durch Tippfehler), nimm nur den ersten
+        if preis_bereinigt.count('.') > 1:
+            teile = preis_bereinigt.split('.')
+            preis_bereinigt = teile[0] + "." + "".join(teile[1:])
+            
+        preis_zahl = float(preis_bereinigt)
+
         if preis_zahl > config["max_preis"]:
             analyse["empfohlen"] = False
             analyse["bewertung"] = min(analyse.get("bewertung", 5), 4)
-            analyse["begruendung"] = f"Preis {preis_zahl}€ > Maximum {config['max_preis']}€. " + analyse.get("begruendung", "")
-    except:
-        pass
+            analyse["begruendung"] = f"Preis {preis_zahl}€ zu hoch (Max: {config['max_preis']}€). "
+    except Exception as e:
+        print(f"DEBUG: Preis-Parsing fehlgeschlagen für '{artikel['preis']}': {e}")
+
 
     # 2. Zustand prüfen
     zustand = analyse.get("zustand", "")
@@ -117,7 +147,6 @@ JSON only:
         "beschreibung":      artikel["beschreibung"],
         "masse":             analyse.get("masse", {}),
         "zustand":           zustand,
-        "material":          analyse.get("material"),
         "passt_groesse":     analyse.get("passt_groesse"),
         "passt_stil":        analyse.get("passt_stil"),
         "passform_hinweise": passform_hinweise or None,

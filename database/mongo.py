@@ -1,32 +1,44 @@
 import pymongo
-import json
-import os
+import datetime
 
-def speichere_in_mongo(data): # <--- Hier definieren wir die Funktion
+def speichere_in_mongo(ergebnisse: list, config: dict = None):
+    """
+    Speichert die Analyse-Ergebnisse in MongoDB. 
+    Verhindert Fehler bei leeren Listen und stellt Verbindungen sicher.
+    """
+    
+    # 1. Sofort-Check: Wenn keine Empfehlungen da sind, nichts tun
+    if not ergebnisse:
+        print("MongoDB: Keine Empfehlungen zum Speichern gefunden.")
+        return None
+
+    # Sicherstellen, dass wir wirklich nur Empfehlungen speichern (empfohlen == True)
+    empfehlungen = [e for e in ergebnisse if isinstance(e, dict) and e.get("empfohlen") is True]
+    
+    if not empfehlungen:
+        print("MongoDB: Liste enthielt keine Artikel mit Status 'empfohlen'.")
+        return None
+
     try:
-        uri = "mongodb://localhost:27017/"
-        my_client = pymongo.MongoClient(uri)
+        # Verbindung aufbauen (mit Timeout, falls DB nicht läuft)
+        uri = "mongodb://127.0.0.1:27017/"
+        my_client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=2000)
         mydb = my_client["Secondhand_db"]
         collection = mydb["vinted_empfehlungen"]
 
-        # Daten in MongoDB speichern
-        if isinstance(data, list):
-            result = collection.insert_many(data)
-            print(f"{len(result.inserted_ids)} Dokumente gespeichert")
-        else:
-            result = collection.insert_one(data)
-            print("1 Dokument gespeichert")
-            
-        return result
-    except Exception as e:
-        print(f"Fehler beim Speichern in MongoDB: {e}")
-        return None
+        # Zeitstempel hinzufügen, damit du im Dashboard nach "Neu" sortieren kannst
+        jetzt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for artikel in empfehlungen:
+            artikel["gespeichert_am"] = jetzt
 
-# Dieser Teil sorgt dafür, dass die Datei trotzdem noch eigenständig 
-# testbar bleibt, falls du sie direkt ausführst:
-if __name__ == "__main__":
-    dir_path = os.path.dirname(__file__)
-    json_file = os.path.join(dir_path, "../secrets/vinted_empfehlungen.json")
-    with open(json_file, "r", encoding="utf-8") as f:
-        test_data = json.load(f)
-    speichere_in_mongo(test_data)
+        # 2. Der entscheidende Fix: Nur insert_many aufrufen, wenn die Liste gefüllt ist
+        result = collection.insert_many(empfehlungen)
+        
+        print(f"✅ MongoDB: {len(result.inserted_ids)} neue Empfehlungen gespeichert.")
+        return result
+
+    except pymongo.errors.ServerSelectionTimeoutError:
+        print("❌ MongoDB Fehler: Verbindung zum Server fehlgeschlagen (läuft MongoDB?)")
+    except Exception as e:
+        print(f"❌ Fehler beim Speichern in MongoDB: {e}")
+        return None

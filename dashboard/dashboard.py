@@ -2,12 +2,13 @@ import streamlit as st
 import json
 from pathlib import Path
 import sys, os
+import subprocess
 
 # Fügt den Projekt-Hauptordner zum Pfad hinzu
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
-    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_OPTIONEN, DEFAULT_CONFIG, CONFIG_FILE, ERGEBNISSE_FILE,
+    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, DEFAULT_CONFIG, CONFIG_FILE, ERGEBNISSE_FILE,
     EMPFEHLUNGEN_FILE, speichere_config, lade_config
 )
 
@@ -184,8 +185,8 @@ if "Einstellungen" in seite:
             )
             st.session_state.config["min_zustand"] = st.selectbox(
                 "Mindest-Zustand",
-                ZUSTAND_OPTIONEN,
-                index=ZUSTAND_OPTIONEN.index(
+                ZUSTAND_RANG,
+                index=ZUSTAND_RANG.index(
                     st.session_state.config.get("min_zustand", "Gut")
                 )
             )
@@ -264,7 +265,7 @@ if "Einstellungen" in seite:
     if st.button("💾  Einstellungen speichern"):
         speichere_config(st.session_state.config)
         st.success(f"✓ Gespeichert in `{CONFIG_FILE}`")
-        st.json(st.session_state.config)  # zur Kontrolle, danach entfernen
+        st.json(st.session_state.config)  # zur Kontrolle
 
 
 # ═══════════════════════════════════════════════
@@ -292,8 +293,6 @@ elif "Suche" in seite:   # ← elif statt if, und "Suche" check
         speichere_config(st.session_state.config)
         st.info(f"✓ Gespeichert in `{CONFIG_FILE}`")
 
-
-        import subprocess, os
         projekt_pfad = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
         with st.spinner("Scraper läuft... (kann einige Minuten dauern)"):

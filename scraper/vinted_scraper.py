@@ -25,7 +25,12 @@ Daten-Check: Mit _parse_preis wird sichergestellt, dass das Budget wirklich eing
 async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
     groesse_id  = VINTED_GROESSEN.get(config["groesse"], "207")  # ← richtig, aus VINTED_GROESSEN
     max_artikel = config.get("max_artikel_pro_suche", 50)        # ← aus config, nicht VINTED_GROESSEN
-    max_preis   = config.get("max_preis", 50)     
+    max_preis   = config.get("max_preis", 50)   
+    """
+    Zustand filtern (Beispiel: Alles ab "Gut" aufwärts)
+    Wenn wir 6, 1, 2 und 3 übergeben, filtert Vinted den Schrott (Zufriedenstellend) raus.
+    """
+    status_filter = "&status_ids[]=6&status_ids[]=1&status_ids[]=2&status_ids[]=3"  
 
     """
     spezieller Link für Vinted, um die Konfiguration zu finden --> Hier eventuell try/except Block einbauen, 
@@ -34,8 +39,9 @@ async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
     url = (
         f"https://www.vinted.de/catalog"
         f"?search_text={suchbegriff.replace(' ', '+')}"
-        f"&size_ids={groesse_id}"
+        f"&size_ids[]={groesse_id}"
         f"&price_to={max_preis}"
+        f"{status_filter}"
         f"&order=newest_first"
     )
     print(f"DEBUG: Generierte URL: {url}")

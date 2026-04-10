@@ -14,12 +14,15 @@ EMPFEHLUNGEN_FILE = RESULTS / "vinted_empfehlungen.json"
 #  LOOKUP-TABELLEN
 # ─────────────────────────────────────────────
 VINTED_GROESSEN = {
-    "XS / 34": "205", "S / 36": "206", "M / 38": "207",
-    "L / 40": "208", "XL / 42": "209", "XXL / 44": "210",
+    "XS / 34": "206", "S / 36": "207", "M / 38": "208",
+    "L / 40": "209", "XL / 42": "210", "XXL / 44": "211",
 }
 OLLAMA_MODELLE = ["llama3", "mistral", "gemma3", "phi4", "llama3.2", "mistral-nemo"]
 STIL_OPTIONEN  = ["Vintage", "Retro", "Y2K", "Streetwear", "Minimalistisch", "Sportlich", "Boho", "Grunge"]
-ZUSTAND_OPTIONEN = ["Neu mit Etikett", "Neu ohne Etikett", "Sehr gut", "Gut", "Befriedigend"]
+ZUSTAND_RANG = [
+    "Neu mit Etikett", "Neu ohne Etikett",
+    "Sehr gut", "Gut", "Befriedigend",
+]
 
 # ─────────────────────────────────────────────
 #  DEFAULT-CONFIG

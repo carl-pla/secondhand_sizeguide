@@ -8,7 +8,7 @@ import subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
-    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, 
+    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
     speichere_config, lade_config
 )
 
@@ -135,7 +135,7 @@ with st.sidebar:
     st.markdown("---")
     seite = st.radio(
         "",
-        ["⚙️  Einstellungen", "🔍  Suche starten", "📋  Ergebnisse"],
+        ["⚙️  Einstellungen", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
         label_visibility="collapsed"
     )
     st.markdown("---")
@@ -186,7 +186,7 @@ if "Einstellungen" in seite:
             st.session_state.config["min_zustand"] = st.selectbox(
                 "Mindest-Zustand",
                 ZUSTAND_RANG,
-                index=ZUSTAND_RANG.index(
+                index=ZUSTAND_OPTIONEN.index(
                     st.session_state.config.get("min_zustand", "Gut")
                 )
             )
@@ -208,15 +208,6 @@ if "Einstellungen" in seite:
 
     # ── TAB 3: Suche ──
     with tab3:
-        suchbegriffe_raw = st.text_area(
-            "Suchbegriffe (einer pro Zeile)",
-            "\n".join(st.session_state.config.get("suchbegriffe", ["vintage", "retro 90s", "y2k"])),
-            height=150
-        )
-        st.session_state.config["suchbegriffe"] = [
-            s.strip() for s in suchbegriffe_raw.splitlines() if s.strip()
-        ]
-
         col1, col2 = st.columns(2)
         with col1:
             st.session_state.config["max_artikel_pro_suche"] = st.slider(
@@ -224,8 +215,8 @@ if "Einstellungen" in seite:
                 st.session_state.config.get("max_artikel_pro_suche", 5)
             )
         with col2:
-            suchbegriffe = st.session_state.config["suchbegriffe"]
-            anzahl = max(2, len(suchbegriffe))  # minimum 2 damit Slider nicht crasht
+            stile = st.session_state.config["stile"]
+            anzahl = max(2, len(stile))  # minimum 2 damit Slider nicht crasht
             st.session_state.config["max_suchen"] = st.slider(
                 "Maximale Anzahl Suchbegriffe", 1, anzahl,
                 min(st.session_state.config.get("max_suchen", 1), anzahl)
@@ -280,11 +271,11 @@ elif "Suche" in seite:   # ← elif statt if, und "Suche" check
     with col2:
         st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>', unsafe_allow_html=True)
     with col3:
-        anzahl = config["max_artikel_pro_suche"] * min(config.get("max_suchen", 2), len(config["suchbegriffe"]))
+        anzahl = config["max_artikel_pro_suche"] * min(config.get("max_suchen", 2), len(config["stile"]))
         st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Artikel</div><div class="metric-value">~{anzahl}</div></div>', unsafe_allow_html=True)
 
-    st.markdown("**Aktive Suchbegriffe:**")
-    for s in config["suchbegriffe"][:config.get("max_suchen", 2)]:
+    st.markdown("**Aktive Stile:**")
+    for s in config["stile"][:config.get("max_suchen", 2)]:
         st.markdown(f'<span class="badge">{s}</span>', unsafe_allow_html=True)
 
     st.markdown("---")
@@ -390,3 +381,69 @@ elif "Ergebnisse" in seite:
 """, unsafe_allow_html=True)
 
 
+# ═══════════════════════════════════════════════
+#  SEITE: Newsletter
+# ═══════════════════════════════════════════════
+elif "Newsletter" in seite:
+    st.markdown("# Newsletter abonnieren")
+    st.markdown("Erhalte personalisierte Empfehlungen direkt per Email.")
+    st.markdown("---")
+
+    email = st.text_input("Deine Email-Adresse")
+
+    st.markdown("**Deine Präferenzen** (aus den Einstellungen):")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]}€</div></div>', unsafe_allow_html=True)
+    with col3:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Stile</div><div class="metric-value">{", ".join(config.get("stile", []))}</div></div>', unsafe_allow_html=True)
+
+    st.caption("💡 Passe deine Präferenzen unter Einstellungen an, bevor du dich registrierst.")
+    st.markdown("---")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("📧  Jetzt anmelden"):
+            if not email:
+                st.error("Bitte Email eingeben.")
+            else:
+                try:
+                    from database.users import registriere_user
+                    result = registriere_user(email, st.session_state.config)
+                    if "error" in result:
+                        st.error(result["error"])
+                    elif result["status"] == "neu":
+                        st.success(f"✅ Angemeldet! Du erhältst Empfehlungen an {email}")
+                    else:
+                        st.info(f"✓ Präferenzen für {email} aktualisiert.")
+                except Exception as e:
+                    st.error(f"Fehler: {e}")
+
+    with col2:
+        if st.button("🚫  Abmelden"):
+            if not email:
+                st.error("Bitte Email eingeben.")
+            else:
+                try:
+                    from database.users import deaktiviere_user
+                    deaktiviere_user(email)
+                    st.success(f"✓ {email} vom Newsletter abgemeldet.")
+                except Exception as e:
+                    st.error(f"Fehler: {e}")
+
+    # Registrierte User anzeigen (Admin-Ansicht)
+    st.markdown("---")
+    st.markdown("### Registrierte User")
+    try:
+        from database.users import lade_alle_user
+        users = lade_alle_user()
+        if users:
+            st.caption(f"{len(users)} aktive Abonnenten")
+            for u in users:
+                st.markdown(f"- **{u['email']}** | {u['groesse']} | max {u['max_preis']}€ | {', '.join(u.get('stile', []))}")
+        else:
+            st.info("Noch keine Abonnenten.")
+    except Exception as e:
+        st.error(f"Fehler beim Laden: {e}")

@@ -9,7 +9,7 @@ from playwright_stealth import Stealth
 from scraper.vinted_scraper import scrape_artikel_details, scrape_suchergebnisse
 from ai.ollama import analysiere_artikel
 from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
-from database.mongo import speichere_in_mongo
+from database.scrapping_sessions import speichere_in_mongo
 import concurrent.futures
 
 """
@@ -73,7 +73,7 @@ async def main(config: dict):
         gesperrt werden könnte, durch das integrieren in main.py wird nur ein einziges Mal der Browser ausgeführt 
         """
         # jeder Suchbegriff kann durchgegangen werden
-        for suchbegriff in config["suchbegriffe"][:max_suchen]:
+        for suchbegriff in config["stile"][:max_suchen]:
             try:
                 
                 # ── STUFE 1: Grob-Suche: Links sammeln und Suchergebnisse scannen──────────────────────
@@ -151,7 +151,7 @@ async def main(config: dict):
     # Ausgabe im Terminal über momentanen Ablauf
     print(f"\n{'='*60}")
     print(f"✅ {len(empfohlen)} von {len(ergebnisse)} empfohlen")
-    print(f"   Stufe 1 (Grob):  {min(max_suchen, len(config['suchbegriffe']))} Suchen")
+    print(f"   Stufe 1 (Grob):  {min(max_suchen, len(config['stile']))} Suchen")
     print(f"   Stufe 2 (Detail): {len(unique)} Artikel gescrapt")
     print(f"   Stufe 3 (Ollama): {len(ergebnisse)} analysiert")
     print(f"💾 {ERGEBNISSE_FILE}")

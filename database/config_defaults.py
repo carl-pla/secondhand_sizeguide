@@ -19,10 +19,12 @@ VINTED_GROESSEN = {
 }
 OLLAMA_MODELLE = ["llama3", "mistral", "gemma3", "phi4", "llama3.2", "mistral-nemo"]
 STIL_OPTIONEN  = ["Vintage", "Retro", "Y2K", "Streetwear", "Minimalistisch", "Sportlich", "Boho", "Grunge"]
-ZUSTAND_RANG = [
-    "Neu mit Etikett", "Neu ohne Etikett",
-    "Sehr gut", "Gut", "Befriedigend",
-]
+ZUSTAND_RANG = {
+    "Neu mit Etikett": 5, "Neu ohne Etikett": 4,
+    "Sehr gut": 3, "Gut": 2, "Befriedigend": 1,
+}
+
+ZUSTAND_OPTIONEN = list(ZUSTAND_RANG.keys())
 
 # ─────────────────────────────────────────────
 #  DEFAULT-CONFIG
@@ -32,7 +34,6 @@ DEFAULT_CONFIG = {
     "stile": ["Vintage", "Retro"],
     "max_preis": 50,
     "min_zustand": "Gut",
-    "suchbegriffe": ["vintage", "retro 90s", "y2k"],
     "eigene_masse": {"brust": 88, "taille": 70, "huefte": 96, "schulter": 38,
                      "laenge_oberteil": 60, "innennaht": 78},
     "ollama_url": "http://localhost:11435/api/generate",

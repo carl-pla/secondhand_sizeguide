@@ -17,6 +17,10 @@ VINTED_GROESSEN = {
     "XS / 34": "206", "S / 36": "207", "M / 38": "208",
     "L / 40": "209", "XL / 42": "210", "XXL / 44": "211",
 }
+VINTED_KATEGORIEN = {
+    "Herren Jeans": "257", "Herren Hosen": "34", "Herren Anzüge & Blazer": "32",
+    "Herren Jacken & Mäntel": "1206", "Herren Pullover & Sweater": "79", "Herren Uhren": "97",
+}
 OLLAMA_MODELLE = ["llama3", "mistral", "gemma3", "phi4", "llama3.2", "mistral-nemo"]
 STIL_OPTIONEN  = ["Vintage", "Retro", "Y2K", "Streetwear", "Minimalistisch", "Sportlich", "Boho", "Grunge"]
 ZUSTAND_RANG = {

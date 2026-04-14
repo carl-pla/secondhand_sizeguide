@@ -2,7 +2,7 @@ import asyncio
 import random
 from pathlib import Path
 
-from database.config_defaults import VINTED_GROESSEN 
+from database.config_defaults import VINTED_GROESSEN, VINTED_KATEGORIEN
 
 """
 === Workflow grob ===
@@ -24,6 +24,7 @@ Daten-Check: Mit _parse_preis wird sichergestellt, dass das Budget wirklich eing
 """
 async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
     groesse_id  = VINTED_GROESSEN.get(config["groesse"], "207")  # ← richtig, aus VINTED_GROESSEN
+    kategorie_id = VINTED_KATEGORIEN.get(config["kategorie"], "1206")  # ← richtig, aus VINTED_KATEGORIEN
     max_artikel = config.get("max_artikel_pro_suche", 50)        # ← aus config, nicht VINTED_GROESSEN
     max_preis   = config.get("max_preis", 50)   
     """
@@ -41,6 +42,7 @@ async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
         f"?search_text={suchbegriff.replace(' ', '+')}"
         f"&size_ids[]={groesse_id}"
         f"&price_to={max_preis}"
+        f"&catalog[]={kategorie_id}"
         f"{status_filter}"
         f"&order=newest_first"
     )

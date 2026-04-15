@@ -31,8 +31,11 @@ async def main(config: dict):
     if not config.get("groesse"):
         print("❌ KRITISCH: groesse ist leer!")
         return
+    if not config.get("kategorie"):
+        print("❌ KRITISCH: kategorie ist leer!")
+        return
 
-    print(f"🚀 Vinted Scraper | Modell: {config['ollama_modell']} | {config['groesse']} | max {config['max_preis']}€\n")
+    print(f"🚀 Vinted Scraper | Modell: {config['ollama_modell']} | {config['groesse']} | {config['kategorie']} | max {config['max_preis']}€\n")
 
     # Verbindungstest zu Ollama wird gestartet 
     try:

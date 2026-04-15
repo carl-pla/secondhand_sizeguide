@@ -8,7 +8,7 @@ import subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
-    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
+    VINTED_GROESSEN, VINTED_KATEGORIEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
     speichere_config, lade_config
 )
 
@@ -173,15 +173,17 @@ if "Einstellungen" in seite:
                     st.session_state.config.get("groesse", "M / 38")
                 )
             )
+            st.session_state.config["kategorie"] = st.selectbox(
+                "Kategorie",
+                list(VINTED_KATEGORIEN.keys()),
+                index=list(VINTED_KATEGORIEN.keys()).index(
+                    st.session_state.config.get("kategorie", "Herren Jacken & Mäntel")
+                )
+            )
+        with col2:
             st.session_state.config["max_preis"] = st.slider(
                 "Maximaler Preis (€)", 5, 200,
                 st.session_state.config.get("max_preis", 50), step=5
-            )
-        with col2:
-            st.session_state.config["stile"] = st.multiselect(
-                "Bevorzugte Stile",
-                STIL_OPTIONEN,
-                default=st.session_state.config.get("stile", ["Vintage"])
             )
             st.session_state.config["min_zustand"] = st.selectbox(
                 "Mindest-Zustand",
@@ -190,6 +192,12 @@ if "Einstellungen" in seite:
                     st.session_state.config.get("min_zustand", "Gut")
                 )
             )
+        
+        st.session_state.config["stile"] = st.multiselect(
+            "Bevorzugte Stile",
+            STIL_OPTIONEN,
+            default=st.session_state.config.get("stile", ["Vintage"])
+        )
 
     # ── TAB 2: Maße ──
     with tab2:

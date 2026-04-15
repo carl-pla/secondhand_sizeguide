@@ -1,7 +1,7 @@
 import pymongo
 import datetime
 
-def speichere_in_mongo(ergebnisse: list, config: dict = None):
+def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = None):
     """
     Speichert die Analyse-Ergebnisse in MongoDB. 
     Verhindert Fehler bei leeren Listen und stellt Verbindungen sicher.

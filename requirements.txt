@@ -3,3 +3,5 @@ playwright
 playwright-stealth 
 httpx
 pymongo
+pytest
+requests

@@ -26,7 +26,7 @@ def frage_ollama(prompt: str, ollama_url: str, modell: str) -> str:
             json={"model": modell, "prompt": prompt, "stream": False,
                   "options": {"temperature": 0.1} # Niedrige Temp = KI bleibt sachlich und "erfindet" weniger
                   }, 
-            timeout=120.0
+            timeout=180.0
         )
         # Fehlerbehandlung: ollama erreichbar?
         if response.status_code != 200:

@@ -1,11 +1,16 @@
-# runner.py
 import asyncio
+import subprocess
+import sys
 from database.users import lade_alle_user
-from main import main
+from database.config_defaults import CONFIG_FILE
+from database.scrapping_sessions import speichere_in_mongo
+import json
+import tempfile
+from pathlib import Path
 
 async def run_fuer_alle_user():
     users = lade_alle_user()
-    
+
     if not users:
         print("Keine aktiven User gefunden.")
         return
@@ -17,7 +22,7 @@ async def run_fuer_alle_user():
         print(f"👤 User: {user['email']}")
         print(f"{'='*60}")
 
-        # User-Daten als Config zusammenbauen
+        # User-Config als temporäre JSON speichern
         config = {
             "groesse":                 user["groesse"],
             "kategorie":               user.get("kategorie", "Herren Jacken & Mäntel"),
@@ -27,18 +32,34 @@ async def run_fuer_alle_user():
             "min_zustand":             user.get("min_zustand", "Gut"),
             "ollama_url":              "http://localhost:11435/api/generate",
             "ollama_modell":           "llama3",
-            "max_artikel_pro_suche":   20,
-            "max_suchen":              2,
+            "max_artikel_pro_suche":   10,
+            "max_suchen":              1,
             "pause_zwischen_artikeln": [2, 4],
             "pause_zwischen_suchen":   [3, 6],
+            "_user_email":             user["email"],
         }
 
+        # Temporäre Config-Datei pro User
+        tmp = Path(f"/tmp/config_{user['email'].replace('@','_')}.json")
+        with open(tmp, "w") as f:
+            json.dump(config, f, ensure_ascii=False)
+
+        # main.py als separaten Prozess starten
         try:
-            ergebnisse = await main(config, user_email=user["email"])
-            empfohlen = [e for e in (ergebnisse or []) if e.get("empfohlen")]
-            print(f"✅ {user['email']}: {len(empfohlen)} Empfehlungen")
+            result = subprocess.run(
+                [sys.executable, "main.py", "--config", str(tmp)],
+                timeout=600
+            )
+            if result.returncode == 0:
+                print(f"✅ {user['email']}: fertig")
+            else:
+                print(f"❌ {user['email']}: Fehler (returncode {result.returncode})")
+        except subprocess.TimeoutExpired:
+            print(f"⏱️  {user['email']}: Timeout nach 10 Min")
         except Exception as e:
-            print(f"❌ Fehler bei {user['email']}: {e}")
+            print(f"❌ {user['email']}: {e}")
+        finally:
+            tmp.unlink(missing_ok=True)
 
 if __name__ == "__main__":
     asyncio.run(run_fuer_alle_user())

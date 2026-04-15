@@ -21,7 +21,7 @@ ORCHESTER-ZENTRUM: Scraping --> AI Analyse/Bewertung --> Database
 1. Setup & Validierung 
 """
 # Prüft, ob alle Werkzeuge bereit sind (LLM und Config.json)
-async def main(config: dict):
+async def main(config: dict, user_email: str=None):
     print(f"DEBUG: Lade Config von {config.get('_pfad', 'unbekannt')}")
 
     # Pflichtfelder prüfen
@@ -146,7 +146,7 @@ async def main(config: dict):
 
     # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung 
     try:
-        speichere_in_mongo(ergebnisse, config)
+        speichere_in_mongo(ergebnisse, config, user_email=user_email)
     except Exception as e:
         print(f"⚠️  MongoDB nicht erreichbar: {e}")
 

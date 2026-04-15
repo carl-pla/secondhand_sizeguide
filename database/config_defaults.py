@@ -18,11 +18,16 @@ VINTED_GROESSEN = {
     "L / 40": "209", "XL / 42": "210", "XXL / 44": "211",
 }
 VINTED_KATEGORIEN = {
-    "Herren Jeans": "257", "Herren Hosen": "34", "Herren Anzüge & Blazer": "32",
-    "Herren Jacken & Mäntel": "1206", "Herren Pullover & Sweater": "79", "Herren Uhren": "97",
+    "Herren Alles": "2050", "Herren Anzüge & Blazer": "32","Herren Jacken & Mäntel": "1206", "Herren Hosen": "34", "Herren Jeans": "257", "Herren Shorts": "80", "Herren Nachtwäsche": "2910", "Herren Socken & Unterwäsche": "85",
+    "Herren Badebekleidung": "84", "Herren Sportartikel": "30", "Herren Tops & T-Shirts": "76", "Herren Pullover & Sweater": "79", 
+    "Herren Stiefel": "1233", "Herren Elegante Schuhe": "1238", "Herren Sneaker": "1242", "Herren Loafer & Bootsschuhe": "2656", "Herren Sportschuhe": "1452",
+    "Herren Kopftücher": "2960", "Herren Halstücher" : "2958", "Herren Krawatten": "2956", "Herren Einstechtücher": "2957", "Herren Gürtel": "96", "Herren Hanschuhe": "91", "Herren Taschen": "94", "Herren Schmuck": "95", "Herren Uhren": "97",
+    "Damen Alles": "4", "Damen Pullover & Strickpullover": "13", "Damen Kleider": "10", "Damen Skorts": "5491", "Damen Jeans": "183", "Damen Shorts": "15", "Damen Bademode": "28", "Damen Jacken & Mäntel": "1037", "Damen Anzüge & Blaze": "8", "Damen Röcke": "11", "Damen Tops & T-Shirts": "12", "Damen Hosen & Leggings": "9", "Damen Unterwäsche & Nachtwäsche": "29",
+    "Damen Sportschuhe": "2630", "Damen Ballerinas": "2955", "Damen Stiefel": "1049", "Damen Absatzschuhe": "543", "Damen Hausschuhe, Pantoffeln & Slipper": "215", "Damen Sneaker": "2632", "Damen Bootsschuhe & Loafer": "2954", "Damen Schnürschuhe": "2951", "Damen Sandalen": "2949",
+    "Damen Taschen": "19", "Damen Halstücher": "2932", "Damen Tücher & Schals": "89", "Damen Kopftücher": "2931", "Damen Hüte und Mützen": "88", "Damen Handschuhe": "90", "Damen Schmuck": "21", "Damen Uhren": "22", "Damen Haarschmuck": "1123", "Damen Gürtel": "20"
 }
 OLLAMA_MODELLE = ["llama3", "mistral", "gemma3", "phi4", "llama3.2", "mistral-nemo"]
-STIL_OPTIONEN  = ["Vintage", "Retro", "Y2K", "Streetwear", "Minimalistisch", "Sportlich", "Boho", "Grunge"]
+STIL_OPTIONEN  = ["Menswear", "Vintage", "Retro", "Y2K", "Streetwear", "Minimalistisch", "Sportlich", "Boho", "Grunge"]
 ZUSTAND_RANG = {
     "Neu mit Etikett": 5, "Neu ohne Etikett": 4,
     "Sehr gut": 3, "Gut": 2, "Befriedigend": 1,
@@ -35,6 +40,7 @@ ZUSTAND_OPTIONEN = list(ZUSTAND_RANG.keys())
 # ─────────────────────────────────────────────
 DEFAULT_CONFIG = {
     "groesse": "M / 38",
+    "kategorie": "Herren Jacken & Mäntel",
     "stile": ["Vintage", "Retro"],
     "max_preis": 50,
     "min_zustand": "Gut",

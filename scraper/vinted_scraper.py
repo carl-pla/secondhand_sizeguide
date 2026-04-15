@@ -139,7 +139,7 @@ async def scrape_suchergebnisse(page, suchbegriff: str, config: dict) -> list:
                 continue
 
         """
-        Falls noch nciht genug Artikel gescrapt worden sind --> durch einen Bildschirm Sprung nach unten
+        Falls noch nicht genug Artikel gescrapt worden sind --> durch einen Bildschirm Sprung nach unten
         können neue Artikel geladen werden, was Infinte Scrolling auspielt:)
         """
         await page.evaluate("window.scrollBy(0, window.innerHeight * 2)")

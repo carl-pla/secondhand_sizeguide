@@ -20,6 +20,7 @@ async def run_fuer_alle_user():
         # User-Daten als Config zusammenbauen
         config = {
             "groesse":                 user["groesse"],
+            "kategorie":               user.get("kategorie", "Herren Jacken & Mäntel"),
             "max_preis":               user["max_preis"],
             "stile":                   user["stile"],
             "eigene_masse":            user.get("eigene_masse", {}),

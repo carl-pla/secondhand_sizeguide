@@ -1,0 +1,36 @@
+services:
+  # Datenbank
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # KI-Modell-Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: llama_analyse
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_storage:/root/.ollama
+
+
+  # Frontend
+  streamlit_app:
+    build: .
+    container_name: streamlit_ui
+    ports:
+      - "8501:8501"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - mongodb
+      - ollama
+
+volumes:
+  mongo_data:
+  ollama_storage:

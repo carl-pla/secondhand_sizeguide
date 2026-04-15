@@ -1,0 +1,34 @@
+name: Automated Newsletter
+
+on:
+  workflow_run:
+    workflows: ["Daily Vinted Scraper"] # Startet, wenn der Scraper fertig ist
+    types: [completed]
+
+jobs:
+  send-newsletter:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ollama Setup (für Zusammenfassung)
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          sleep 5
+          ollama pull llama3
+
+      - name: Run Newsletter Script
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          #EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }} # Secret für dein E-Mail Konto
+        run: python newsletter.py

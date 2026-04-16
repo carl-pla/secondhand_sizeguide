@@ -176,6 +176,10 @@ Problem: Die lokale MongoDB im Docker-Container erschwerte die Zusammenarbeit im
 Lösung: Migration zu MongoDB Atlas. Das Passwort wurde sicher über eine .env-Datei verwaltet, und der lokale MongoDB-Service wurde aus der docker-compose.yml entfernt.
 Learning: "Source of Truth" Prinzip. Für kollaborative Data-Science-Projekte ist eine zentrale Cloud-Datenbank essentiell, um Inkonsistenzen zwischen den Entwickler-Umgebungen zu vermeiden.
 
+-Herausforderung: Inkonsistenz zwischen numerischer Bewertung und boolescher Empfehlung im LLM-Output.
+Ursache: "Halluzinierte Logik" – Die KI gewichtet qualitative Text-Argumente (fehlende Maße) stärker als deine implizite Regel (Score > 6 = Empfehlung).
+Lösung: Post-Processing. Anstatt die KI komplexe Logik-Entscheidungen (A folgt aus B) im JSON treffen zu lassen, sollte man nur die Basisdaten (Score) abfragen und die finale Logik (IF Score > 6 THEN true) im Python-Code hart kodieren. Das macht die App deterministisch und zuverlässig.
+
 ## Konfiguration
 
 Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.json` gespeichert:

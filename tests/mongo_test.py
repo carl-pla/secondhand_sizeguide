@@ -1,4 +1,4 @@
-import pymongo
+import pymongo # type: ignore 
 
 uri = "mongodb+srv://carlplacek_db_user:DSjrL4Azu3sYbEL1@secondhandguide.az2roej.mongodb.net/"
 client = pymongo.MongoClient(uri)

@@ -2,7 +2,7 @@ import pymongo # type: ignore
 import datetime
 import os 
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 from users import MONGO_URI
 
 def speichere_in_mongo(ergebnisse: list, config: dict = None):

@@ -2,10 +2,10 @@ import json
 import asyncio
 import random
 import argparse
-import httpx
+import httpx # type: ignore
 from pathlib import Path
-from playwright.async_api import async_playwright
-from playwright_stealth import Stealth
+from playwright.async_api import async_playwright # type: ignore
+from playwright_stealth import Stealth # type: ignore
 from scraper.vinted_scraper import scrape_artikel_details, scrape_suchergebnisse
 from ai.ollama import analysiere_artikel
 from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE

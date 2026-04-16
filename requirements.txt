@@ -1,7 +1,8 @@
-streamlit 
-playwright 
-playwright-stealth 
+streamlit
+playwright
+playwright-stealth
 httpx
 pymongo
 pytest
 requests
+python-dotenv

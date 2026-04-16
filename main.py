@@ -116,7 +116,7 @@ async def main(config: dict, user_email: str=None):
 
     """
     4. LLM-Analyse (ollama) 
-    --> gesammelte Daten werden an llama3 geschickt (Performance/Größe gut)
+    --> gesammelte Daten werden an ollama geschickt (Performance/Größe gut)
     --> "ThreadPoolExecuter", um 3 Artikel parallel zu analysieren (spart Zeit)
     """
     print(f"\n✨ {len(unique)} Artikel → Ollama (parallel, 3 gleichzeitig)...\n")

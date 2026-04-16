@@ -28,6 +28,24 @@ streamlit run dashboard/dashboard.py
 python3 main.py
 ```
 
+## Via Docker starten (streamlit, ollama, mongodb)
+
+Container starten:
+Dieser Befehl baut die Images und startet alle Services (Datenbank, KI, UI).
+
+docker compose up --build
+Das Dashboard ist danach unter http://localhost:8501 erreichbar.
+
+KI-Modell laden (Wichtig!):
+Da Modelle sehr groß sind, müssen sie einmalig manuell im Container "gezogen" werden:
+
+docker exec -it ollama ollama pull ollama
+
+💻 Mitwirken (Entwicklung)
+-Live-Updates: Dank Docker-Volumes werden Änderungen, die du in VS Code am Code vornimmst, sofort im laufenden Container übernommen. Du musst den Container nicht neu starten.
+-Abhängigkeiten: Wenn du neue Python-Pakete hinzufügst, trage sie in die jeweilige requirements.txt ein und starte die Container mit --build neu.
+-Datenbank: Die MongoDB läuft lokal in deinem Docker. Daten, die du speicherst, bleiben in deinem lokalen Volume mongo_data erhalten.
+
 ---
 
 ## Workflow
@@ -77,7 +95,7 @@ python3 main.py
 ==> Lösung?: zunächst nur erste Parameter des Artikels scannen, wenn true dann weiter
 ==> Lösung?: Cookie-Persistenz, speichern der Cookies unter selben IP-Adresse, sonst wirkt auf hohes Volumen "verdächtig"
 
-### KI-Analyse (Ollama / llama3, lokal)
+### KI-Analyse (Ollama / llama3.2:3b, lokal)
 
 - [x] Maße aus Artikelbeschreibung extrahieren (Brust, Taille, Hüfte, Schulter, Länge, Ärmel, Innennaht)
 - [x] Zustand & Material aus Beschreibung erkennen
@@ -153,6 +171,11 @@ Beobachtung: Du nutzt den ThreadPoolExecutor mit genau 3 Workern.
 Warum das wichtig ist: Würdest du 100 Artikel gleichzeitig an Ollama schicken, würde dein Mac/PC einfrieren. Würdest du sie nacheinander schicken, würde es ewig dauern.
 Bericht-Argument: Optimierung der „System-Performance durch Thread-Pooling“. Du erklärst die Abwägung zwischen Hardware-Ressourcen (CPU/RAM-Last durch Llama 3) und der benötigten Durchlaufzeit des Scrapers.
 
+-Umstellung von Lokaler DB auf Cloud-Infrastruktur
+Problem: Die lokale MongoDB im Docker-Container erschwerte die Zusammenarbeit im Team (kein gemeinsamer Datenstand).
+Lösung: Migration zu MongoDB Atlas. Das Passwort wurde sicher über eine .env-Datei verwaltet, und der lokale MongoDB-Service wurde aus der docker-compose.yml entfernt.
+Learning: "Source of Truth" Prinzip. Für kollaborative Data-Science-Projekte ist eine zentrale Cloud-Datenbank essentiell, um Inkonsistenzen zwischen den Entwickler-Umgebungen zu vermeiden.
+
 ## Konfiguration
 
 Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.json` gespeichert:
@@ -164,8 +187,8 @@ Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.j
 | `max_preis` | Maximaler Preis in € | `50` |
 | `eigene_masse` | Eigene Körpermaße in cm | `{"brust": 88, "taille": 70}` |
 | `suchbegriffe` | Vinted Suchbegriffe | `["vintage", "y2k"]` | --> soll gelöscht werden
-| `ollama_url` | Ollama API Endpunkt | `"http://localhost:11435/api/generate"` |
-| `ollama_modell` | Lokales LLM | `"llama3"` |
+| `ollama_url` | Ollama API Endpunkt | `"http://ollama:11435/api/generate"` |
+| `ollama_modell` | Lokales LLM | `"llama3.2:3b"` |
 | `max_artikel_pro_suche` | Artikel pro Suchbegriff | `5` |
 | `pause_zwischen_artikeln` | Anti-Ban Pause (Sek.) | `[4, 7]` |
 

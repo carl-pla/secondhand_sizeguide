@@ -2,8 +2,8 @@ import os
 import smtplib
 from email.message import EmailMessage
 from datetime import datetime, timedelta
-from pymongo import MongoClient
-import requests
+from pymongo import MongoClient # type: ignore 
+import requests # type: ignore 
 
 # 1. Konfiguration & Umgebungsvariablen laden
 MONGO_URI = os.getenv("MONGO_URI")
@@ -52,8 +52,8 @@ def generate_newsletter_content(items):
 
     # API-Aufruf an das lokale Ollama (das durch die Pipeline gestartet wurde)
     try:
-        response = requests.post('http://localhost:11434/api/generate', json={
-            "model": "llama3",
+        response = requests.post('http://ollama:11434/api/generate', json={
+            "model": "llama3.2:3b",
             "prompt": prompt,
             "stream": False
         })

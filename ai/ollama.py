@@ -1,5 +1,5 @@
 import json
-import httpx
+import httpx # type: ignore
 from database.config_defaults import ZUSTAND_RANG
 
 """
@@ -52,38 +52,35 @@ def analysiere_artikel(artikel: dict, config: dict) -> dict:
     1.Prompt: Was soll das LLM machen, wie soll sie bewerten, 
     und schlussendlich soll sie ihre Ergebnisse in einer JSON zurückgeben
     """
-    prompt = f"""You are an expert vintage fashion curator. Your goal is to find the best items for a client.
+    prompt = f"""You are a vintage fashion curator. Evaluate if this item fits the client.
 
-Client Preferences:
+Client:
 - Style: {stile}
-- Targeted Size: {config['groesse']} (Note: vintage sizes vary, trust measurements more than tags)
+- Size: {config['groesse']}
 - Max Price: {config['max_preis']}€
 - Min Condition: {min_zustand}
-- Client Body Measurements: Bust {eigene.get('brust','?')}cm, Waist {eigene.get('taille','?')}cm, Hips {eigene.get('huefte','?')}cm
 
-Listing Data:
+Item:
 - Title: {artikel['titel']}
 - Price: {artikel['preis']}
 - Description: {artikel['beschreibung']}
 
-Evaluation Rules:
-1. MANDATORY: If you find measurements (cm) in the description, compare them strictly with the client's body data.
-2. TOLERANCE: For explicit measurements, allow a max difference of +/- 4cm for a "perfect fit".
-3. NO MEASUREMENTS? If cm-data is missing, you MUST estimate based on the brand's typical fit for size {config['groesse']}. 
-4. SCORE WEIGHTING: 
-   - 9-10: Style matches AND measurements are perfect. 
-   - 7-8: Style matches AND size is {config['groesse']}, but no exact cm-measurements found.
-   - <7: Style mismatch or size/price concerns.
+CRITICAL RULES:
+1. For "masse": ONLY extract cm-values explicitly written in the description. If none found, set ALL to null. DO NOT use the client's measurements.
+2. If no measurements in description: score 7 if style+size match, 6 if uncertain.
+3. If measurements found AND they fit (±4cm): score 8-10.
+4. If measurements found AND they DON'T fit: score 3-5.
 
-JSON format only:
+Respond ONLY with this JSON:
 {{
   "masse": {{"brust_cm":null,"taille_cm":null,"laenge_cm":null}},
-  "zustand": "kurze Einschätzung",
+  "zustand": "Gut/Sehr gut/Wie neu/Befriedigend",
   "passt_groesse": true/false,
-  "begruendung": "Begründung auf Deutsch (max 2 Sätze)",
+  "begruendung": "max 2 Sätze auf Deutsch",
   "bewertung": 1-10,
   "empfohlen": true/false
 }}"""
+
 # SCORE WEIGHTING: relativ euphorisch angesetzt, um mehr reinzubringen und dann harter auszusortiren 
     
     # Nach Prompt kommt der Analyseteil 
@@ -151,10 +148,10 @@ JSON format only:
             analyse["begruendung"] = f"Zustand '{zustand}' unter '{min_zustand}'. " + analyse.get("begruendung", "")
 
     """
-    3.3 Mindestbewertung, jedoch aktuell auf 7 hardgecodet --> soll mit Schieberegl in "Ergebnissen" angepasst werden
+    3.3 Mindestbewertung, jedoch aktuell auf 6 hardgecodet --> soll mit Schieberegl in "Ergebnissen" angepasst werden
     was dann letztendlich in der Empfehlung JSON landet
     """
-    if (analyse.get("bewertung") or 0) < 7:
+    if (analyse.get("bewertung") or 0) < 6:
         analyse["empfohlen"] = False
 
     

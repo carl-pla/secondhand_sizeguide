@@ -1,11 +1,22 @@
-import pymongo
+import pymongo # type: ignore
 import datetime
 import re
+import os 
 
-MONGO_URI = "mongodb://127.0.0.1:27017/"
+from dotenv import load_dotenv # type: ignore
+from pymongo import MongoClient # type: ignore
+
+load_dotenv()
+
+# Variablen abrufen
+user = os.getenv("MONGO_USER")
+password = os.getenv("MONGO_PASS")
+cluster = os.getenv("MONGO_CLUSTER")
+
+URI_MONGO = f"mongodb+srv://{user}:{password}@{cluster}/?retryWrites=true&w=majority"
 
 def get_users_collection():
-    client = pymongo.MongoClient(MONGO_URI, serverSelectionTimeoutMS=2000)
+    client = pymongo.MongoClient(URI_MONGO, serverSelectionTimeoutMS=2000)
     return client["Secondhand_db"]["users"]
 
 def registriere_user(email: str, config: dict) -> dict:

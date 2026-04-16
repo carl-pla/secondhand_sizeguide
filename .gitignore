@@ -15,3 +15,5 @@ datascienceprojekt.egg-info
 # Debug
 debug.png
 debug_vinted.html
+
+database/

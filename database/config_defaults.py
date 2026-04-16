@@ -26,7 +26,7 @@ VINTED_KATEGORIEN = {
     "Damen Sportschuhe": "2630", "Damen Ballerinas": "2955", "Damen Stiefel": "1049", "Damen Absatzschuhe": "543", "Damen Hausschuhe, Pantoffeln & Slipper": "215", "Damen Sneaker": "2632", "Damen Bootsschuhe & Loafer": "2954", "Damen Schnürschuhe": "2951", "Damen Sandalen": "2949",
     "Damen Taschen": "19", "Damen Halstücher": "2932", "Damen Tücher & Schals": "89", "Damen Kopftücher": "2931", "Damen Hüte und Mützen": "88", "Damen Handschuhe": "90", "Damen Schmuck": "21", "Damen Uhren": "22", "Damen Haarschmuck": "1123", "Damen Gürtel": "20"
 }
-OLLAMA_MODELLE = ["llama3", "mistral", "gemma3", "phi4", "llama3.2", "mistral-nemo"]
+OLLAMA_MODELLE = ["llama3.2:3b", "llama3"]
 STIL_OPTIONEN  = ["Menswear", "Vintage", "Retro", "Y2K", "Streetwear", "Minimalistisch", "Sportlich", "Boho", "Grunge"]
 ZUSTAND_RANG = {
     "Neu mit Etikett": 5, "Neu ohne Etikett": 4,
@@ -46,8 +46,8 @@ DEFAULT_CONFIG = {
     "min_zustand": "Gut",
     "eigene_masse": {"brust": 88, "taille": 70, "huefte": 96, "schulter": 38,
                      "laenge_oberteil": 60, "innennaht": 78},
-    "ollama_url": "http://localhost:11435/api/generate",
-    "ollama_modell": "llama3",
+    "ollama_url": "http://ollama:11435/api/generate",
+    "ollama_modell": "llama3.2:3b",
     "max_artikel_pro_suche": 3,
     "max_suchen": 1,
     "pause_zwischen_artikeln": [4, 7],
@@ -65,13 +65,13 @@ def lade_config(config_path: Path | str = CONFIG_FILE) -> dict:
     
     # Prüfen: Existiert die Datei UND ist sie nicht leer (Größe > 0)?
     if p.exists():
-        with open(p, "r") as f:
+        with open(p, "r", encoding='utf-8') as f:
             gespeichert = json.load(f)
             result.update(gespeichert)  # ← überschreibe nur was vorhanden ist
     return result
         
 
 def speichere_config(config: dict, config_path: Path | str = CONFIG_FILE):
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
     print(f"✅ Datei geschrieben: {config_path} mit {config.get('max_preis')}€")

@@ -1,8 +1,9 @@
-import streamlit as st
+import streamlit as st # type: ignore 
 import json
 from pathlib import Path
 import sys, os
 import subprocess
+import httpx # type: ignore 
 
 # Fügt den Projekt-Hauptordner zum Pfad hinzu
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -17,8 +18,8 @@ from database.config_defaults import (
 #  SEITEN-KONFIGURATION
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="Vinted Finder",
-    page_icon="🛍️",
+    page_title="MatchFit",
+    page_icon="dashboard/logo/logo_matchfit.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -131,8 +132,12 @@ config = st.session_state.config
 #  SIDEBAR – NAVIGATION
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🛍️ Vinted Finder")
-    st.markdown("---")
+    st.image("dashboard/logo/logo_matchfit.png", width=180)
+    st.markdown(
+        "<h1 style='text-align:center; margin-top:-10px; margin-right: 60px; '>MatchFit</h1>",
+        unsafe_allow_html=True
+    )
+    st.divider()
     seite = st.radio(
         "",
         ["⚙️  Einstellungen", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
@@ -141,15 +146,13 @@ with st.sidebar:
     st.markdown("---")
 
     # Ollama Status
-    import httpx
     try:
         httpx.get(config["ollama_url"].replace("/api/generate", ""), timeout=2)
         st.markdown('<span class="status-ok">● Ollama online</span>', unsafe_allow_html=True)
     except:
         st.markdown('<span class="status-err">● Ollama offline</span>', unsafe_allow_html=True)
-        st.caption(f"Erwartet auf: {config['ollama_url']}")
 
-    st.markdown(f"<br><span style='color:#8a8478;font-size:0.75rem'>Config: {CONFIG_FILE}</span>", unsafe_allow_html=True)
+    
 
 
 # ═══════════════════════════════════════════════
@@ -157,7 +160,7 @@ with st.sidebar:
 # ═══════════════════════════════════════════════
 if "Einstellungen" in seite:
     st.markdown("# Einstellungen")
-    st.markdown("Konfiguriere deine Präferenzen. Wird in `dashboard/secrets/config.json` gespeichert.")
+    st.markdown("Konfiguriere deine Präferenzen.")
     st.markdown("---")
 
     tab1, tab2, tab3, tab4 = st.tabs(["👗  Stil & Größe", "📐  Maße", "🔍  Suche", "🤖  Ollama"])
@@ -250,12 +253,12 @@ if "Einstellungen" in seite:
     with tab4:
         st.session_state.config["ollama_url"] = st.text_input(
             "Ollama API URL",
-            st.session_state.config.get("ollama_url", "http://localhost:11435/api/generate")
+            st.session_state.config.get("ollama_url", "http://ollama:11435/api/generate")
         )
         st.session_state.config["ollama_modell"] = st.selectbox(
             "Modell",
             OLLAMA_MODELLE,
-            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3"))
+            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3.2:3b"))
             if st.session_state.config.get("ollama_modell") in OLLAMA_MODELLE else 0
         )
         st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")

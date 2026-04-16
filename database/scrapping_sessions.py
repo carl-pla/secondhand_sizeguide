@@ -1,5 +1,7 @@
-import pymongo
+import pymongo # type: ignore
 import datetime
+
+from database.users import URI_MONGO
 
 def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = None):
     """
@@ -21,7 +23,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = 
 
     try:
         # Verbindung aufbauen (mit Timeout, falls DB nicht läuft)
-        uri = "mongodb://127.0.0.1:27017/"
+        uri = URI_MONGO
         my_client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=2000)
         mydb = my_client["Secondhand_db"]
         collection = mydb["vinted_empfehlungen"]

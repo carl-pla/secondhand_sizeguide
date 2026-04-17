@@ -188,6 +188,13 @@ Lösung: llama3.2:3b als default modell auswählen und gleichzeitig Entscheidung
 Erklärung: Sensible Daten werden niemals im Repository gespeichert (Sicherheitsrisiko). Stattdessen nutzt man "Secrets" des Hosters (GitHub).
 Vorteil: Man kann den Code öffentlich zeigen (Open Source), während die Passwörter sicher verschlüsselt in der Infrastruktur liegen. Das trennt die Logik (Code) von der Konfiguration (Secrets) --> jedoch dienen diese nur der cloud, im Projekt müssen die keys ebenfalls in eine .env eingetragen werden, um im Projekt verarbeitet werden zu können
 
+-Das SMTP-Protokoll (587)
+Für den Versand über Port 587 ist die Reihenfolge entscheidend:
+Verbindung aufbauen.
+starttls() ausführen (Verschlüsselung).
+Erst danach login() rufen.
+Ohne Verschlüsselung lehnt Google das Passwort sofort ab.
+
 ## Konfiguration
 
 Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.json` gespeichert:

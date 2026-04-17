@@ -10,6 +10,12 @@ MAIL_FROM      = os.getenv("MAIL_FROM")
 MAIL_PASSWORD  = os.getenv("MAIL_PASSWORD")
 
 def fetch_latest_empfehlungen():
+    MONGO_URL = os.getenv("MONGO_URL")
+
+    if not MONGO_URL:
+    # Das wird im GitHub Log rot angezeigt und stoppt das Skript sofort
+        raise ValueError("❌ Kritischer Fehler: Die Umgebungsvariable MONGO_URL wurde nicht gefunden!")
+    print("✅ MONGO_URL erfolgreich geladen.")
     print("Verbinde mit MongoDB...")
     client = MongoClient(MONGO_URL)
     col = client["Secondhand_db"]["scraping_sessions"]

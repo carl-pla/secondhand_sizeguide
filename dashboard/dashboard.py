@@ -384,7 +384,11 @@ elif "Ergebnisse" in seite:
                 ("brust_cm", "Brust"), ("taille_cm", "Taille"), ("huefte_cm", "Hüfte"),
                 ("schulter_cm", "Schulter"), ("laenge_cm", "Länge"), ("aermel_cm", "Ärmel")
             ]
-            masse_items = [(label, masse.get(key)) for key, label in masse_felder if masse.get(key)]
+            # Prüfe sicherheitshalber, ob 'masse' überhaupt existiert, bevor wir .get() nutzen
+            if masse is not None:
+                masse_items = [(label, masse.get(key)) for key, label in masse_felder if masse.get(key)]
+            else:
+                masse_items = []
             if masse_items:
                 items_html = "".join([
                     f'<div class="masse-item"><div class="masse-key">{label}</div><div class="masse-val">{val} cm</div></div>'

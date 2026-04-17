@@ -68,7 +68,7 @@ def sende_email(html_content, empfaenger: str):
 
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
+            server.set_debuglevel(1)  # <--- AKTIVIERT DEN VOLLEN LOG
             server.login(MAIL_FROM, MAIL_PASSWORD)
             server.send_message(msg)
         print(f"✅ Newsletter gesendet an {empfaenger}")

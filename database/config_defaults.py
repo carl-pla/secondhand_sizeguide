@@ -1,6 +1,12 @@
 from pathlib import Path
 import json
 import os 
+import streamlit as st
+
+# 1. Versuche die URL aus den Streamlit Secrets zu laden (Cloud-Modus)
+# 2. Falls nicht da, schaue in Umgebungsvariablen
+# 3. Falls beides leer, nutze localhost (Lokal-Modus)
+URL_MONGO = st.secrets.get("MONGO_URL") or os.getenv("MONGO_URL") or "mongodb://localhost:27017"
 
 BASE_DIR    = Path(__file__).parent.parent
 SECRETS_DIR = BASE_DIR / "dashboard" / "secrets" 

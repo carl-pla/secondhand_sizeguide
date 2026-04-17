@@ -1,10 +1,12 @@
-import streamlit as st # type: ignore 
 import json
 from pathlib import Path
 import sys, os
 import subprocess
 import httpx # type: ignore 
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import streamlit as st # type: ignore 
 from database.users import registriere_user 
 from database.users import deaktiviere_user
 

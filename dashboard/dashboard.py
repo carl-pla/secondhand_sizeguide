@@ -6,6 +6,7 @@ import subprocess
 import httpx # type: ignore 
 
 from database.users import registriere_user 
+from database.users import deaktiviere_user
 
 # Fügt den Projekt-Hauptordner zum Pfad hinzu
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -185,6 +186,12 @@ if "Einstellungen" in seite:
                     st.session_state.config.get("kategorie", "Herren Jacken & Mäntel")
                 )
             )
+            st.session_state.config["stile"] = st.multiselect(
+            "Bevorzugte Stile",
+            STIL_OPTIONEN,                
+            default=st.session_state.config.get("stile", ["Vintage"])
+        )
+            
         with col2:
             st.session_state.config["max_preis"] = st.slider(
                 "Maximaler Preis (€)", 5, 200,
@@ -197,12 +204,15 @@ if "Einstellungen" in seite:
                     st.session_state.config.get("min_zustand", "Gut")
                 )
             )
-        
-        st.session_state.config["stile"] = st.multiselect(
-            "Bevorzugte Stile",
-            STIL_OPTIONEN,
-            default=st.session_state.config.get("stile", ["Vintage"])
+            email_input = st.text_input(
+            "Deine Email-Adresse",
         )
+        if email_input:
+            st.session_state.config["user_email"] = email_input
+            st.session_state["user_email"] = email_input
+        
+        
+            
 
     # ── TAB 2: Maße ──
     with tab2:
@@ -277,6 +287,11 @@ if "Einstellungen" in seite:
 # ═══════════════════════════════════════════════
 elif "Suche" in seite:   # ← elif statt if, und "Suche" check
     st.markdown("# Suche starten")
+    user_email = st.session_state.config.get("user_email") or st.session_state.get("user_email", "anonym")
+    if user_email:
+        st.caption(f"🔗 Suche wird gespeichert für: **{user_email}**")
+    else:
+        st.warning("⚠️ Keine Email hinterlegt – Suche wird als 'anonym' gespeichert.")
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -427,6 +442,7 @@ elif "Newsletter" in seite:
                     if "error" in result:
                         st.error(result["error"])
                     elif result["status"] == "neu":
+                        st.session_state["user_email"] = email 
                         st.success(f"✅ Angemeldet! Du erhältst Empfehlungen an {email}")
                     else:
                         st.info(f"✓ Präferenzen für {email} aktualisiert.")
@@ -439,7 +455,6 @@ elif "Newsletter" in seite:
                 st.error("Bitte Email eingeben.")
             else:
                 try:
-                    from database.users import deaktiviere_user
                     deaktiviere_user(email)
                     st.success(f"✓ {email} vom Newsletter abgemeldet.")
                 except Exception as e:

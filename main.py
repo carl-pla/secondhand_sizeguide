@@ -146,7 +146,7 @@ async def main(config: dict, user_email: str=None):
 
     # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung 
     try:
-        speichere_in_mongo(ergebnisse, config, user_email=user_email)
+        speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email"))
     except Exception as e:
         print(f"⚠️  MongoDB nicht erreichbar: {e}")
 

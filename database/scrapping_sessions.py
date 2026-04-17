@@ -1,46 +1,47 @@
-import pymongo # type: ignore
+import pymongo
 import datetime
-
+import uuid
 from database.config_defaults import URI_MONGO
 
 def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = None):
-    """
-    Speichert die Analyse-Ergebnisse in MongoDB. 
-    Verhindert Fehler bei leeren Listen und stellt Verbindungen sicher.
-    """
-    
-    # 1. Sofort-Check: Wenn keine Empfehlungen da sind, nichts tun
     if not ergebnisse:
         print("MongoDB: Keine Empfehlungen zum Speichern gefunden.")
         return None
 
-    # Sicherstellen, dass wir wirklich nur Empfehlungen speichern (empfohlen == True)
     empfehlungen = [e for e in ergebnisse if isinstance(e, dict) and e.get("empfohlen") is True]
-    
+
     if not empfehlungen:
         print("MongoDB: Liste enthielt keine Artikel mit Status 'empfohlen'.")
         return None
 
     try:
-        # Verbindung aufbauen (mit Timeout, falls DB nicht läuft)
-        uri = URI_MONGO
-        my_client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=2000)
-        mydb = my_client["Secondhand_db"]
-        collection = mydb["vinted_empfehlungen"]
+        client = pymongo.MongoClient(URI_MONGO, serverSelectionTimeoutMS=5000)
+        db = client["Secondhand_db"]
 
-        # Zeitstempel hinzufügen, damit du im Dashboard nach "Neu" sortieren kannst
         jetzt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        for artikel in empfehlungen:
-            artikel["gespeichert_am"] = jetzt
 
-        # 2. Der entscheidende Fix: Nur insert_many aufrufen, wenn die Liste gefüllt ist
-        result = collection.insert_many(empfehlungen)
-        
-        print(f"✅ MongoDB: {len(result.inserted_ids)} neue Empfehlungen gespeichert.")
-        return result
+        # Session-Dokument erstellen
+        session = {
+            "session_id":         str(uuid.uuid4()),
+            "user_email":         user_email or "anonym",
+            "gestartet_am":       jetzt,
+            "config": {
+                "groesse":        config.get("groesse"),
+                "max_preis":      config.get("max_preis"),
+                "stile":          config.get("stile"),
+                "kategorie":      config.get("kategorie"),
+            } if config else {},
+            "empfehlungen":       empfehlungen,
+            "anzahl_empfohlen":   len(empfehlungen),
+            "anzahl_analysiert":  len(ergebnisse),
+        }
+
+        db["scraping_sessions"].insert_one(session)
+        print(f"✅ MongoDB: Session gespeichert ({len(empfehlungen)} Empfehlungen) für {user_email or 'anonym'}")
+        return session["session_id"]
 
     except pymongo.errors.ServerSelectionTimeoutError:
-        print("❌ MongoDB Fehler: Verbindung zum Server fehlgeschlagen (läuft MongoDB?)")
+        print("❌ MongoDB Fehler: Verbindung fehlgeschlagen")
     except Exception as e:
         print(f"❌ Fehler beim Speichern in MongoDB: {e}")
         return None

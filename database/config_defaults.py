@@ -42,6 +42,7 @@ ZUSTAND_OPTIONEN = list(ZUSTAND_RANG.keys())
 #  DEFAULT-CONFIG
 # ─────────────────────────────────────────────
 DEFAULT_CONFIG = {
+    "user_email": "max@example.com",
     "groesse": "M / 38",
     "kategorie": "Herren Jacken & Mäntel",
     "stile": ["Vintage", "Retro"],

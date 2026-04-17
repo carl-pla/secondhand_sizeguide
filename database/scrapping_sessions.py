@@ -1,7 +1,7 @@
 import pymongo # type: ignore
 import datetime
 import uuid
-from database.config_defaults import URI_MONGO
+from database.config_defaults import URL_MONGO
 
 def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = None):
     if not ergebnisse:
@@ -15,7 +15,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = 
         return None
 
     try:
-        client = pymongo.MongoClient(URI_MONGO, serverSelectionTimeoutMS=5000)
+        client = pymongo.MongoClient(URL_MONGO, serverSelectionTimeoutMS=5000)
         db = client["Secondhand_db"]
 
         jetzt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")

@@ -17,6 +17,7 @@ services:
     env_file:
       - .env                        # ← so, nicht unter environment
     environment:
+      - PYTHONPATH=/workspace
       - OLLAMA_HOST=http://ollama:11434
     depends_on:
       - ollama

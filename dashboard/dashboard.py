@@ -5,6 +5,8 @@ import sys, os
 import subprocess
 import httpx # type: ignore 
 
+from database.users import registriere_user 
+
 # Fügt den Projekt-Hauptordner zum Pfad hinzu
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -421,7 +423,6 @@ elif "Newsletter" in seite:
                 st.error("Bitte Email eingeben.")
             else:
                 try:
-                    from database.users import registriere_user
                     result = registriere_user(email, st.session_state.config)
                     if "error" in result:
                         st.error(result["error"])

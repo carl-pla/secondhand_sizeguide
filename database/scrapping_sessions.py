@@ -1,7 +1,7 @@
 import pymongo # type: ignore
 import datetime
 
-from database.users import URI_MONGO
+from database.config_defaults import URI_MONGO
 
 def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = None):
     """

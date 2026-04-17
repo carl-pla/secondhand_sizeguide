@@ -3,7 +3,7 @@ import datetime
 import os 
 
 from dotenv import load_dotenv # type: ignore
-from users import MONGO_URI
+from config_defaults import URI_MONGO
 
 def speichere_in_mongo(ergebnisse: list, config: dict = None):
     """

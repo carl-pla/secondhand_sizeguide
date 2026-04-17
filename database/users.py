@@ -6,14 +6,14 @@ import os
 from dotenv import load_dotenv # type: ignore
 from pymongo import MongoClient # type: ignore
 
-load_dotenv()
+from database.config_defaults import URI_MONGO
 
 # Variablen abrufen
 user = os.getenv("MONGO_USER")
 password = os.getenv("MONGO_PASS")
 cluster = os.getenv("MONGO_CLUSTER")
 
-URI_MONGO = f"mongodb+srv://{user}:{password}@{cluster}/?retryWrites=true&w=majority"
+
 
 def get_users_collection():
     client = pymongo.MongoClient(URI_MONGO, serverSelectionTimeoutMS=2000)

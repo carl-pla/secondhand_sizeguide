@@ -66,10 +66,11 @@ Item:
 - Description: {artikel['beschreibung']}
 
 CRITICAL RULES:
-1. For "masse": ONLY extract cm-values explicitly written in the description. If none found, set ALL to null. DO NOT use the client's measurements.
-2. If no measurements in description: score 7 if style+size match, 6 if uncertain.
-3. If measurements found AND they fit (±4cm): score 8-10.
-4. If measurements found AND they DON'T fit: score 3-5.
+SCORING RULES:
+- 9-10: Style matches AND measurements explicitly found in description AND fit perfectly (±4cm)
+- 7-8:  Style matches AND size tag is {config['groesse']}, but NO measurements found → max 7
+- 5-6:  Style uncertain OR size unclear
+- <5:   Style mismatch, wrong size, or price too high
 
 Respond ONLY with this JSON:
 {{
@@ -151,15 +152,18 @@ Respond ONLY with this JSON:
     3.3 Mindestbewertung, jedoch aktuell auf 6 hardgecodet --> soll mit Schieberegl in "Ergebnissen" angepasst werden
     was dann letztendlich in der Empfehlung JSON landet
     """
-    if (analyse.get("bewertung") or 0) < 6:
+    mindest_bewertung = 6
+    if (analyse.get("bewertung") or 0) < mindest_bewertung:
         analyse["empfohlen"] = False
+    else:
+        analyse["empfohlen"] = True # ← Überschreibt Ollamas zu strenges Urteil
 
     
     """
     4. PASSFORM-VERGLEICH: Mathematische Berechnung der Differenz von Maßen, was gefunden wurde und was angegeben wurde
     """
     passform_hinweise = []
-    masse = analyse.get("masse", {})
+    masse = analyse.get("masse", {}) or {}
     for key, label, eigener_wert in [
         ("brust_cm",     "Brust",     eigene.get("brust")),
         ("taille_cm",    "Taille",    eigene.get("taille")),

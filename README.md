@@ -180,6 +180,11 @@ Learning: "Source of Truth" Prinzip. Für kollaborative Data-Science-Projekte is
 Ursache: "Halluzinierte Logik" – Die KI gewichtet qualitative Text-Argumente (fehlende Maße) stärker als deine implizite Regel (Score > 6 = Empfehlung).
 Lösung: Post-Processing. Anstatt die KI komplexe Logik-Entscheidungen (A folgt aus B) im JSON treffen zu lassen, sollte man nur die Basisdaten (Score) abfragen und die finale Logik (IF Score > 6 THEN true) im Python-Code hart kodieren. Das macht die App deterministisch und zuverlässig.
 
+-Herausforderung: richtiges Modell auswählen, da es oft zu unerwünschte Analysen der Ergebnissen kommt
+Ursache: kleinere Modell wie llama3.2:3b ist konservativer und llama3 ist recht groß (größerer Hardwareaufwand)
+Lösung: llama3.2:3b als default modell auswählen und gleichzeitig Entscheidungsvorgang weniger streng gestalten 
+
+
 ## Konfiguration
 
 Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.json` gespeichert:

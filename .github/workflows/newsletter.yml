@@ -27,4 +27,4 @@ jobs:
           MONGO_URL: ${{ secrets.MONGO_URL }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-        run: python newsletter/newsletter.py
+         run: python newsletter/newsletter.py

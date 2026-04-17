@@ -68,9 +68,16 @@ def sende_email(html_content, empfaenger: str):
 
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.set_debuglevel(1)  # <--- AKTIVIERT DEN VOLLEN LOG
-            server.login(MAIL_FROM, MAIL_PASSWORD)
+            server.set_debuglevel(1) # <--- AKTIVIERT DEN VOLLEN LOG
+            server.ehlo() # 2. Identifizieren beim Server
+            server.starttls()  # 3. Verschlüsselung starten
+            server.ehlo()  # 4. Erneut identifizieren (jetzt über die verschlüsselte Leitung)
+            server.login(MAIL_FROM, MAIL_PASSWORD) # 5. Jetzt erst einloggen
+            
+            # 6. Senden
             server.send_message(msg)
+            server.quit()
+            
         print(f"✅ Newsletter gesendet an {empfaenger}")
     except Exception as e:
         print(f"❌ Fehler: {e}")

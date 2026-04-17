@@ -1,9 +1,11 @@
 name: Automated Newsletter
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["Daily Vinted Scraper"] # Startet, wenn der Scraper fertig ist
-    types: [completed]
+    types: 
+      - completed
 
 jobs:
   send-newsletter:
@@ -20,15 +22,9 @@ jobs:
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
-      - name: Ollama Setup (für Zusammenfassung)
-        run: |
-          curl -fsSL https://ollama.com/install.sh | sh
-          ollama serve &
-          sleep 5
-          ollama pull llama3.2:3b
-
       - name: Run Newsletter Script
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
-          #EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }} # Secret für dein E-Mail Konto
+          EMAIL_SENDER: ${{ secrets.MAIL_FROM }}
+          EMAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
         run: python newsletter.py

@@ -1,98 +1,85 @@
 import os
 import smtplib
-from email.message import EmailMessage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from datetime import datetime, timedelta
-from pymongo import MongoClient # type: ignore 
-import requests # type: ignore 
+from pymongo import MongoClient # type: ignore
 
-# 1. Konfiguration & Umgebungsvariablen laden
-MONGO_URI = os.getenv("MONGO_URI")
-EMAIL_SENDER = os.getenv("EMAIL_SENDER")       # Deine Absender-Adresse (z.B. Gmail)
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")   # Dein App-Passwort
-EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")   # Wer soll den Newsletter bekommen?
+MONGO_URL      = os.getenv("MONGO_URL")
+MAIL_FROM      = os.getenv("MAIL_FROM")
+MAIL_PASSWORD  = os.getenv("MAIL_PASSWORD")
 
-def fetch_latest_vinted_data():
-    """Holt die gescrapten Daten der letzten 24 Stunden aus der MongoDB."""
+def fetch_latest_empfehlungen():
     print("Verbinde mit MongoDB...")
-    client = MongoClient(MONGO_URI)
-    db = client["Secondhand_db"] 
-    collection = db["vinted_empfehlungen"]       
-    
-    # Filter: Nur Einträge vom letzten Tag
-    yesterday = datetime.now() - timedelta(days=1)
-    # Annahme: Du speicherst ein Feld "scraped_at" als datetime in Mongo
-    recent_items = list(collection.find({"scraped_at": {"$gte": yesterday}}).limit(20))
-    
-    # Falls du kein Datum speicherst, nutze stattdessen einfach die neuesten 20:
-    # recent_items = list(collection.find().sort("_id", -1).limit(20))
-    
-    return recent_items
+    client = MongoClient(MONGO_URL)
+    col = client["Secondhand_db"]["scraping_sessions"]
 
-def generate_newsletter_content(items):
-    """Schickt die Daten an Llama 3 und bittet um eine Zusammenfassung."""
+    # Letzte 24h – als String-Vergleich passend zu deinem Schema
+    gestern = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    sessions = list(col.find({"gestartet_am": {"$gte": gestern}}).sort("gestartet_am", -1))
+
+    # Alle Empfehlungen aus allen Sessions sammeln
+    alle = []
+    for s in sessions:
+        user = s.get("user_email", "anonym")
+        for item in s.get("empfehlungen", []):
+            item["_user"] = user
+            alle.append(item)
+    return alle
+
+def generiere_html(items):
     if not items:
-        return "Heute wurden keine neuen Vinted-Artikel gefunden. Viel Glück beim nächsten Mal!"
+        return "<p>Heute wurden keine neuen Empfehlungen gefunden.</p>"
 
-    # Daten für den Prompt vorbereiten (als Text formatieren)
-    items_text = ""
-    for idx, item in enumerate(items, 1):
-        titel = item.get("title", "Unbekannt")
-        preis = item.get("price", "?")
-        marke = item.get("brand", "Ohne Marke")
-        items_text += f"{idx}. {titel} ({marke}) - Preis: {preis}€\n"
-
-    print("Sende Daten an Ollama (Llama 3)...")
-    
-    prompt = (
-        "Du bist ein persönlicher Shopping-Assistent. Schreibe einen kurzen, "
-        "enthusiastischen Newsletter über die folgenden Vinted-Funde. "
-        "Hebe die besten Deals hervor, die eine Empfehlung sind mit Begründung. Antworte auf Deutsch.\n\n"
-        f"Hier sind die Artikel:\n{items_text}"
-    )
-
-    # API-Aufruf an das lokale Ollama (das durch die Pipeline gestartet wurde)
-    try:
-        response = requests.post('http://ollama:11434/api/generate', json={
-            "model": "llama3.2:3b",
-            "prompt": prompt,
-            "stream": False
-        })
-        response.raise_for_status()
-        return response.json()['response']
-    except Exception as e:
-        print(f"Fehler bei der Ollama-Generierung: {e}")
-        return "Fehler bei der Generierung des Newsletters durch die KI."
-
-def send_email(content):
-    """Verschickt den generierten Text als E-Mail."""
-    print("Bereite E-Mail vor...")
-    
-    msg = EmailMessage()
-    msg.set_content(content)
-    
     heute = datetime.now().strftime("%d.%m.%Y")
-    msg['Subject'] = f"🛍️ Deine Vinted Deals des Tages - {heute}"
-    msg['From'] = EMAIL_SENDER
-    msg['To'] = EMAIL_RECEIVER
+    html = f"""
+    <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
+    <h1 style="color:#1a1a2e">🛍️ Deine Vinted Deals – {heute}</h1>
+    <p>Heute wurden <b>{len(items)} Artikel</b> für dich gefunden:</p>
+    <hr>
+    """
+    for item in items[:10]:  # max 10 Artikel
+        bewertung = item.get("bewertung", "?")
+        sterne = "⭐" * int(bewertung) if isinstance(bewertung, int) else ""
+        html += f"""
+        <div style="border:1px solid #eee;border-radius:8px;padding:15px;margin:10px 0">
+            <h3 style="margin:0"><a href="{item.get('url','#')}">{item.get('titel','?')}</a></h3>
+            <p style="margin:5px 0">💶 <b>{item.get('preis','?')}</b> &nbsp;|&nbsp; {sterne} {bewertung}/10</p>
+            <p style="margin:5px 0;color:#555">{item.get('begruendung','')}</p>
+        </div>
+        """
+    html += "</body></html>"
+    return html
 
-    # SMTP-Verbindung aufbauen (Hier am Beispiel von Gmail)
+def sende_email(html_content, empfaenger: str):
+    print(f"Sende Newsletter an {empfaenger}...")
+    msg = MIMEMultipart("alternative")
+    heute = datetime.now().strftime("%d.%m.%Y")
+    msg["Subject"] = f"🛍️ Deine Vinted Deals – {heute}"
+    msg["From"]    = MAIL_FROM
+    msg["To"]      = empfaenger
+    msg.attach(MIMEText(html_content, "html"))
+
     try:
-        # Falls du einen anderen Anbieter (GMX, Web.de, Outlook) nutzt, 
-        # musst du den smtp-Server und den Port (oft 587 oder 465) anpassen.
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-        print("✅ Newsletter erfolgreich versendet!")
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(MAIL_FROM, MAIL_PASSWORD)
+            server.send_message(msg)
+        print(f"✅ Newsletter gesendet an {empfaenger}")
     except Exception as e:
-        print(f"❌ Fehler beim E-Mail-Versand: {e}")
+        print(f"❌ Fehler: {e}")
+
+def lade_alle_empfaenger():
+    client = MongoClient(MONGO_URL)
+    users = list(client["Secondhand_db"]["users"].find({"aktiv": True}))
+    return [u["email"] for u in users if "email" in u]
 
 if __name__ == "__main__":
-    # 1. Daten holen
-    vinted_data = fetch_latest_vinted_data()
-    
-    # 2. KI-Text generieren
-    newsletter_text = generate_newsletter_content(vinted_data)
-    
-    # 3. E-Mail senden
-    send_email(newsletter_text)
+    items    = fetch_latest_empfehlungen()
+    html     = generiere_html(items)
+    empfaenger = lade_alle_empfaenger()
+
+    if not empfaenger:
+        print("Keine aktiven Abonnenten gefunden.")
+    else:
+        for email in empfaenger:
+            sende_email(html, email)

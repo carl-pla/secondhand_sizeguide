@@ -26,7 +26,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None):
     try:
         # Verbindung aufbauen (mit Timeout, falls DB nicht läuft)
         load_dotenv()
-        uri = os.get(MONGO_URI) # => später neu aus .env laden, sonst zu viele fehler bis jetzt
+        uri = os.get(URI_MONGO) 
         my_client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=2000)
         mydb = my_client["Secondhand_db"]
         collection = mydb["vinted_empfehlungen"]

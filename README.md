@@ -184,6 +184,9 @@ Lösung: Post-Processing. Anstatt die KI komplexe Logik-Entscheidungen (A folgt 
 Ursache: kleinere Modell wie llama3.2:3b ist konservativer und llama3 ist recht groß (größerer Hardwareaufwand)
 Lösung: llama3.2:3b als default modell auswählen und gleichzeitig Entscheidungsvorgang weniger streng gestalten 
 
+-Herausforderung: Secret Management & Environment Separation.
+Erklärung: Sensible Daten werden niemals im Repository gespeichert (Sicherheitsrisiko). Stattdessen nutzt man "Secrets" des Hosters (GitHub).
+Vorteil: Man kann den Code öffentlich zeigen (Open Source), während die Passwörter sicher verschlüsselt in der Infrastruktur liegen. Das trennt die Logik (Code) von der Konfiguration (Secrets) --> jedoch dienen diese nur der cloud, im Projekt müssen die keys ebenfalls in eine .env eingetragen werden, um im Projekt verarbeitet werden zu können
 
 ## Konfiguration
 

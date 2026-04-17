@@ -1,4 +1,4 @@
-import pymongo
+import pymongo # type: ignore
 import datetime
 import uuid
 from database.config_defaults import URI_MONGO

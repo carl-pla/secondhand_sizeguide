@@ -41,7 +41,7 @@ jobs:
           ollama pull llama3.2:3b
 
       - name: Run Pytests (Dummy oder Scraper Check)
-        run: pytest test/dummy_test.py
+        run: pytest tests/dummy_test.py 
 
       # --- DOCKER BEREICH (Das eigentliche CI/CD) ---
       - name: Login to GHCR

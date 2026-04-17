@@ -6,14 +6,12 @@ import streamlit as st
 # 1. Versuche die URL aus den Streamlit Secrets zu laden (Cloud-Modus)
 # 2. Falls nicht da, schaue in Umgebungsvariablen
 # 3. Falls beides leer, nutze localhost (Lokal-Modus)
-URL_MONGO = st.secrets.get("MONGO_URL") or os.getenv("MONGO_URL") or "mongodb://localhost:27017"
+MONGO_URL = st.secrets.get("MONGO_URL") or os.getenv("MONGO_URL") or "mongodb://localhost:27017"
 
 BASE_DIR    = Path(__file__).parent.parent
 SECRETS_DIR = BASE_DIR / "dashboard" / "secrets" 
 RESULTS = BASE_DIR / "dashboard" / "secrets" / "results"
 SECRETS_DIR.mkdir(exist_ok=True)
-
-MONGO_URL = os.getenv("MONGO_URL")
 
 CONFIG_FILE       = SECRETS_DIR / "config.json"
 ERGEBNISSE_FILE   = RESULTS / "vinted_ergebnisse.json"

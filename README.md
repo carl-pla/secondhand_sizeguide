@@ -34,7 +34,7 @@ Container starten:
 Dieser Befehl baut die Images und startet alle Services (Datenbank, KI, UI).
 
 docker compose up --build
-Das Dashboard ist danach unter http://localhost:8501 erreichbar.
+Das Dashboard ist danach unter <http://localhost:8501> erreichbar.
 
 KI-Modell laden (Wichtig!):
 Da Modelle sehr groß sind, müssen sie einmalig manuell im Container "gezogen" werden:
@@ -124,15 +124,15 @@ docker exec -it ollama ollama pull ollama
 
 ### Weitere geplante Features
 
-- [ ] MongoDB aufsetzen und dort JSON speichern lassen
-- [ ] Volumen des Scrapers erhöhen --> noch unzufriedene Ergebnisse!
+- [x] MongoDB aufsetzen und dort JSON speichern lassen
+- [x] Volumen des Scrapers erhöhen --> noch unzufriedene Ergebnisse!
 - [ ] LLM-Analyse zu wenig kritisch
 - [ ] Pytests schreiben
-- [ ] App containerisieren
+- [x] App containerisieren
 - [ ] Deployen der streamlit App
 - [ ] CI/CD Pipeline integrieren
 
-- [ ] E-mail Benachrichtung als eine Art "Newsletter"
+- [x] E-mail Benachrichtung als eine Art "Newsletter"
     1. Daten aus Scrapper identifiziert
     2. in JSON Datei gespeichert, gleichzeitig landen Empfehlungen in MongoDB
     3. Empfehlungen werden pro Recherche agregiert und dann in einen Newsletter verpackt
@@ -182,7 +182,7 @@ Lösung: Post-Processing. Anstatt die KI komplexe Logik-Entscheidungen (A folgt 
 
 -Herausforderung: richtiges Modell auswählen, da es oft zu unerwünschte Analysen der Ergebnissen kommt
 Ursache: kleinere Modell wie llama3.2:3b ist konservativer und llama3 ist recht groß (größerer Hardwareaufwand)
-Lösung: llama3.2:3b als default modell auswählen und gleichzeitig Entscheidungsvorgang weniger streng gestalten 
+Lösung: llama3.2:3b als default modell auswählen und gleichzeitig Entscheidungsvorgang weniger streng gestalten
 
 -Herausforderung: Secret Management & Environment Separation.
 Erklärung: Sensible Daten werden niemals im Repository gespeichert (Sicherheitsrisiko). Stattdessen nutzt man "Secrets" des Hosters (GitHub).

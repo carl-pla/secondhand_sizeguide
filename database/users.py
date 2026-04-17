@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv # type: ignore
 from pymongo import MongoClient # type: ignore
 
-from database.config_defaults import URL_MONGO
+from database.config_defaults import MONGO_URL
 
 # Variablen abrufen
 user = os.getenv("MONGO_USER")
@@ -16,7 +16,7 @@ cluster = os.getenv("MONGO_CLUSTER")
 
 
 def get_users_collection():
-    client = pymongo.MongoClient(URL_MONGO, serverSelectionTimeoutMS=2000)
+    client = pymongo.MongoClient(MONGO_URL, serverSelectionTimeoutMS=2000)
     return client["Secondhand_db"]["users"]
 
 def registriere_user(email: str, config: dict) -> dict:

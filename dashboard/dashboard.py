@@ -135,7 +135,13 @@ config = st.session_state.config
 #  SIDEBAR – NAVIGATION
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.image("dashboard/logo/logo_matchfit.png", width=180)
+    # Pfad zur aktuellen Datei (dashboard.py)
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # Verbinde den Ordner der Datei mit dem Logo-Pfad
+    logo_path = os.path.join(BASE_DIR, "logo", "logo_matchfit.png")
+
+    st.image(logo_path, width=180)
     st.markdown(
         "<h1 style='text-align:center; margin-top:-10px; margin-right: 60px; '>MatchFit</h1>",
         unsafe_allow_html=True

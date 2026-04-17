@@ -7,7 +7,7 @@ SECRETS_DIR = BASE_DIR / "dashboard" / "secrets"
 RESULTS = BASE_DIR / "dashboard" / "secrets" / "results"
 SECRETS_DIR.mkdir(exist_ok=True)
 
-URI_MONGO = os.getenv("MONGO_URL")
+MONGO_URL = os.getenv("MONGO_URL")
 
 CONFIG_FILE       = SECRETS_DIR / "config.json"
 ERGEBNISSE_FILE   = RESULTS / "vinted_ergebnisse.json"

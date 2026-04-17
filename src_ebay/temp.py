@@ -1,7 +1,6 @@
 import requests
 from get_new_token import get_new_token
 import re
-import json
 
 def get_articles_json():
     """
@@ -10,7 +9,7 @@ def get_articles_json():
     :return: json mit Artikeln und zugehörigen Daten
     """
     user_token = get_new_token()
-    url = "https://api.ebay.com/buy/browse/v1/item/v1|388630721336|0"
+    url = " https://api.ebay.com/buy/browse/v1/item_summary/search?q=hose&category_ids=11450&filter=priceCurrency:EUR,price:%5B0..40%5D,conditions:%7BNEW%7CUSED%7D,buyingOptions:%7BFIXED_PRICE%7CBEST_OFFER%7D&aspect_filter=categoryId:11450,Farbe:%7BRot%7D&sort=-price&limit=5"
     # Achtung: Holt nicht die lange Artikelbeschreibung, die manchmal genauere Maße enthält. FIX!!!
 
     headers = {
@@ -47,7 +46,7 @@ def get_articles_json():
         print("Fehler: Anfrage hat zu lange gedauert (Timeout)")
 
     except requests.exceptions.HTTPError as e:
-        print(f"HTTP-Fehler: {e} - Statuscode: {articles_raw.status_code}")
+        print(f"HTTP-Fehler: {e} - Statuscode: {e.response.status_code}")
 
     except requests.exceptions.RequestException as e:
         print(f"Allgemeiner Request-Fehler: {e}")
@@ -62,18 +61,8 @@ def get_articles_json():
 res = get_articles_json()
 text = str(res)
 
-titles_list = re.findall(r"'title':\s*'([^']*)'", text)
-
-for title in titles_list:
-    print(title.strip())
-
 # Zugriff auf die Treffer
 if res and 'itemSummaries' in res:
     for item in res['itemSummaries']:
         print(f"Gefunden: {item['title']} - Preis: {item['price']['value']} {item['price']['currency']}")
-
-# response in JSON schreiben
-with open("specific_item.json", "w", encoding="utf-8") as file:
-    json.dump(res, file, indent=4, ensure_ascii=False)
-
 

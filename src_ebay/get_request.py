@@ -1,14 +1,14 @@
 import requests
 from get_new_token import get_new_token
-
+import json
 
 def get_summary_of_articles_json(
 
-        price=(0,100),
+        price=(0,40),
         conditions=("NEW","USED"),
-        buyopt="FIXED_PRICE",
+        buyopt="FIXED_PRICE|BEST_OFFER",
         keywords="",
-        sort_type="+",
+        sort_type="",
         brand=None,
         color=None
 
@@ -21,7 +21,7 @@ def get_summary_of_articles_json(
     :param conditions: Zustände des Zielprodukts
     :param buyopt: Auktion oder Festpreis
     :param keywords: Suchbegriffe
-    :param sort_type: Aufsteigend (+) oder absteigend (-) nach Preis sortiert
+    :param sort_type: Aufsteigend ("") oder absteigend ("-") nach Preis sortiert
     :param brand: Marke
     :param color: Farbe
     :return: json mit Artikeln und zugehörigen Daten
@@ -37,37 +37,47 @@ def get_summary_of_articles_json(
 
 
     filter_options = [
-        f"priceCurrency:EUR", # kein ODER (|) erlaubt, deswegen hardgecodet (EUR macht für uns in DE am meisten Sinn)
-        f"price:[{price[0]}..{price[1]}]",
-        f"conditions:{{{"|".join(conditions)}}}",
-        f"buyingOptions:{{{"|".join(buyopt)}}}"
+        f"priceCurrency:EUR",
+        f"price:[{price[0]}..{price[1]}]"
     ]
 
-    dynamic_options = {
+    dynamic_filter_options = {
         "conditions": conditions,
-        "buyingOptions": buyopt,
-        "Brand": brand,
-        "Color": color
+        "buyingOptions": buyopt
     }
 
     # str als Werte für dynamische Optionen zulassen
-    for options_name, value in dynamic_options.items():
+    for options_name, value in dynamic_filter_options.items():
         if value:
             if not isinstance(value, str):
                 value = "|".join(value)
+            filter_options.append(f"{options_name}:{{{value}}}")
 
-            if options_name in {"Brand", "Color"}:
-                filter_options.append(f"aspectIds:{{{options_name}:({value})}}")
+    aspect_list = []
 
-            else:
-                filter_options.append(f"{options_name}:{{{value}}}")
+    # Brand hinzufügen funktioniert
+    if brand:
+        brand_val = brand if isinstance(brand, str) else "|".join(brand)
+        aspect_list.append(f"Marke:{{{brand_val}|{brand_val.lower()}}}")
+
+    # Farbsuche funktioniert noch nicht
+    if color:
+        color_val = color if isinstance(color, str) else "|".join(color)
+        aspect_list.append(f"Farbe:{{{color_val}|{color_val.lower()}}}")
+
+    cat_id = 11450 # ID für Kleidung & Accessoires allgemein
+    if aspect_list:
+        aspect_string = f"categoryId:{cat_id}," + ",".join(aspect_list)
+    else:
+        aspect_string = f"categoryId:{cat_id}"
 
     params = {
         "q": keywords,
+        "category_ids": "11450",
         "filter": ",".join(filter_options),
-        "category_ids": "11450", # ID für Kleidung & Accessoires
+        "aspect_filter": aspect_string,
         "sort": f"{sort_type}price",
-        "limit": "200" # Maximum
+        "limit": "5" # Maximum 200
     }
 
     try:
@@ -146,9 +156,10 @@ def get_single_item_details(item_id):
 
 
 # Tests (werden entfernt)
-res = get_summary_of_articles_json(keywords="chino herren", color="Rot")
+res = get_summary_of_articles_json(keywords="hose", color="Rot", sort_type="-")
+print(res)
 
 # Zugriff auf die Treffer
-if res and 'itemSummaries' in str(res):
+if res and 'itemSummaries' in res:
     for item in res['itemSummaries']:
         print(f"Gefunden: {item['title']} - Preis: {item['price']['value']} {item['price']['currency']}")

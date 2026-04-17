@@ -24,7 +24,7 @@ jobs:
 
       - name: Run Newsletter Script
         env:
-          MONGO_URI: ${{ secrets.MONGO_URI }}
+          MONGO_URI: ${{ secrets.MONGO_URL }}
           EMAIL_SENDER: ${{ secrets.MAIL_FROM }}
           EMAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
         run: python newsletter/newsletter.py

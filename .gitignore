@@ -10,3 +10,6 @@ venv
 # Debug
 debug.png
 debug_vinted.html
+
+# own files
+src_ebay/ebay_ids.py

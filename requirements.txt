@@ -2,3 +2,5 @@ streamlit
 playwright 
 playwright-stealth 
 httpx
+requests
+base64

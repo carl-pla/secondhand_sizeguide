@@ -81,6 +81,29 @@ docker exec -it ollama ollama pull ollama
 - Warum MongoDB? Schema-Flexibilität: Da die JSON-Antworten der KI variieren können (z.B. findet sie mal Maße, mal nicht), ist ein starres SQL-Schema unpraktisch. MongoDB (BSON) speichert die Daten so, wie sie reinkommen.
 - JSON-Native: gesamter Workflow auf JSON basiert (Scraper -> Ollama -> MongoDB), gibt es keinen "Impedance Mismatch" (Daten müssen nicht umständlich umgewandelt werden).
 
+## Ausarbeitung der Projektarbeit - Struktur 
+1. Einleitung & Problemstellung (~1,5 Seiten)
+Pitch, Motivation, das Problem mit der Secondhand-Suche
+2. Ziele & Anforderungen (~1 Seite)
+Funktionale & nicht-funktionale Anforderungen, Scope
+3. Systemarchitektur & Tech Stack (~2,5 Seiten)
+Docker-Compose-Aufbau, Komponenten-Übersicht, Begründung für MongoDB / Ollama / Playwright / Streamlit
+4. Technische Implementierung (~6 Seiten)
+
+4.1 Scraping & Stealth — Playwright, Anti-Ban, Asyncio
+4.2 LLM-Analyse — Ollama, Prompt-Engineering, JSON-Parsing
+4.3 Validierungsschicht — Harte Checks, deterministisch vs. KI
+4.4 Datenhaltung — MongoDB Atlas, Schema-Flexibilität
+4.5 Dashboard & Config — Streamlit, config.json, Sync-Probleme
+4.6 CI/CD & Newsletter — GitHub Actions, Resend, Secrets
+
+5. Herausforderungen & Design-Entscheidungen (~2 Seiten)
+KI-Halluzinationen, Rate-Limiting, Secret Management
+6. Projektplanung & Teamaufteilung (~1,5 Seiten)
+Aufgabenverteilung, Zeitplan, offene To-dos
+7. Fazit & Ausblick (~1,5 Seiten)
+Learnings, was würde man anders machen, nächste Schritte
+
 ## Stand der Dinge ✅
 
 ### Scraping

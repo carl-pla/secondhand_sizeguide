@@ -1,6 +1,5 @@
 import requests
 from get_new_token import get_new_token
-import re
 
 def get_articles_json():
     """
@@ -9,12 +8,12 @@ def get_articles_json():
     :return: json mit Artikeln und zugehörigen Daten
     """
     user_token = get_new_token()
-    url = " https://api.ebay.com/buy/browse/v1/item_summary/search?q=hose&category_ids=11450&filter=priceCurrency:EUR,price:%5B0..40%5D,conditions:%7BNEW%7CUSED%7D,buyingOptions:%7BFIXED_PRICE%7CBEST_OFFER%7D&aspect_filter=categoryId:11450,Farbe:%7BRot%7D&sort=-price&limit=5"
+    url = "https://api.ebay.com/buy/browse/v1/item_summary/search?q=shirt perfect fit&category_ids=15724&aspect_filter=categoryId:15724,Color:{Red}"
     # Achtung: Holt nicht die lange Artikelbeschreibung, die manchmal genauere Maße enthält. FIX!!!
 
     headers = {
         "Authorization": f"Bearer {user_token}",
-        "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US"
     }
 
     try:

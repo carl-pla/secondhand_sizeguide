@@ -17,3 +17,5 @@ debug.png
 debug_vinted.html
 
 database/
+
+secrets.toml

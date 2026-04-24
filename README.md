@@ -27,12 +27,25 @@ Der Scraper durchsucht Vinted nach Kleidung, analysiert Passform und Stil mit ei
 Vinted (Web)
     │
     ▼
-Playwright Scraper  ──►  Ollama (LLM lokal)  ──►  MongoDB Atlas
-    │                         │                          │
-    │                    Passform-Analyse            Persistenz
-    │                    JSON-Ausgabe
+Playwright Scraper ──┐
+    │                │
+    │      [ ÜBER DAS INTERNET ]
+    │                │
+    │                ▼
+    │         ┌──────────────┐
+    │         │ ngrok Tunnel │
+    │         └──────┬───────┘
+    │                │
+    ▼                ▼
+Streamlit Cloud ──► Ollama (LLM lokal @ dein PC) ──► MongoDB Atlas
+    │                                                    │
+    │                    Passform-Analyse                │
+    │                    JSON-Ausgabe                    │
+    ▼                                                    │
+GitHub Actions ──────────────────────────────────────────┘
+    │
     ▼
-Streamlit Dashboard  ──►  GitHub Actions  ──►  Newsletter (Google SMTP)
+Newsletter (Google SMTP)
 ```
 
 | Komponente | Technologie | Zweck |
@@ -42,6 +55,7 @@ Streamlit Dashboard  ──►  GitHub Actions  ──►  Newsletter (Google SM
 | Datenbank | MongoDB Atlas | Cloud-Persistenz, Team-Sharing |
 | Dashboard | Streamlit | Konfiguration, Ergebnisse |
 | Newsletter | GitHub Actions + Google SMTP | Wöchentliche Empfehlungen |
+| Tuneling (Erreichbarkeit) | ngrok (reverse proxy) | Sicherer Zugriff der Cloud-App auf lokales Ollama |
 
 ---
 
@@ -87,8 +101,8 @@ pip install -e .
 cp .env.example .env
 # .env mit deinen Werten befüllen (MongoDB URI, etc.)
 
-# 7. Ollama starten (separates Terminal)
-OLLAMA_HOST=0.0.0.0:11435 ollama serve
+# 7. Ollama starten --> "*" = erlaubt ngrok Verbindung (separates Terminal)
+OLLAMA_ORIGINS="*" OLLAMA_HOST=0.0.0.0:11434 ollama serve
 
 # 8. KI-Modell laden (einmalig)
 ollama pull llama3.2:3b
@@ -121,9 +135,8 @@ pip install -e .
 copy .env.example .env
 # .env mit deinen Werten befüllen
 
-# 7. Ollama starten (separates Terminal)
-$env:OLLAMA_HOST="0.0.0.0:11435"
-ollama serve
+# 7. Ollama starten --> "*" = erlaubt ngrok Verbindung (separates Terminal)
+$env:OLLAMA_ORIGINS="*"; $env:OLLAMA_HOST="0.0.0.0:11434"; ollama serve
 
 # 8. KI-Modell laden (einmalig)
 ollama pull llama3.2:3b
@@ -154,6 +167,9 @@ docker compose up --build
 
 # 4. KI-Modell laden (einmalig, nach dem ersten Start)
 docker exec -it ollama ollama pull llama3.2:3b
+
+# 5. Startet die Anwendung
+docker compose up --build
 ```
 
 **Dashboard:** http://localhost:8501  
@@ -180,6 +196,27 @@ docker compose up --build
 
 > **Hinweis für Entwicklung:** Dank Docker Volumes werden Änderungen am Code sofort im Container übernommen — kein Neustart nötig. Neue Python-Pakete in `requirements.txt` eintragen und `--build` ausführen.
 
+
+### Remote-Anbindung via ngrok
+Um die Streamlit-App (Cloud) mit deinem lokalen Ollama zu verbinden:
+
+1.ngrok installieren & Konto erstellen: ngrok.com
+
+2.Tunnel starten:
+
+```bash
+# Ollama muss auf Port 11434 laufen
+ngrok http 11434
+```
+
+3.URL kopieren: Kopiere die Forwarding URL (z.B. https://1234-abcd.ngrok-free.app).
+
+4.Streamlit Secrets setzen:
+Gehe in dein Streamlit Cloud Dashboard -> Settings -> Secrets und trage die URL ein:
+
+```Ini, TOML
+OLLAMA_HOST = "https://1234-abcd.ngrok-free.app"
+```
 ---
 
 ## Konfiguration
@@ -268,9 +305,10 @@ Google SMTP verschickt HTML-Email
 Push auf main
     │
     ├── 1. Tests (pytest)
-    ├── 2. Security Scan (pip-audit + Gitleaks)
-    ├── 3. Docker Build & Push (ghcr.io)
-    └── 4. Deploy (SSH, wenn Server vorhanden)
+    ├── 2. Security Scan (scannt nach Secrets mit gitleaks)
+    ├── 3. Docker Build & Push (Baut das Image für den Scraper/Backend und pusht es in die GitHub Container Registry)
+    └── 4.1 Deploy (Automatisches Update der Streamlit Cloud bei Push)
+            --> 4.2 Newsletter: Scheduled Action greift auf MongoDB Atlas zu, um die Funde der letzten 24h zu senden.
 ```
 ```yaml
 on:
@@ -357,6 +395,11 @@ on:
 **Lösung:** Reihenfolge: Verbindung → `starttls()` → `login()`.  
 **Learning:** SMTP über Port 587 erfordert TLS-Handshake vor Authentifizierung.
 
+**Problem:** Streamlit Cloud konnte das lokale Ollama nicht erreichen.
+**Ursache:** localhost:11434 ist aus der Cloud nicht erreichbar.
+**Lösung:** Einsatz von ngrok als Reverse Proxy und Speicherung der öffentlichen Tunnel-URL in den Streamlit Secrets.
+**Learning:** Hybride Architekturen benötigen einen stabilen Tunnel-Endpunkt und angepasste CORS-Settings (OLLAMA_ORIGINS="*").
+
 ---
 
 ## Stand der Dinge
@@ -397,6 +440,7 @@ on:
 - [ ] Streamlit App deployen
 - [ ] Deploy-Schritt in CI/CD aktivieren
 - [ ] LLM-Analyse kritischer gestalten
+- [ ] Hybrid-Connectivity: Verbindung zwischen Cloud-Dashboard und lokaler KI-Inferenz via ngrok stabilisiert.
 
 ---
 

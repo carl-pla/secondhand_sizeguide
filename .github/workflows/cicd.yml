@@ -1,10 +1,10 @@
-name: CI/CD & Daily Scraper
+name: Daily Vinted Scraper
 
 on:
   push:
     branches: [ "main" ]
   schedule:
-    - cron: '17 8 * * *'
+    - cron: '0 18 * * *' # UTC Zeit, heisst 20 Uhr deutsche Zeit
   workflow_dispatch:
 
 permissions:

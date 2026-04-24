@@ -1,3 +1,6 @@
+import json
+
+import html2text
 import requests
 
 from get_new_token import get_new_token
@@ -46,56 +49,53 @@ def get_summary_of_articles_json(
         "Herren Alles": "260012",
         "Herren Anzüge & Blazer": "3001",
         "Herren Badebekleidung": "15690",
-        "Herren Sportartikel": "185099",  # Fitnessmode
+        "Herren Fitnessmode": "185099",
         "Herren Hosen": "57989",
-        "Herren Jacken & Mäntel": "57988",  # Jacken, Mäntel und Westen
+        "Herren Jacken, Mäntel und Westen": "57988",
         "Herren Jeans": "11483",
         "Herren Nachtwäsche": "11510",
-        "Herren Pullover & Sweater": "11484",  # Pullover und Strick
-        "Herren Tops & T-Shirts": "185100",  # Shirts und Hemden
-        "Herren Shorts": "15689",  # Shorts und Bermudas
-        "Herren Socken & Unterwäsche": "11507",  # nur Unterwäsche, da nur eine ID gegeben werden kann
+        "Herren Pullover & Strick": "11484",
+        "Herren Shirts und Hemden": "185100",
+        "Herren Shorts und Bermudas": "15689",
+        "Herren Unterwäsche": "11507",
         "Herren Stiefel": "11498",
-        "Herren Elegante Schuhe": "53120",  # Business-Schuhe
+        "Herren Business-Schuhe": "53120",
         "Herren Sneaker": "15709",
-        "Herren Loafer & Bootsschuhe": "24087",  # Halbschuhe
-        "Herren Kopftücher": "52365",  # Hüte und Mützen
-        "Herren Halstücher": "52382",  # Schals & Tücher
-        "Herren Krawatten": "15662",  # Krawatten & Fliegen
+        "Herren Halbschuhe": "24087",
+        "Herren Hüte und Mützen": "52365",
+        "Herren Schals & Tücher": "52382",
+        "Herren Krawatten & Fliegen": "15662",
         "Herren Gürtel": "2993",
-        "Herren Handschuhe": "2994",  # Handschuhe und Fäustlinge
+        "Herren Handschuhe und Fäustlinge": "2994",
         "Herren Taschen": "52357",
         "Herren Schmuck": "10290",
-        "Herren Uhren": "260325",  # Armbanduhren & Taschenuhren
+        "Herren Armbanduhren & Taschenuhren": "260325",
 
         "Damen Alles": "260010",
         "Damen Pullover & Strickpullover": "63866",
         "Damen Kleider": "63861",
-        "Damen Skorts": "63864",  # Röcke
         "Damen Jeans": "11554",
-        "Damen Shorts": "11555",  # Shorts & Bermudas
+        "Damen Shorts & Bermudas": "11555",
         "Damen Bademode": "63867",
-        "Damen Jacken & Mäntel": "63862",  # Jacken, Mäntel und Westen
-        "Damen Anzüge & Blaze": "63865",  # Anzüge & Anzugteile
+        "Damen Jacken, Mäntel und Westen": "63862",
+        "Damen Anzüge & Anzugteile": "63865",
         "Damen Röcke": "63864",
-        "Damen Tops & T-Shirts": "53159",  # Blusen, Tops & Shirts
+        "Damen Blusen, Tops & Shirts": "53159",
         "Damen Hosen & Leggings": "169001",
         "Damen Unterwäsche & Nachtwäsche": "11514",
-        "Damen Ballerinas": "45333",  # Halbschuhe & Ballerinas
-        "Damen Stiefel": "53557",  # Stiefel & Stiefeletten
+        "Damen Stiefel & Stiefeletten": "53557",
         "Damen Absatzschuhe": "55793",
-        "Damen Hausschuhe, Pantoffeln & Slipper": "11632",  # Hausschuhe
+        "Damen Hausschuhe": "11632",
         "Damen Sneaker": "95672",
-        "Damen Bootsschuhe & Loafer": "45333",  # Halbschuhe & Ballerinas
+        "Damen Halbschuhe & Ballerinas": "45333",
         "Damen Sandalen": "62107",
         "Damen Taschen": "169291",
-        "Damen Tücher & Schals": "45238",  # Schals & Tücher
-        "Damen Kopftücher": "45238",  # Schals & Tücher
+        "Damen Schals & Tücher": "45238",
         "Damen Hüte und Mützen": "45230",
-        "Damen Handschuhe": "105559",  # Handschuhe & Fäustlinge
-        "Damen Schmuck": "10968",  # Modeschmuck (darf immer nur eine ID gegeben werden)
-        "Damen Uhren": "260325",  # Armbanduhren & Taschenuhren
-        "Damen Haarschmuck": "168998",  # Kopfschmuck & Fascinators
+        "Damen Handschuhe & Fäustlinge": "105559",
+        "Damen Modeschmuck": "10968",
+        "Damen Armbanduhren & Taschenuhren": "260325",
+        "Damen Kopfschmuck & Fascinators": "168998",
         "Damen Gürtel": "3003"
     }
 
@@ -177,7 +177,44 @@ def get_summary_of_articles_json(
     return None, None
 
 
-def get_single_item_details_and_validate(item_ids):
+def clean_description(html_content):
+    # Falls Beschreibung nicht gefunden wird
+    if not html_content:
+        return ""
+
+    converter = html2text.HTML2Text()
+
+    converter.ignore_links = True  # Links entfernen
+    converter.ignore_images = True  # Bilder-URLs entfernen
+    converter.bypass_tables = False  # Tabellen in Text umwandeln
+
+    # Umwandlung
+    markdown_text = converter.handle(html_content)
+
+    return markdown_text.strip()
+
+
+def extract_important_data(single_json):
+    raw_aspects = {aspect['name']: aspect['value'] for aspect in single_json.get("localizedAspects", [])}
+
+    clean_item = {
+        "itemId": single_json.get("itemId"),
+        "title": single_json.get("title"),
+        "price": single_json.get("price", {}).get("value"),
+        "currency": single_json.get("price", {}).get("currency"),
+
+        "brand": raw_aspects.get("Marke"),
+        "color": raw_aspects.get("Farbe"),
+        "size": raw_aspects.get("Größe"),
+        "material": raw_aspects.get("Material"),
+        "description": clean_description(single_json.get("description"))
+        # description wird als HTML zurückgegeben, muss noch für LLM zu markdown konvertiert werden
+    }
+
+    return clean_item
+
+
+def get_single_item_details(item_ids):
     """
     Holt json mit genaueren Details zu einem einzelnen Item über Browse API.
     2 in 1-Funktion, damit nicht mehr Details zu Einzelnartikeln geholt werden müssen als nötig.
@@ -192,10 +229,11 @@ def get_single_item_details_and_validate(item_ids):
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"
     }
 
-    try:
-        set_of_single_jsons = set()
+    list_of_single_jsons = []
 
-        for item_id in item_ids:
+    for item_id in item_ids:
+
+        try:
             url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
 
             item_raw = requests.get(url, headers=headers, timeout=(5, 30))
@@ -206,26 +244,18 @@ def get_single_item_details_and_validate(item_ids):
             # JSON validieren: Prüft, ob Antwort valides JSON ist und in Python-Dict umformatiert werden kann
             single_json = item_raw.json()
 
-            set_of_single_jsons.add(single_json)
+            # nur bestimmte Informationen raussuchen
+            cleaned_single_json = extract_important_data(single_json)
 
-        return set_of_single_jsons
+            list_of_single_jsons.append(cleaned_single_json)
 
-    except ValueError:
-        print("Fehler: Antwort ist kein gültiges JSON")
+        except Exception as e:
+            print(f"Fehler bei Artikel mit ID {item_id}: {e}")
 
-    except requests.exceptions.Timeout:
-        print("Fehler: Anfrage hat zu lange gedauert (Timeout)")
+    with open('single_item_details.json', 'w', encoding='utf-8') as f:
+        json.dump(list_of_single_jsons, f, indent=4, ensure_ascii=False)
 
-    except requests.exceptions.HTTPError as e:
-        print(f"HTTP-Fehler: {e} - Statuscode: {e.response.status_code}")
-
-    except requests.exceptions.RequestException as e:
-        print(f"Allgemeiner Request-Fehler: {e}")
-
-    except Exception as e:
-        print(f"Unerwarteter Fehler: {e}")
-
-    return None
+    return list_of_single_jsons
 
 
 # Tests (werden entfernt)
@@ -234,8 +264,7 @@ print(res)
 
 print(piece_ids)
 
-with open("single_item_details.json", encoding="utf-8", mode="w") as sidjson:
-    sidjson.write(str(get_single_item_details_and_validate(piece_ids)))
+print(get_single_item_details(piece_ids))
 
 # Zugriff auf die Treffer
 if res and 'itemSummaries' in res:

@@ -6,8 +6,8 @@ def get_new_token(client_id=app_id, client_secret=cert_id):
     """
     Holt mithilfe von Client-ID und -Secret einen neuen User-Token für die Artikelsuche.
 
-    :param client_id: Client ID von eBay Production Keyset
-    :param client_secret: Client Secret von eBay Production Keyset
+    :param client_id: Client-ID/App-ID von eBay Production Keyset
+    :param client_secret: Client-Secret/Cert-ID von eBay Production Keyset
     :return: neuer User-Token, mit dem Browse API genutzt werden kann
     """
 

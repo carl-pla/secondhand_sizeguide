@@ -273,7 +273,7 @@ if "Einstellungen" in seite:
     with tab4:
         st.session_state.config["ollama_url"] = st.text_input(
             "Ollama API URL",
-            st.session_state.config.get("ollama_url", "http://ollama:11435/api/generate")
+            st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
         )
         st.session_state.config["ollama_modell"] = st.selectbox(
             "Modell",

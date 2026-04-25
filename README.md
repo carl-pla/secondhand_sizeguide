@@ -27,11 +27,10 @@ Der Scraper durchsucht Vinted nach Kleidung, analysiert Passform und Stil mit ei
 Vinted (Web)
     │
     ▼
-Playwright Scraper 
-    │     
-    │                
+Playwright Scraper (integriert in streamlit)
+    │                    
     ▼                
-Streamlit Cloud ──► Ollama (LLM lokal @ dein PC) ──► MongoDB Atlas
+Streamlit (Docker Container) ──► Ollama (lokal via Host-IP) ──► MongoDB Atlas
     │                                                    │
     │                    Passform-Analyse                │
     │                    JSON-Ausgabe                    │
@@ -108,8 +107,8 @@ streamlit run dashboard/dashboard.py
 
 ```powershell
 # 1. Repository klonen
-git clone https://github.com/dein-user/vinted-finder.git
-cd vinted-finder
+git clone https://github.com/carl-pla/secondhand_sizeguide.git
+cd secondhand_sizeguide
 
 # 2. Virtuelles Environment erstellen und aktivieren
 python -m venv .venv
@@ -140,11 +139,19 @@ streamlit run dashboard/dashboard.py
 
 ---
 
-### Option B: Docker
+Option B: Docker (Hybrid-Setup)
 
-Empfohlen für konsistente Umgebungen und Deployment. Startet Streamlit + Ollama + MongoDB mit einem Befehl.
+Empfohlen für ein sauberes System. Streamlit läuft isoliert im Container, während es die GPU-Leistung deines Host-Rechners (Ollama) und die MongoDB Atlas Cloud nutzt.
 
-#### macOS & Windows (identisch)
+1. Vorbereitung (Host-System)
+Stelle sicher, dass Ollama auf deinem Rechner installiert ist und externe Verbindungen zulässt:
+
+```bash
+macOS/Linux: OLLAMA_HOST=0.0.0.0:11434 ollama serve
+Windows: Setze die Umgebungsvariable OLLAMA_HOST auf 0.0.0.0 in den Systemeigenschaften und starte die Ollama App neu.
+```
+
+2. Container-Start
 
 ```bash
 # 1. Repository klonen
@@ -153,20 +160,15 @@ cd vinted-finder
 
 # 2. Umgebungsvariablen setzen
 cp .env.example .env
-# .env mit deinen Werten befüllen
+# WICHTIG: Setze OLLAMA_BASE_URL=http://host.docker.internal:11434
+# WICHTIG: Setze MONGO_URL auf deinen Atlas Connection String
 
-# 3. Container starten (baut Images beim ersten Mal automatisch)
-docker compose up --build
-
-# 4. KI-Modell laden (einmalig, nach dem ersten Start)
-docker exec -it ollama ollama pull llama3.2:3b
-
-# 5. Startet die Anwendung
+# 3. Streamlit Container starten
 docker compose up --build
 ```
-
 **Dashboard:** http://localhost:8501  
 **Ollama API:** http://ollama:11434
+
 
 #### Nützliche Docker-Befehle
 
@@ -188,6 +190,8 @@ docker compose up --build
 ```
 
 > **Hinweis für Entwicklung:** Dank Docker Volumes werden Änderungen am Code sofort im Container übernommen — kein Neustart nötig. Neue Python-Pakete in `requirements.txt` eintragen und `--build` ausführen.
+
+> Note on Playwright & Docker: Das mitgelieferte Dockerfile basiert auf python:3.11-slim und installiert automatisch alle notwendigen Browser-Abhängigkeiten, damit der Scraper "Headless" im Hintergrund laufen kann, ohne dein lokales System mit Browser-Instanzen zu belasten.
 
 
 ## Konfiguration
@@ -213,35 +217,35 @@ Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `secrets/
 
 ## Workflow & Features
 
-### 1. Systemarchitektur & Containerisierung
+### 1. Hybrid-Infrastruktur & Containerisierung
 
-Isolation der Abhängigkeiten durch Docker: MongoDB und Ollama laufen in isolierten Umgebungen ohne Konflikte mit dem Host-System. Die `main.py` verwaltet den Browser-Kontext zentral — persistente Session über mehrere Suchbegriffe, Deduplizierung auf Applikationsebene stellt sicher dass die rechenintensive KI-Analyse nur einmal pro Artikel läuft.
+Um maximale Performance mit Flexibilität zu vereinen, nutzt das Projekt einen hybriden Ansatz:
+- Streamlit (Docker): Die gesamte Applikationslogik und das UI sind containerisiert. Das sorgt für eine saubere Trennung der Abhängigkeiten (Playwright, Pymongo, etc.) vom Betriebssystem.
+- Ollama (Local Host): Läuft nativ auf dem Host-System, um direkt auf die GPU-Ressourcen zuzugreifen, was innerhalb von Docker-Containern oft unnötig komplex ist.
+- MongoDB Atlas (Cloud): Als persistenter Datenspeicher. Durch die Cloud-Anbindung ist der Datenstand unabhängig vom lokalen Container-Status.
 
-### 2. Asynchrones Scraping (Playwright)
+### 2. Asynchrones Scraping (Playwright Stealth)
 
-- **Non-blocking I/O:** Während Playwright auf Vinted wartet, blockiert das Programm nicht.
-- **Stealth-Technologie:** Überschreibt `navigator.webdriver` und andere Browser-Fingerprints die Bot-Detection-Systeme (Cloudflare, Akamai) prüfen.
-- **Human-Mimicry:** Zufällige Pausen (`random.uniform`), echte User-Agents, Cookie-Persistenz.
+- Stealth-Modus: Modifikation von navigator.webdriver und Fingerprinting, um Dienste wie Cloudflare zu passieren.
+- Session-Persistenz: Die main.py verwaltet den Browser-Kontext zentral. Einmal eingeloggt, bleibt die Session über verschiedene Suchbegriffe hinweg bestehen.
+- Deduplizierung: Bevor die rechenintensive KI-Analyse startet, wird geprüft, ob die Artikel-ID bereits in der MongoDB existiert.
 
 ### 3. KI-Analyse (Ollama / llama3.2:3b)
 
-- Prompt als Schnittstellen-Definition: wandelt unstrukturierte Artikelbeschreibungen in strukturiertes JSON um.
-- **Lokale Inferenz** — kein API-Key, keine Kosten, Datenschutz.
-- **ThreadPoolExecutor** mit 3 Workern: Parallelisierung der KI-Analyse ohne den Rechner zu überlasten.
-- **JSON-Robustheit:** `antwort.find("{")` fängt KI-Plappertexte ab ("Hier ist das Ergebnis: { ... }").
+- Strukturierung: Extraktion von unstrukturierten Beschreibungen in ein valides JSON-Format.
+- Parallelisierung: Einsatz von ThreadPoolExecutor (3 Worker), um mehrere Artikel gleichzeitig zu analysieren, ohne die System-Latenz zu gefährden.
+- Local-First: Komplette Inferenz ohne externe API-Kosten oder Datenschutzbedenken.
 
-### 4. Validierungsschicht (Hybrid-Architektur)
+### 4. Deterministische Validierungsschicht
 
-KI versteht Kontext — Python-Code trifft deterministische Entscheidungen:
-- Preis-Checks, Zustands-Ranking: harter Python-Code
-- `IF Score > 6 THEN empfohlen = True` — nicht die KI entscheiden lassen
-- Verhindert KI-Halluzinationen bei Zahlen und Logik
+- Um "KI-Halluzinationen" zu vermeiden, folgt auf die LLM-Analyse eine harte Logikschicht in Python:
+- Hybrid-Entscheidungen: Die KI liefert den Kontext (z.B. Material, Passform), aber die finale Kaufempfehlung (Score > 6) wird durch festen Code berechnet.
 
 ### 5. Datenhaltung (MongoDB Atlas)
 
 Schema-Flexibilität für variierende KI-Ausgaben (mal mit Maßen, mal ohne). JSON-nativer Workflow ohne Impedance Mismatch. Zentrale Cloud-Datenbank für konsistenten Team-Datenstand.
 
-### 6. Wöchentlicher Newsletter (GitHub Actions + Resend)
+### 6. Wöchentlicher Newsletter (GitHub Actions + Google SMTP)
 
 ```
 Jeden Tag 08:01 UTC (Überlastung auf typischen Uhrzeiten)
@@ -371,6 +375,11 @@ on:
 **Lösung:** zuerst grok, sehr aufwändig! BEides auf localhost umgestellt
 **Learning:** Hybride Architekture mit reversy Proxy Tunnel zu kompliziert und unnötig für das Projekt!
 
+**Problem:** Performance von Ollama nicht tragbar bzw. unzählige Timeouts 
+**Ursache:** Ollama läuft im docker container standardmäßig auf der CPU, Nividia Extension müsste installiert werden
+**Lösung:** "NVIDIA Container Toolkit" aus Komplexitätsgründen nicht installiert, ollama läuft nun lokal (wieder) im Terminal 
+**Learning:** Ollama Performance sehr stark gedrosselt, wenn nur auf die CPU zugegriffen werden kann
+
 ---
 
 ## Stand der Dinge
@@ -407,11 +416,15 @@ on:
 - [ ] MongoDB Atlas öffentlich erreichbar für GitHub Actions
 
 ### 📋 Geplant
-- [ ] Pytests ausbauen
-- [ ] Streamlit App lokal benutzen
-- [ ] Deploy-Schritt in CI/CD aktivieren
-- [ ] LLM-Analyse kritischer gestalten
+- [ ] Pytests schreiben, keine dummys mehr
+- [x] Deploy-Schritt in CI/CD aktivieren
+- [x] LLM-Analyse kritischer gestalten
+- [ ] Ebay Integration?
 
+### Zusätzliche Ideen in Zukunft
+- [] Multi-Platform Search: Gleichzeitiges Scraping von Vinted, eBay Kleinanzeigen, Grailed und Depop, anderen Datensätzen, um Doubletten zu finden oder Preise zu vergleichen
+- [] Stil-Beratung & Outfits: Generierung von Outfit-Vorschlägen basierend auf dem gescrapten Kleidungsstück (z. B. "Dazu passt am besten eine Blue-Jean").
+- [] Mobile-First UI: Optimierung des Streamlit-Interfaces für die Nutzung auf dem Smartphone (PWA).
 ---
 
 ## Ausarbeitung Projektarbeit

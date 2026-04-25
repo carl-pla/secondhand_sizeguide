@@ -354,7 +354,7 @@ elif "Ergebnisse" in seite:
         with col1:
             nur_empfohlen = st.checkbox("Nur empfohlene Artikel", value=True)
         with col2:
-            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 7)
+            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 6)
         with col3:
             sortierung = st.selectbox("Sortierung", ["Bewertung ↓", "Preis ↑", "Preis ↓"])
 

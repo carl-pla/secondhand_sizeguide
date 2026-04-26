@@ -1,3 +1,7 @@
+"""
+Hilfsskript für main.py und die ci/cd pipline für newsletter
+"""
+
 import asyncio
 import subprocess
 import sys

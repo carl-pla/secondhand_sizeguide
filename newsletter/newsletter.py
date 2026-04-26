@@ -1,3 +1,7 @@
+""" 
+Wird von Daily newsletter aufgerufen 
+"""
+
 import os
 import smtplib
 from email.mime.multipart import MIMEMultipart

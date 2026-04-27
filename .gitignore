@@ -21,4 +21,3 @@ database/
 secrets.toml
 
 src_ebay/ebay_ids.py
-src_ebay/temp.py

@@ -1,7 +1,3 @@
-""" 
-Speichert Session pro User ab, um nochmal ein differnzierteres Bild zu bekommen
-"""
-
 import pymongo # type: ignore
 import datetime
 import re

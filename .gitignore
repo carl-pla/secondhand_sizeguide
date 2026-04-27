@@ -18,3 +18,7 @@ debug_vinted.html
 
 database/
 
+.DS_Store
+dashboard/secrets/*.json
+dashboard/secrets/results/*.json
+playground-2.mongodb.js

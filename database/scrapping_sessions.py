@@ -1,12 +1,9 @@
-""" 
-Speichert jede gescrapte Session jgeloicher Benutzer
-"""
 import pymongo # type: ignore
 import datetime
 import uuid
 from database.config_defaults import MONGO_URL
 
-def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = None): # type: ignore
+def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = None):
     if not ergebnisse:
         print("MongoDB: Keine Empfehlungen zum Speichern gefunden.")
         return None
@@ -43,7 +40,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = 
         print(f"✅ MongoDB: Session gespeichert ({len(empfehlungen)} Empfehlungen) für {user_email or 'anonym'}")
         return session["session_id"]
 
-    except pymongo.errors.ServerSelectionTimeoutError: # type: ignore
+    except pymongo.errors.ServerSelectionTimeoutError:
         print("❌ MongoDB Fehler: Verbindung fehlgeschlagen")
     except Exception as e:
         print(f"❌ Fehler beim Speichern in MongoDB: {e}")

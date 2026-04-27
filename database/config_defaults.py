@@ -6,11 +6,26 @@ import streamlit as st
 # 1. Versuche die URL aus den Streamlit Secrets zu laden (Cloud-Modus)
 # 2. Falls nicht da, schaue in Umgebungsvariablen
 # 3. Falls beides leer, nutze localhost (Lokal-Modus)
-try:
-    MONGO_URL = st.secrets.get("MONGO_URL") or os.getenv("MONGO_URL") or "mongodb://localhost:27017"
-except:
-    # Falls Streamlit nicht im Kontext läuft (z.B. Scripts, Tests)
-    MONGO_URL = os.getenv("MONGO_URL") or "mongodb://localhost:27017"
+# Wir definieren eine Funktion, die nicht abstürzt
+def get_mongo_url():
+    # 1. Priorität: Umgebungsvariable (Docker / GitHub Actions)
+    url = os.getenv("MONGO_URL")
+    if url:
+        return url
+    
+    # 2. Priorität: Streamlit Secrets (nur wenn wir wirklich in Streamlit sind)
+    try:
+        # st.secrets.load() erzwingt keinen Absturz, wenn Datei fehlt
+        if "MONGO_URL" in st.secrets:
+            return st.secrets["MONGO_URL"]
+    except:
+        # Falls st.secrets gar nicht verfügbar ist (z.B. im Runner)
+        pass
+    
+    # 3. Priorität: Lokal-Modus
+    return "mongodb://localhost:27017"
+
+MONGO_URL = get_mongo_url()
 
 BASE_DIR    = Path(__file__).parent.parent
 SECRETS_DIR = BASE_DIR / "dashboard" / "secrets" 

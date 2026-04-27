@@ -359,11 +359,10 @@ elif "Suche" in seite:
         st.info(f"✓ Gespeichert in `{CONFIG_FILE}`\n\n**Quelle:** {quelle.upper()}")
 
         projekt_pfad = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-        venv_python = os.path.join(projekt_pfad, "venv", "Scripts", "python.exe")
 
         with st.spinner("Scraper läuft... (kann einige Minuten dauern)"):
             result = subprocess.run(
-                [venv_python, "main.py", "--config", str(CONFIG_FILE)],
+                ["python3", "main.py", "--config", str(CONFIG_FILE)],
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -527,7 +526,7 @@ elif "Habilleur" in seite:
     with tab4:
         st.session_state.config["ollama_url"] = st.text_input(
             "Ollama API URL",
-            value=st.session_state.config.get("ollama_url", "http://ollama:11435/api/generate")
+            value=st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
         )
         st.session_state.config["ollama_modell"] = st.selectbox(
             "Modell",
@@ -573,7 +572,7 @@ elif "Ergebnisse" in seite:
         with col1:
             nur_empfohlen = st.checkbox("Nur empfohlene Artikel", value=True)
         with col2:
-            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 6)
+            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 7)
         with col3:
             sortierung = st.selectbox("Sortierung", ["Bewertung ↓", "Preis ↑", "Preis ↓"])
 

@@ -29,7 +29,7 @@ Unterstützt nun: Vinted (mit Browser) und Habilleur (ohne Browser)
 1. Setup & Validierung 
 """
 # Prüft, ob alle Werkzeuge bereit sind (LLM und Config.json)
-async def main(config: dict, user_email: str=None): # type: ignore
+async def main(config: dict, user_email: str=None):
     print(f"DEBUG: Lade Config von {config.get('_pfad', 'unbekannt')}")
 
     # Pflichtfelder prüfen
@@ -181,7 +181,7 @@ async def main(config: dict, user_email: str=None): # type: ignore
 
     # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung 
     try:
-        speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email")) # type: ignore
+        speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email"))
     except Exception as e:
         print(f"⚠️  MongoDB nicht erreichbar: {e}")
 

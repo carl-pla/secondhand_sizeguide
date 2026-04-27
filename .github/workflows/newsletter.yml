@@ -23,6 +23,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run scraping session per each user
+        env:
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
         run: python runner.py
 
       - name: Run Newsletter Script

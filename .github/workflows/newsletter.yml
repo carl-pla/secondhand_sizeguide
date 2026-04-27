@@ -22,6 +22,7 @@ jobs:
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
+
       - name: Run Newsletter Script
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}

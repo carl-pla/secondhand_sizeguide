@@ -1,3 +1,7 @@
+"""
+Hilfsskript für main.py und die ci/cd pipline für newsletter
+"""
+
 import asyncio
 import subprocess
 import sys
@@ -5,6 +9,7 @@ from database.users import lade_alle_user
 from database.config_defaults import CONFIG_FILE
 from database.scrapping_sessions import speichere_in_mongo
 import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -30,7 +35,7 @@ async def run_fuer_alle_user():
             "stile":                   user["stile"],
             "eigene_masse":            user.get("eigene_masse", {}),
             "min_zustand":             user.get("min_zustand", "Gut"),
-            "ollama_url":              "http://localhost:11435/api/generate",
+            "ollama_url":              os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434") + "/api/generate",
             "ollama_modell":           "llama3.2:3b",
             "max_artikel_pro_suche":   10,
             "max_suchen":              1,

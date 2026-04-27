@@ -286,7 +286,7 @@ if "Vinted" in seite:
     with tab4:
         st.session_state.config["ollama_url"] = st.text_input(
             "Ollama API URL",
-            st.session_state.config.get("ollama_url", "http://ollama:11435/api/generate")
+            st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
         )
         st.session_state.config["ollama_modell"] = st.selectbox(
             "Modell",
@@ -573,7 +573,7 @@ elif "Ergebnisse" in seite:
         with col1:
             nur_empfohlen = st.checkbox("Nur empfohlene Artikel", value=True)
         with col2:
-            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 7)
+            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 6)
         with col3:
             sortierung = st.selectbox("Sortierung", ["Bewertung ↓", "Preis ↑", "Preis ↓"])
 

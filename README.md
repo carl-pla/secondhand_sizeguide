@@ -309,7 +309,11 @@ on:
 | `MAIL_FROM` | Absender |
 | `MAIL_PASSWORD` | Inhalt von Google 16-stelligem-Appkey |
 
-> **Wichtig:** GitHub Actions erreicht MongoDB nur wenn die Datenbank öffentlich erreichbar ist — MongoDB Atlas mit Network Access `0.0.0.0/0` oder GitHub Actions IP-Ranges.
+> **Wichtig:** Sicherheitsbetrachtung & Network Access:
+Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB Atlas zu gewährleisten, wurde der Zugriff temporär auf 0.0.0.0/0 gesetzt.
+--> Risiko: Die Datenbank ist theoretisch für Brute-Force-Angriffe aus dem gesamten Internet erreichbar.
+--> Mitigation: Der Zugriff ist durch starke Passwörter (Scram-SHA-1) und die Verschlüsselung der Verbindungsdaten in GitHub Secrets geschützt.
+--> Enterprise-Alternative: In einer produktiven Umgebung würde man Private Link oder VPC Peering einsetzen, um den Zugriff auf ein internes Subnetz zu beschränken. Der aktuelle Ansatz wurde aufgrund der Kostenfreiheit (Free Tier) und der schnellen Iterationsgeschwindigkeit gewählt.
 
 ---
 
@@ -391,7 +395,6 @@ on:
 - [x] Cookie-Banner automatisch wegklicken
 - [x] Deduplizierung
 
-> ⚠️ Scraping-Volumen noch gering. Geplante Optimierungen: Vorab-Filter (nur erste Parameter prüfen, dann Vollanalyse), Cookie-Persistenz für höheres Volumen.
 
 ### ✅ KI-Analyse (llama3.2:3b)
 - [x] Maße extrahieren (Brust, Taille, Hüfte, Schulter, Länge, Ärmel, Innennaht)
@@ -422,9 +425,11 @@ on:
 - [ ] Ebay Integration?
 
 ### Zusätzliche Ideen in Zukunft
-- [] Multi-Platform Search: Gleichzeitiges Scraping von Vinted, eBay Kleinanzeigen, Grailed und Depop, anderen Datensätzen, um Doubletten zu finden oder Preise zu vergleichen
-- [] Stil-Beratung & Outfits: Generierung von Outfit-Vorschlägen basierend auf dem gescrapten Kleidungsstück (z. B. "Dazu passt am besten eine Blue-Jean").
-- [] Mobile-First UI: Optimierung des Streamlit-Interfaces für die Nutzung auf dem Smartphone (PWA).
+- [ ] die Vorschläge sind teilweise brauchbar, weil nicht oft direkt die Präferenz unseres Erachten gefunden wird, 
+eventuell mehr Parameter oder Training eines supervised-models, das optisch Lernen soll, was unter der jeweiligen Kategorie verstanden wird
+- [ ] Multi-Platform Search: Gleichzeitiges Scraping von Vinted, eBay Kleinanzeigen, Grailed und Depop, anderen Datensätzen, um Doubletten zu finden oder Preise zu vergleichen
+- [ ] Stil-Beratung & Outfits: Generierung von Outfit-Vorschlägen basierend auf dem gescrapten Kleidungsstück (z. B. "Dazu passt am besten eine Blue-Jean").
+- [ ] Mobile-First UI: Optimierung des Streamlit-Interfaces für die Nutzung auf dem Smartphone (PWA).
 ---
 
 ## Ausarbeitung Projektarbeit

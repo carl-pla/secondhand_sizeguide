@@ -297,7 +297,7 @@ on:
 # Läuft jeden Tag + manuell auslösbar
 on:
   schedule:
-    - cron: '0 6 * * 1' # 6:01 UTC = 8:01 Uhr deutsche Zeit
+    - cron: '1 6 * * *' # 6:01 UTC = 8:01 Uhr deutsche Zeit
   workflow_dispatch:   # Button in GitHub Actions UI
 ```
 

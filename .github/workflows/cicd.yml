@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
   schedule:
-    - cron: '0 18 * * *' # UTC Zeit, heisst 20 Uhr deutsche Zeit
+    - cron: '1 6 * * *' # UTC Zeit, heisst 8 Uhr deutsche Zeit
   workflow_dispatch:
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 jobs:
-  test-and-build:
+  test-build-scrap:
     runs-on: ubuntu-latest
 
     steps:
@@ -43,6 +43,9 @@ jobs:
       - name: Run Pytests (Dummy oder Scraper Check)
         run: pytest tests/dummy_test.py 
 
+      - name: Run scraping session per each user
+        run: python runner.py
+
       # --- DOCKER BEREICH (Das eigentliche CI/CD) ---
       - name: Login to GHCR
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -64,7 +67,7 @@ jobs:
 
   # --- OPTIONAL: DEPLOY CHECK ---
   deploy-check:
-    needs: test-and-build
+    needs: test-build-scrap
     runs-on: ubuntu-latest
     steps:
       - name: Status Report

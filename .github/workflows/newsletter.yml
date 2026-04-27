@@ -22,8 +22,6 @@ jobs:
       - name: Install Dependencies
         run: pip install -r requirements.txt
 
-      - name: Run scraping session per each user
-        run: python runner.py
 
       - name: Run Newsletter Script
         env:

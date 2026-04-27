@@ -2,19 +2,27 @@ import json
 import asyncio
 import random
 import argparse
+import sys
+import io
 import httpx # type: ignore
 from pathlib import Path
 from playwright.async_api import async_playwright # type: ignore
 from playwright_stealth import Stealth # type: ignore
-from scraper.vinted_scraper import scrape_artikel_details, scrape_suchergebnisse
+
+# Erzwinge UTF-8 Encoding für Windows-Konsole
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+from scraper.vinted_scraper import scrape_artikel_details as vinted_scrape_details, scrape_suchergebnisse as vinted_scrape_suchergebnisse
+from scraper.habilleur_scraper import scrape_artikel_details as habilleur_scrape_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
 from ai.ollama import analysiere_artikel
 from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
 from database.scrapping_sessions import speichere_in_mongo
 import concurrent.futures
 
 """
-=== WORFLOW GROB 
+=== WORKFLOW GROB 
 ORCHESTER-ZENTRUM: Scraping --> AI Analyse/Bewertung --> Database
+Unterstützt nun: Vinted (mit Browser) und Habilleur (ohne Browser)
 """
 
 """
@@ -35,7 +43,13 @@ async def main(config: dict, user_email: str=None): # type: ignore
         print("❌ KRITISCH: kategorie ist leer!")
         return
 
-    print(f"🚀 Vinted Scraper | Modell: {config['ollama_modell']} | {config['groesse']} | {config['kategorie']} | max {config['max_preis']}€\n")
+    # Quelle festlegen (Vinted oder Habilleur)
+    quelle = config.get("quelle", "vinted").lower()
+    if quelle not in ["vinted", "habilleur"]:
+        print(f"❌ KRITISCH: quelle muss 'vinted' oder 'habilleur' sein, erhalten: {quelle}")
+        return
+
+    print(f"🚀 {quelle.upper()} Scraper | Modell: {config['ollama_modell']} | {config['groesse']} | {config['kategorie']} | max {config['max_preis']}€\n")
 
     # Verbindungstest zu Ollama wird gestartet 
     try:
@@ -55,53 +69,74 @@ async def main(config: dict, user_email: str=None): # type: ignore
 
     
     """
-    2. BROWSER-AUTOMATISIERUNG (Playwright)
+    2. SCRAPING – VINTED (mit Browser) oder HABILLEUR (ohne Browser)
     """
-    # Unsichtbarer Browser wird gestartet und als echter Mensch "getarnt" (Stealth)
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            viewport={"width": 1440, "height": 900},
-            locale="de-DE",
-            timezone_id="Europe/Berlin",
-        )
-        page = await context.new_page()
-        await Stealth().apply_stealth_async(page)
+    if quelle == "vinted":
+        # ─────────────────────────────────────────────
+        #  VINTED: BROWSER-AUTOMATISIERUNG (Playwright)
+        # ─────────────────────────────────────────────
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(
+                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                viewport={"width": 1440, "height": 900},
+                locale="de-DE",
+                timezone_id="Europe/Berlin",
+            )
+            page = await context.new_page()
+            await Stealth().apply_stealth_async(page)
 
+            # Jeder Suchbegriff wird durchgegangen
+            for suchbegriff in config["stile"][:max_suchen]:
+                try:
+                    # ── STUFE 1: Grob-Suche: Links sammeln ──
+                    grob_links = await vinted_scrape_suchergebnisse(page, suchbegriff, config)
+                    print(f"  → {len(grob_links)} Artikel nach Grob-Filter\n")
+
+                    # ── STUFE 2: Detail-Scraping ──
+                    for link in grob_links:
+                        details = await vinted_scrape_details(page, link["url"])
+                        if details:
+                            if details["preis"] == "Unbekannt" and link.get("preis", "?") != "?":
+                                details["preis"] = link["preis"]
+                            alle_roh.append(details)
+                            print(f"    ✓ {details['titel'][:50]} – {details['preis']}")
+                        await asyncio.sleep(random.uniform(*pauses_art))
+
+                except Exception as e:
+                    print(f"  ⚠️  Fehler bei '{suchbegriff}': {e}")
+
+                # menschliche Pausen, aufgrund IP-Ban
+                await asyncio.sleep(random.uniform(*pauses_such))
+
+            await browser.close()
+
+    else:  # habilleur
+        # ─────────────────────────────────────────────
+        #  HABILLEUR: DIREKTE HTTP-REQUESTS (kein Browser)
+        # ─────────────────────────────────────────────
+        groesse = config.get("groesse", "M")
+        kategorie = config.get("kategorie", "Anzug")
         
-        """
-        SCRAPING-LOOP mit Teil A und Teil B ==> Warum hier und nicht in der scraper Datei? 
-        ==> sonst würde es bei jedem neuen Scrapen einen neuen Browser erstellen, weshalb man 
-        gesperrt werden könnte, durch das integrieren in main.py wird nur ein einziges Mal der Browser ausgeführt 
-        """
-        # jeder Suchbegriff kann durchgegangen werden
-        for suchbegriff in config["stile"][:max_suchen]:
+        async with httpx.AsyncClient() as client:
+            # Habilleur braucht Kategorie + Größe, nicht Suchbegriffe
+            print(f"  Kategorien-Scrape: {kategorie} / {groesse}\n")
+            
             try:
-                
-                # ── STUFE 1: Grob-Suche: Links sammeln und Suchergebnisse scannen──────────────────────
-                grob_links = await scrape_suchergebnisse(page, suchbegriff, config)
+                # ── STUFE 1: Grob-Suche ──
+                grob_links = await habilleur_scrape_suchergebnisse(kategorie, groesse, config, client)
                 print(f"  → {len(grob_links)} Artikel nach Grob-Filter\n")
 
-                # ── STUFE 2: Detail-Scraping: Details der Artikel genauer analysiert wie Beschreibung ──────────────────
+                # ── STUFE 2: Detail-Scraping ──
                 for link in grob_links:
-                    details = await scrape_artikel_details(page, link["url"])
+                    details = await habilleur_scrape_details(link["url"], client)
                     if details:
-                        
-                        # Preis aus Grob-Suche als Fallback, wenn in Detailsuche nichts gefunden
-                        if details["preis"] == "Unbekannt" and link.get("preis", "?") != "?":
-                            details["preis"] = link["preis"]
                         alle_roh.append(details)
                         print(f"    ✓ {details['titel'][:50]} – {details['preis']}")
                     await asyncio.sleep(random.uniform(*pauses_art))
 
             except Exception as e:
-                print(f"  ⚠️  Fehler bei '{suchbegriff}': {e}")
-
-            # menschliche Pausen, aufgrund IP-Ban
-            await asyncio.sleep(random.uniform(*pauses_such))
-
-        await browser.close()
+                print(f"  ⚠️  Fehler bei Habilleur Scrape: {e}")
 
 
     """
@@ -154,7 +189,10 @@ async def main(config: dict, user_email: str=None): # type: ignore
     # Ausgabe im Terminal über momentanen Ablauf
     print(f"\n{'='*60}")
     print(f"✅ {len(empfohlen)} von {len(ergebnisse)} empfohlen")
-    print(f"   Stufe 1 (Grob):  {min(max_suchen, len(config['stile']))} Suchen")
+    if quelle == "vinted":
+        print(f"   Stufe 1 (Grob):  {min(max_suchen, len(config['stile']))} Suchen")
+    else:
+        print(f"   Stufe 1 (Grob):  {config.get('kategorie')} / {config.get('groesse')}")
     print(f"   Stufe 2 (Detail): {len(unique)} Artikel gescrapt")
     print(f"   Stufe 3 (Ollama): {len(ergebnisse)} analysiert")
     print(f"💾 {ERGEBNISSE_FILE}")

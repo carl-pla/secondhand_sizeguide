@@ -1,10 +1,10 @@
-name: Daily Vinted Scraper
+name: CI/CD & Daily Scraper
 
 on:
   push:
     branches: [ "main" ]
   schedule:
-    - cron: '1 6 * * *' # UTC Zeit, heisst 8 Uhr deutsche Zeit
+    - cron: '17 8 * * *'
   workflow_dispatch:
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 jobs:
-  test-build-scrap:
+  test-and-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -43,9 +43,6 @@ jobs:
       - name: Run Pytests (Dummy oder Scraper Check)
         run: pytest tests/dummy_test.py 
 
-      - name: Run scraping session per each user
-        run: python runner.py
-
       # --- DOCKER BEREICH (Das eigentliche CI/CD) ---
       - name: Login to GHCR
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -67,7 +64,7 @@ jobs:
 
   # --- OPTIONAL: DEPLOY CHECK ---
   deploy-check:
-    needs: test-build-scrap
+    needs: test-and-build
     runs-on: ubuntu-latest
     steps:
       - name: Status Report

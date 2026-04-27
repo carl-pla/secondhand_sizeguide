@@ -1,6 +1,3 @@
-"""
-Regelt verbindung zur Mongo Datenbank
-"""
 import pymongo # type: ignore 
 import datetime
 import os 
@@ -8,7 +5,7 @@ import os
 from dotenv import load_dotenv # type: ignore
 from config_defaults import MONGO_URL
 
-def speichere_in_mongo(ergebnisse: list, config: dict = None):  # type: ignore
+def speichere_in_mongo(ergebnisse: list, config: dict = None):
     """
     Speichert die Analyse-Ergebnisse in MongoDB. 
     Verhindert Fehler bei leeren Listen und stellt Verbindungen sicher.
@@ -29,7 +26,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None):  # type: ignore
     try:
         # Verbindung aufbauen (mit Timeout, falls DB nicht läuft)
         load_dotenv()
-        uri = os.get(MONGO_URL)  # type: ignore
+        uri = os.get(MONGO_URL) 
         my_client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=2000)
         mydb = my_client["Secondhand_db"]
         collection = mydb["vinted_empfehlungen"]
@@ -45,7 +42,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None):  # type: ignore
         print(f"✅ MongoDB: {len(result.inserted_ids)} neue Empfehlungen gespeichert.")
         return result
 
-    except pymongo.errors.ServerSelectionTimeoutError: # type: ignore
+    except pymongo.errors.ServerSelectionTimeoutError:
         print("❌ MongoDB Fehler: Verbindung zum Server fehlgeschlagen (läuft MongoDB?)")
     except Exception as e:
         print(f"❌ Fehler beim Speichern in MongoDB: {e}")

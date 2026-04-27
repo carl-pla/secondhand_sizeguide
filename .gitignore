@@ -11,13 +11,16 @@ dashboard/secrets/results/vinted_empfehlungen.json
 dashboard/secrets/results/vinted_ergebnisse.json
 node_modules
 datascienceprojekt.egg-info
- 
+
 # Debug
 debug.png
 debug_vinted.html
 
 database/
 
-secrets.toml
+.DS_Store
+dashboard/secrets/*.json
+dashboard/secrets/results/*.json
+playground-2.mongodb.js
 
 src_ebay/ebay_ids.py

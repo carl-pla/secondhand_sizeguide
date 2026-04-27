@@ -14,7 +14,8 @@ from database.users import deaktiviere_user
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
-    VINTED_GROESSEN, VINTED_KATEGORIEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
+    VINTED_GROESSEN, VINTED_KATEGORIEN, HABILLEUR_GROESSEN, HABILLEUR_KATEGORIEN, HABILLEUR_MASSE_BEISPIEL,
+    OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
     speichere_config, lade_config
 )
 
@@ -151,7 +152,7 @@ with st.sidebar:
     st.divider()
     seite = st.radio(
         "",
-        ["⚙️  Einstellungen", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
+        ["⚙️  Vinted", "🛍️  Habilleur", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
         label_visibility="collapsed"
     )
     st.markdown("---")
@@ -167,12 +168,29 @@ with st.sidebar:
 
 
 # ═══════════════════════════════════════════════
-#  SEITE: EINSTELLUNGEN
+#  SEITE: VINTED
 # ═══════════════════════════════════════════════
-if "Einstellungen" in seite:
-    st.markdown("# Einstellungen")
-    st.markdown("Konfiguriere deine Präferenzen.")
+if "Vinted" in seite:
+    st.markdown("# ⚙️ Vinted Einstellungen")
+    st.markdown("Konfiguriere deine Vinted-Präferenzen.")
     st.markdown("---")
+    
+    # Setze Quelle auf Vinted
+    st.session_state.config["quelle"] = "vinted"
+    
+    # Konvertiere Größe zu Vinted-Format falls nötig
+    aktuelle_groesse = st.session_state.config.get("groesse", "M / 38")
+    if " / " not in str(aktuelle_groesse):  # Habilleur-Format "M" → "M / 38"
+        # Versuche eine Vinted-Größe zu finden, die mit dem Buchstaben beginnt
+        for vinted_size in VINTED_GROESSEN.keys():
+            if vinted_size.startswith(str(aktuelle_groesse)):
+                aktuelle_groesse = vinted_size
+                break
+        else:
+            aktuelle_groesse = "M / 38"  # Fallback
+    if aktuelle_groesse not in VINTED_GROESSEN.keys():
+        aktuelle_groesse = "M / 38"
+    st.session_state.config["groesse"] = aktuelle_groesse
 
     tab1, tab2, tab3, tab4 = st.tabs(["👗  Stil & Größe", "📐  Maße", "🔍  Suche", "🤖  Ollama"])
 
@@ -181,24 +199,22 @@ if "Einstellungen" in seite:
         col1, col2 = st.columns(2)
         with col1:
             st.session_state.config["groesse"] = st.selectbox(
-                "Kleidungsgröße",
+                "Kleidungsgröße (Vinted)",
                 list(VINTED_GROESSEN.keys()),
-                index=list(VINTED_GROESSEN.keys()).index(
-                    st.session_state.config.get("groesse", "M / 38")
-                )
+                index=list(VINTED_GROESSEN.keys()).index(st.session_state.config["groesse"])
             )
             st.session_state.config["kategorie"] = st.selectbox(
-                "Kategorie",
+                "Kategorie (Vinted)",
                 list(VINTED_KATEGORIEN.keys()),
                 index=list(VINTED_KATEGORIEN.keys()).index(
-                    st.session_state.config.get("kategorie", "Herren Jacken & Mäntel")
+                    st.session_state.config.get("kategorie", "Herren Jacken & Mäntel") if st.session_state.config.get("kategorie") in VINTED_KATEGORIEN.keys() else "Herren Jacken & Mäntel"
                 )
             )
             st.session_state.config["stile"] = st.multiselect(
-            "Bevorzugte Stile",
-            STIL_OPTIONEN,                
-            default=st.session_state.config.get("stile", ["Vintage"])
-        )
+                "Bevorzugte Stile (Suchbegriffe)",
+                STIL_OPTIONEN,                
+                default=st.session_state.config.get("stile", ["Vintage"])
+            )
             
         with col2:
             st.session_state.config["max_preis"] = st.slider(
@@ -213,14 +229,11 @@ if "Einstellungen" in seite:
                 )
             )
             email_input = st.text_input(
-            "Deine Email-Adresse",
-        )
-        if email_input:
-            st.session_state.config["user_email"] = email_input
-            st.session_state["user_email"] = email_input
-        
-        
-            
+                "Deine Email-Adresse",
+            )
+            if email_input:
+                st.session_state.config["user_email"] = email_input
+                st.session_state["user_email"] = email_input
 
     # ── TAB 2: Maße ──
     with tab2:
@@ -293,32 +306,57 @@ if "Einstellungen" in seite:
 # ═══════════════════════════════════════════════
 #  SEITE: SUCHE STARTEN
 # ═══════════════════════════════════════════════
-elif "Suche" in seite:   # ← elif statt if, und "Suche" check
-    st.markdown("# Suche starten")
+elif "Suche" in seite:
+    st.markdown("# 🔍 Suche starten")
+    
+    quelle = st.session_state.config.get("quelle", "vinted")
     user_email = st.session_state.config.get("user_email") or st.session_state.get("user_email", "anonym")
-    if user_email:
+    
+    if user_email and user_email != "anonym":
         st.caption(f"🔗 Suche wird gespeichert für: **{user_email}**")
     else:
         st.warning("⚠️ Keine Email hinterlegt – Suche wird als 'anonym' gespeichert.")
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown(f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>', unsafe_allow_html=True)
-    with col2:
-        st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>', unsafe_allow_html=True)
-    with col3:
-        anzahl = config["max_artikel_pro_suche"] * min(config.get("max_suchen", 2), len(config["stile"]))
-        st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Artikel</div><div class="metric-value">~{anzahl}</div></div>', unsafe_allow_html=True)
+    st.markdown("---")
+    
+    if quelle == "vinted":
+        # ─────────────────────────────────────────────
+        #  VINTED SUCHE
+        # ─────────────────────────────────────────────
+        st.markdown("### ⚙️ Vinted Konfiguration")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>', unsafe_allow_html=True)
+        with col3:
+            anzahl = config["max_artikel_pro_suche"] * min(config.get("max_suchen", 2), len(config["stile"]))
+            st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Artikel</div><div class="metric-value">~{anzahl}</div></div>', unsafe_allow_html=True)
 
-    st.markdown("**Aktive Stile:**")
-    for s in config["stile"][:config.get("max_suchen", 2)]:
-        st.markdown(f'<span class="badge">{s}</span>', unsafe_allow_html=True)
+        st.markdown("**Aktive Suchbegriffe (Stile):**")
+        for s in config["stile"][:config.get("max_suchen", 2)]:
+            st.markdown(f'<span class="badge">{s}</span>', unsafe_allow_html=True)
+    
+    else:
+        # ─────────────────────────────────────────────
+        #  HABILLEUR SUCHE
+        # ─────────────────────────────────────────────
+        st.markdown("### 🛍️ Habilleur Jean Konfiguration")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown(f'<div class="metric-card"><div class="metric-label">Kategorie</div><div class="metric-value">{config["kategorie"]}</div></div>', unsafe_allow_html=True)
+        with col3:
+            st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
-    if st.button("🚀  Scraper starten"):
+    if st.button(f"🚀  {quelle.upper()} Scraper starten"):
         speichere_config(st.session_state.config)
-        st.info(f"✓ Gespeichert in `{CONFIG_FILE}`")
+        st.info(f"✓ Gespeichert in `{CONFIG_FILE}`\n\n**Quelle:** {quelle.upper()}")
 
         projekt_pfad = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -327,15 +365,195 @@ elif "Suche" in seite:   # ← elif statt if, und "Suche" check
                 ["python3", "main.py", "--config", str(CONFIG_FILE)],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 cwd=projekt_pfad
             )
 
         if result.returncode == 0:
             st.success("✅ Fertig!")
-            st.code(result.stdout[-3000:])
+            if result.stdout:
+                st.code(result.stdout[-3000:])
+            else:
+                st.info("(Keine Ausgabe erfasst)")
         else:
             st.error("❌ Fehler!")
-            st.code(result.stderr[-1000:])
+            if result.stderr:
+                st.code(result.stderr[-1000:])
+            else:
+                st.code(f"Return Code: {result.returncode}\n(Keine Fehlerausgabe erfasst)")
+
+# ═══════════════════════════════════════════════
+#  SEITE: HABILLEUR
+# ═══════════════════════════════════════════════
+elif "Habilleur" in seite:
+    st.markdown("# 🛍️ Habilleur Jean Einstellungen")
+    st.markdown("Finde perfekt sitzende Second-Hand Anzüge, Jacken und Mäntel von Habilleur Jean.")
+    st.markdown("---")
+    
+    # Setze Quelle auf Habilleur
+    st.session_state.config["quelle"] = "habilleur"
+    
+    # Konvertiere Größe vom Vinted-Format falls nötig
+    aktuelle_groesse = st.session_state.config.get("groesse", "M")
+    if " / " in str(aktuelle_groesse):  # Vinted-Format "M / 38" → "M"
+        aktuelle_groesse = aktuelle_groesse.split(" / ")[0].strip()
+    if aktuelle_groesse not in HABILLEUR_GROESSEN.keys():  # Fallback auf Default
+        aktuelle_groesse = "M"
+    st.session_state.config["groesse"] = aktuelle_groesse
+
+    # Tabs
+    tab1, tab2, tab3, tab4 = st.tabs(["👗  Größe & Kategorie", "📐  Maße", "🔍  Suche", "🤖  Ollama"])
+
+    # ── TAB 1: Größe & Kategorie ──
+    with tab1:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.session_state.config["groesse"] = st.selectbox(
+                "Größe (Habilleur)",
+                list(HABILLEUR_GROESSEN.keys()),
+                index=list(HABILLEUR_GROESSEN.keys()).index(st.session_state.config["groesse"])
+            )
+            st.session_state.config["kategorie"] = st.selectbox(
+                "Kategorie (Habilleur)",
+                list(HABILLEUR_KATEGORIEN.keys()),
+                index=list(HABILLEUR_KATEGORIEN.keys()).index(
+                    st.session_state.config.get("kategorie", "Anzug") if st.session_state.config.get("kategorie") in HABILLEUR_KATEGORIEN.keys() else "Anzug"
+                )
+            )
+        with col2:
+            st.session_state.config["max_preis"] = st.slider(
+                "Maximaler Preis (€)", 50, 500,
+                st.session_state.config.get("max_preis", 150), step=10
+            )
+            max_artikel = st.session_state.config.get("max_artikel_pro_suche", 20)
+            st.session_state.config["max_artikel_pro_suche"] = st.slider(
+                "Max. Artikel pro Kategorie", 5, 100,
+                max_artikel, step=5
+            )
+
+    # ── TAB 2: Maße ──
+    with tab2:
+        st.markdown("**Maße der Habilleur Jean Kleidungsstücke** (Größe M)")
+        st.markdown("Passe diese Maße an, um passende Artikel zu finden.")
+        
+        masse = st.session_state.config.get("habilleur_masse", HABILLEUR_MASSE_BEISPIEL.copy())
+        
+        st.markdown("##### 👔 Jackenmaße")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            masse["schulterbreite"] = st.number_input(
+                "Schulterbreite (cm)", 40, 55,
+                int(masse.get("schulterbreite", 46))
+            )
+            masse["aermellange"] = st.number_input(
+                "Ärmellänge (cm)", 60, 75,
+                int(masse.get("aermellange", 68))
+            )
+        with col2:
+            masse["jackenlaenge"] = st.number_input(
+                "Jackenlänge (cm)", 65, 85,
+                int(masse.get("jackenlaenge", 75))
+            )
+            masse["achselbreite"] = st.number_input(
+                "Achselbreite (cm)", 48, 65,
+                int(masse.get("achselbreite", 55))
+            )
+        with col3:
+            masse["jacke_taillenweite"] = st.number_input(
+                "Taillenweite Jacke (cm)", 45, 65,
+                int(masse.get("jacke_taillenweite", 52))
+            )
+        
+        st.markdown("##### 👖 Hosenmaße")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            masse["hose_taillenweite"] = st.number_input(
+                "Taillenweite Hose (cm)", 40, 60,
+                int(masse.get("hose_taillenweite", 50))
+            )
+            masse["gabelhoehe"] = st.number_input(
+                "Gabelhöhe (cm)", 25, 35,
+                int(masse.get("gabelhoehe", 30))
+            )
+        with col2:
+            masse["beinoeffnung"] = st.number_input(
+                "Beinöffnung (cm)", 20, 32,
+                int(masse.get("beinoeffnung", 26))
+            )
+            masse["hosenlaenge"] = st.number_input(
+                "Hosenlänge (cm)", 95, 120,
+                int(masse.get("hosenlaenge", 110))
+            )
+        
+        st.markdown("##### 🧥 Mantelmaße")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            masse["mantel_schulterbreite"] = st.number_input(
+                "Mantel Schulterbreite (cm)", 42, 58,
+                int(masse.get("mantel_schulterbreite", 48))
+            )
+            masse["mantel_aermellange"] = st.number_input(
+                "Mantel Ärmellänge (cm)", 55, 70,
+                int(masse.get("mantel_aermellange", 62))
+            )
+        with col2:
+            masse["mantel_gesamtlaenge"] = st.number_input(
+                "Mantel Gesamtlänge (cm)", 70, 95,
+                int(masse.get("mantel_gesamtlaenge", 80))
+            )
+            masse["mantel_achselbreite"] = st.number_input(
+                "Mantel Achselbreite (cm)", 50, 68,
+                int(masse.get("mantel_achselbreite", 57))
+            )
+        with col3:
+            masse["mantel_taillenweite"] = st.number_input(
+                "Mantel Taillenweite (cm)", 48, 70,
+                int(masse.get("mantel_taillenweite", 54))
+            )
+        
+        st.session_state.config["habilleur_masse"] = masse
+
+    # ── TAB 3: Suche ──
+    with tab3:
+        st.markdown("**Suchoptionen**")
+        user_email = st.text_input("E-Mail (optional)", value=st.session_state.config.get("user_email", ""))
+        
+        if user_email:
+            st.session_state.config["user_email"] = user_email
+
+    # ── TAB 4: Ollama ──
+    with tab4:
+        st.session_state.config["ollama_url"] = st.text_input(
+            "Ollama API URL",
+            value=st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
+        )
+        st.session_state.config["ollama_modell"] = st.selectbox(
+            "Modell",
+            OLLAMA_MODELLE,
+            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", OLLAMA_MODELLE[0]))
+        )
+        st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
+
+    st.markdown("---")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("💾  Habilleur Einstellungen speichern"):
+            speichere_config(st.session_state.config)
+            st.success("✓ Habilleur Konfiguration gespeichert")
+    
+    with col2:
+        if st.button("🚀  Habilleur Scraper starten", key="hab_scrape_btn"):
+            st.info(f"""
+✓ Habilleur-Konfiguration:
+- Größe: **{st.session_state.config['groesse']}**
+- Kategorie: **{st.session_state.config['kategorie']}**
+- Max. Preis: **{st.session_state.config['max_preis']}€**
+- Max. Artikel: **{st.session_state.config.get('max_artikel_pro_suche', 20)}**
+
+Der Scraper wird mit Habilleur Jean konfiguriert...
+            """)
 
 # ═══════════════════════════════════════════════
 #  SEITE: ERGEBNISSE
@@ -354,7 +572,7 @@ elif "Ergebnisse" in seite:
         with col1:
             nur_empfohlen = st.checkbox("Nur empfohlene Artikel", value=True)
         with col2:
-            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 6)
+            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 7)
         with col3:
             sortierung = st.selectbox("Sortierung", ["Bewertung ↓", "Preis ↑", "Preis ↓"])
 
@@ -419,7 +637,6 @@ elif "Ergebnisse" in seite:
   <div style="margin-top:0.6rem"><a href="{a.get('url','#')}" target="_blank" style="color:#e8c97e; font-size:0.75rem; text-decoration:none">→ Auf Vinted ansehen</a></div>
 </div>
 """, unsafe_allow_html=True)
-
 
 # ═══════════════════════════════════════════════
 #  SEITE: Newsletter

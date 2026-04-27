@@ -1,7 +1,3 @@
-""" 
-Wird von Daily newsletter aufgerufen 
-"""
-
 import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -66,7 +62,7 @@ def sende_email(html_content, empfaenger: str):
     msg = MIMEMultipart("alternative")
     heute = datetime.now().strftime("%d.%m.%Y")
     msg["Subject"] = f"🛍️ Deine Vinted Deals – {heute}"
-    msg["From"]    = f"Matchfit - Deine Daily Vinted Finds"
+    msg["From"]    = MAIL_FROM
     msg["To"]      = empfaenger
     msg.attach(MIMEText(html_content, "html"))
 
@@ -76,7 +72,7 @@ def sende_email(html_content, empfaenger: str):
             server.ehlo() # 2. Identifizieren beim Server
             server.starttls()  # 3. Verschlüsselung starten
             server.ehlo()  # 4. Erneut identifizieren (jetzt über die verschlüsselte Leitung)
-            server.login(MAIL_FROM, MAIL_PASSWORD) # type: ignore # 5. Jetzt erst einloggen
+            server.login(MAIL_FROM, MAIL_PASSWORD) # 5. Jetzt erst einloggen
             
             # 6. Senden
             server.send_message(msg)

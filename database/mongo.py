@@ -1,22 +1,52 @@
-import pymongo
-import json
+"""
+Regelt verbindung zur Mongo Datenbank
+"""
+import pymongo # type: ignore 
+import datetime
+import os 
 
-uri = "mongodb://localhost:27017/"
-file = "/Users/carlplacek/Desktop/Uni/DataScienceProjekt/secrets/vinted_empfehlungen.json"
+from dotenv import load_dotenv # type: ignore
+from config_defaults import MONGO_URL
 
-# Verbindung zur MongoDB herstellen
-my_client = pymongo.MongoClient(uri)
-# Datenabnk erstellen (Container für Daten)
-mydb = my_client["Secondhand_db"]
+def speichere_in_mongo(ergebnisse: list, config: dict = None):  # type: ignore
+    """
+    Speichert die Analyse-Ergebnisse in MongoDB. 
+    Verhindert Fehler bei leeren Listen und stellt Verbindungen sicher.
+    """
+    
+    # 1. Sofort-Check: Wenn keine Empfehlungen da sind, nichts tun
+    if not ergebnisse:
+        print("MongoDB: Keine Empfehlungen zum Speichern gefunden.")
+        return None
 
-# collection erstellen (eine Gruppe von Dokumenten)
-collection = mydb[file]
+    # Sicherstellen, dass wir wirklich nur Empfehlungen speichern (empfohlen == True)
+    empfehlungen = [e for e in ergebnisse if isinstance(e, dict) and e.get("empfohlen") is True]
+    
+    if not empfehlungen:
+        print("MongoDB: Liste enthielt keine Artikel mit Status 'empfohlen'.")
+        return None
 
-# Deine JSON-Datei laden 
-with open(file, "r", encoding="utf-8") as file:
-    data = json.load(file)
+    try:
+        # Verbindung aufbauen (mit Timeout, falls DB nicht läuft)
+        load_dotenv()
+        uri = os.get(MONGO_URL)  # type: ignore
+        my_client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=2000)
+        mydb = my_client["Secondhand_db"]
+        collection = mydb["vinted_empfehlungen"]
 
-# Daten in MongoDB speichern
-result = collection.insert_many(data)
-print(f"{len(result.inserted_ids)} Dokumente gespeichert")
-print(f"Gesamtanzahl Dokumente in der Collection: {collection.count_documents({})}")
+        # Zeitstempel hinzufügen, damit du im Dashboard nach "Neu" sortieren kannst
+        jetzt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for artikel in empfehlungen:
+            artikel["gespeichert_am"] = jetzt
+
+        # 2. Der entscheidende Fix: Nur insert_many aufrufen, wenn die Liste gefüllt ist
+        result = collection.insert_many(empfehlungen)
+        
+        print(f"✅ MongoDB: {len(result.inserted_ids)} neue Empfehlungen gespeichert.")
+        return result
+
+    except pymongo.errors.ServerSelectionTimeoutError: # type: ignore
+        print("❌ MongoDB Fehler: Verbindung zum Server fehlgeschlagen (läuft MongoDB?)")
+    except Exception as e:
+        print(f"❌ Fehler beim Speichern in MongoDB: {e}")
+        return None

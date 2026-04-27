@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from get_new_token import get_new_token
 import ebay_helper as helper
-from lookup_dicts import category_ids, condition_ids
+from database.config_defaults import category_ids_ebay, condition_ids_ebay
 
 
 def get_summary_of_articles_json(
@@ -13,7 +13,8 @@ def get_summary_of_articles_json(
         color="",
         category=None,
         size="",
-        min_condition=None
+        min_condition=None,
+        styles=None
 ):
     """
     Holt json mit Produkten und allgemeinen Produktdaten über Browse API.
@@ -27,6 +28,7 @@ def get_summary_of_articles_json(
     :param category: gesuchte Kategorie
     :param size: Größe
     :param min_condition: schlechtester erlaubter Zustand des Artikels
+    :param styles: Styles
 
     :return: Tupel von json mit Produkten und allgemeinen zugehörigen Daten,
     """
@@ -38,17 +40,17 @@ def get_summary_of_articles_json(
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"
     }
 
-    keywords = f"{keywords} {color} {size}"
+    keywords = f"{keywords} {color} {size} {" ".join(styles)}"
 
     try:
-        cat_id = category_ids[category]
+        cat_id = category_ids_ebay[category]
     except KeyError:
-        cat_id = category_ids["Kleidung & Accessoires"]  # Kleidung & Accessoires als Default
+        cat_id = category_ids_ebay["Kleidung & Accessoires"]  # Kleidung & Accessoires als Default
 
     try:
-        min_condition = condition_ids[min_condition]
+        min_condition = condition_ids_ebay[min_condition]
     except KeyError:
-        min_condition = condition_ids["Befriedigend"]  # Befriedigend als Default
+        min_condition = condition_ids_ebay["Befriedigend"]  # Befriedigend als Default
 
     filter_options = [
         f"priceCurrency:EUR",
@@ -65,7 +67,7 @@ def get_summary_of_articles_json(
 
     params = {
         "q": keywords,
-        "category_ids": cat_id,
+        "category_ids_ebay": cat_id,
         "filter": ",".join(filter_options),
         "aspect_filter": aspect_string,
         "sort": "-price", # teuere Produkte zuerst, sonst kriegt man nur Pfennigartikel angezeigt
@@ -126,7 +128,7 @@ def get_detailed_items(item_ids):
     })
 
     def fetch_one_item(item_id):
-        """Holt Daten zu genau EINEM Produkt als dict."""
+        """Holt nur wichtige Daten zu genau EINEM Produkt als dict."""
         try:
             url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
             response = session.get(url, timeout=(3, 10))
@@ -138,14 +140,10 @@ def get_detailed_items(item_ids):
             print(f"Fehler bei {item_id}: {e}")
             return None
 
-    with ThreadPoolExecutor(max_workers=25) as executor:
+    # Laufzeitoptimum bei 20 Workers
+    with ThreadPoolExecutor(max_workers=20) as executor:
         results = list(executor.map(fetch_one_item, item_ids))
 
     return [res for res in results if res is not None]
 
-from time import perf_counter
-
-start = perf_counter()
-get_detailed_items(get_summary_of_articles_json(keywords="hose"))
-end = perf_counter()
-print(end - start)
+# jetzt: jeden Artikel von Ollama auf Größe bewerten lassen, nur wenn größe passt +1, bis Zahl der gewollten Artikel erreicht

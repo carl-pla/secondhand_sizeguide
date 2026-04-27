@@ -1,14 +1,21 @@
-import streamlit as st
 import json
 from pathlib import Path
 import sys, os
+import subprocess
+import httpx # type: ignore 
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import streamlit as st # type: ignore 
+from database.users import registriere_user 
+from database.users import deaktiviere_user
 
 # Fügt den Projekt-Hauptordner zum Pfad hinzu
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
-    VINTED_GROESSEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_OPTIONEN, DEFAULT_CONFIG, CONFIG_FILE, ERGEBNISSE_FILE,
-    EMPFEHLUNGEN_FILE, speichere_config, lade_config
+    VINTED_GROESSEN, VINTED_KATEGORIEN, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
+    speichere_config, lade_config
 )
 
 
@@ -16,8 +23,8 @@ from database.config_defaults import (
 #  SEITEN-KONFIGURATION
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="Vinted Finder",
-    page_icon="🛍️",
+    page_title="MatchFit",
+    page_icon="dashboard/logo/logo_matchfit.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -130,25 +137,33 @@ config = st.session_state.config
 #  SIDEBAR – NAVIGATION
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🛍️ Vinted Finder")
-    st.markdown("---")
+    # Pfad zur aktuellen Datei (dashboard.py)
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # Verbinde den Ordner der Datei mit dem Logo-Pfad
+    logo_path = os.path.join(BASE_DIR, "logo", "logo_matchfit.png")
+
+    st.image(logo_path, width=180)
+    st.markdown(
+        "<h1 style='text-align:center; margin-top:-10px; margin-right: 60px; '>MatchFit</h1>",
+        unsafe_allow_html=True
+    )
+    st.divider()
     seite = st.radio(
         "",
-        ["⚙️  Einstellungen", "🔍  Suche starten", "📋  Ergebnisse", "📊  Statistiken"],
+        ["⚙️  Einstellungen", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
         label_visibility="collapsed"
     )
     st.markdown("---")
 
     # Ollama Status
-    import httpx
     try:
         httpx.get(config["ollama_url"].replace("/api/generate", ""), timeout=2)
         st.markdown('<span class="status-ok">● Ollama online</span>', unsafe_allow_html=True)
     except:
         st.markdown('<span class="status-err">● Ollama offline</span>', unsafe_allow_html=True)
-        st.caption(f"Erwartet auf: {config['ollama_url']}")
 
-    st.markdown(f"<br><span style='color:#8a8478;font-size:0.75rem'>Config: {CONFIG_FILE}</span>", unsafe_allow_html=True)
+    
 
 
 # ═══════════════════════════════════════════════
@@ -156,7 +171,7 @@ with st.sidebar:
 # ═══════════════════════════════════════════════
 if "Einstellungen" in seite:
     st.markdown("# Einstellungen")
-    st.markdown("Konfiguriere deine Präferenzen. Wird in `dashboard/secrets/config.json` gespeichert.")
+    st.markdown("Konfiguriere deine Präferenzen.")
     st.markdown("---")
 
     tab1, tab2, tab3, tab4 = st.tabs(["👗  Stil & Größe", "📐  Maße", "🔍  Suche", "🤖  Ollama"])
@@ -172,23 +187,40 @@ if "Einstellungen" in seite:
                     st.session_state.config.get("groesse", "M / 38")
                 )
             )
+            st.session_state.config["kategorie"] = st.selectbox(
+                "Kategorie",
+                list(VINTED_KATEGORIEN.keys()),
+                index=list(VINTED_KATEGORIEN.keys()).index(
+                    st.session_state.config.get("kategorie", "Herren Jacken & Mäntel")
+                )
+            )
+            st.session_state.config["stile"] = st.multiselect(
+            "Bevorzugte Stile",
+            STIL_OPTIONEN,                
+            default=st.session_state.config.get("stile", ["Vintage"])
+        )
+            
+        with col2:
             st.session_state.config["max_preis"] = st.slider(
                 "Maximaler Preis (€)", 5, 200,
                 st.session_state.config.get("max_preis", 50), step=5
             )
-        with col2:
-            st.session_state.config["stile"] = st.multiselect(
-                "Bevorzugte Stile",
-                STIL_OPTIONEN,
-                default=st.session_state.config.get("stile", ["Vintage", "Retro"])
-            )
             st.session_state.config["min_zustand"] = st.selectbox(
                 "Mindest-Zustand",
-                ZUSTAND_OPTIONEN,
+                ZUSTAND_RANG,
                 index=ZUSTAND_OPTIONEN.index(
                     st.session_state.config.get("min_zustand", "Gut")
                 )
             )
+            email_input = st.text_input(
+            "Deine Email-Adresse",
+        )
+        if email_input:
+            st.session_state.config["user_email"] = email_input
+            st.session_state["user_email"] = email_input
+        
+        
+            
 
     # ── TAB 2: Maße ──
     with tab2:
@@ -207,28 +239,21 @@ if "Einstellungen" in seite:
 
     # ── TAB 3: Suche ──
     with tab3:
-        suchbegriffe_raw = st.text_area(
-            "Suchbegriffe (einer pro Zeile)",
-            "\n".join(st.session_state.config.get("suchbegriffe", ["vintage", "retro 90s", "y2k"])),
-            height=150
-        )
-        st.session_state.config["suchbegriffe"] = [
-            s.strip() for s in suchbegriffe_raw.splitlines() if s.strip()
-        ]
-
         col1, col2 = st.columns(2)
         with col1:
             st.session_state.config["max_artikel_pro_suche"] = st.slider(
-                "Artikel pro Suchbegriff", 1, 20,
+                "Artikel pro Suchbegriff", 1, 60,
                 st.session_state.config.get("max_artikel_pro_suche", 5)
             )
         with col2:
-            suchbegriffe = st.session_state.config["suchbegriffe"]
+            stile = st.session_state.config["stile"]
+            anzahl = max(2, len(stile))  # minimum 2 damit Slider nicht crasht
             st.session_state.config["max_suchen"] = st.slider(
-                "Maximale Anzahl Suchbegriffe", 1, max(1, len(suchbegriffe)),
-                min(2, max(1, len(suchbegriffe)))
+                "Maximale Anzahl Suchbegriffe", 1, anzahl,
+                min(st.session_state.config.get("max_suchen", 1), anzahl)
             )
-
+            
+            
         st.markdown("**Anti-Ban Pausen (Sekunden)**")
         col1, col2 = st.columns(2)
         with col1:
@@ -248,12 +273,12 @@ if "Einstellungen" in seite:
     with tab4:
         st.session_state.config["ollama_url"] = st.text_input(
             "Ollama API URL",
-            st.session_state.config.get("ollama_url", "http://localhost:11435/api/generate")
+            st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
         )
         st.session_state.config["ollama_modell"] = st.selectbox(
             "Modell",
             OLLAMA_MODELLE,
-            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3"))
+            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3.2:3b"))
             if st.session_state.config.get("ollama_modell") in OLLAMA_MODELLE else 0
         )
         st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
@@ -262,7 +287,7 @@ if "Einstellungen" in seite:
     if st.button("💾  Einstellungen speichern"):
         speichere_config(st.session_state.config)
         st.success(f"✓ Gespeichert in `{CONFIG_FILE}`")
-        st.json(st.session_state.config)  # zur Kontrolle, danach entfernen
+        st.json(st.session_state.config)  # zur Kontrolle
 
 
 # ═══════════════════════════════════════════════
@@ -270,6 +295,11 @@ if "Einstellungen" in seite:
 # ═══════════════════════════════════════════════
 elif "Suche" in seite:   # ← elif statt if, und "Suche" check
     st.markdown("# Suche starten")
+    user_email = st.session_state.config.get("user_email") or st.session_state.get("user_email", "anonym")
+    if user_email:
+        st.caption(f"🔗 Suche wird gespeichert für: **{user_email}**")
+    else:
+        st.warning("⚠️ Keine Email hinterlegt – Suche wird als 'anonym' gespeichert.")
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -277,11 +307,11 @@ elif "Suche" in seite:   # ← elif statt if, und "Suche" check
     with col2:
         st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>', unsafe_allow_html=True)
     with col3:
-        anzahl = config["max_artikel_pro_suche"] * min(config.get("max_suchen", 2), len(config["suchbegriffe"]))
+        anzahl = config["max_artikel_pro_suche"] * min(config.get("max_suchen", 2), len(config["stile"]))
         st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Artikel</div><div class="metric-value">~{anzahl}</div></div>', unsafe_allow_html=True)
 
-    st.markdown("**Aktive Suchbegriffe:**")
-    for s in config["suchbegriffe"][:config.get("max_suchen", 2)]:
+    st.markdown("**Aktive Stile:**")
+    for s in config["stile"][:config.get("max_suchen", 2)]:
         st.markdown(f'<span class="badge">{s}</span>', unsafe_allow_html=True)
 
     st.markdown("---")
@@ -290,8 +320,6 @@ elif "Suche" in seite:   # ← elif statt if, und "Suche" check
         speichere_config(st.session_state.config)
         st.info(f"✓ Gespeichert in `{CONFIG_FILE}`")
 
-
-        import subprocess, os
         projekt_pfad = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
         with st.spinner("Scraper läuft... (kann einige Minuten dauern)"):
@@ -326,7 +354,7 @@ elif "Ergebnisse" in seite:
         with col1:
             nur_empfohlen = st.checkbox("Nur empfohlene Artikel", value=True)
         with col2:
-            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 7)
+            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 6)
         with col3:
             sortierung = st.selectbox("Sortierung", ["Bewertung ↓", "Preis ↑", "Preis ↓"])
 
@@ -356,7 +384,11 @@ elif "Ergebnisse" in seite:
                 ("brust_cm", "Brust"), ("taille_cm", "Taille"), ("huefte_cm", "Hüfte"),
                 ("schulter_cm", "Schulter"), ("laenge_cm", "Länge"), ("aermel_cm", "Ärmel")
             ]
-            masse_items = [(label, masse.get(key)) for key, label in masse_felder if masse.get(key)]
+            # Prüfe sicherheitshalber, ob 'masse' überhaupt existiert, bevor wir .get() nutzen
+            if masse is not None:
+                masse_items = [(label, masse.get(key)) for key, label in masse_felder if masse.get(key)]
+            else:
+                masse_items = []
             if masse_items:
                 items_html = "".join([
                     f'<div class="masse-item"><div class="masse-key">{label}</div><div class="masse-val">{val} cm</div></div>'
@@ -389,3 +421,68 @@ elif "Ergebnisse" in seite:
 """, unsafe_allow_html=True)
 
 
+# ═══════════════════════════════════════════════
+#  SEITE: Newsletter
+# ═══════════════════════════════════════════════
+elif "Newsletter" in seite:
+    st.markdown("# Newsletter abonnieren")
+    st.markdown("Erhalte personalisierte Empfehlungen direkt per Email.")
+    st.markdown("---")
+
+    email = st.text_input("Deine Email-Adresse")
+
+    st.markdown("**Deine Präferenzen** (aus den Einstellungen):")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]}€</div></div>', unsafe_allow_html=True)
+    with col3:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Stile</div><div class="metric-value">{", ".join(config.get("stile", []))}</div></div>', unsafe_allow_html=True)
+
+    st.caption("💡 Passe deine Präferenzen unter Einstellungen an, bevor du dich registrierst.")
+    st.markdown("---")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("📧  Jetzt anmelden"):
+            if not email:
+                st.error("Bitte Email eingeben.")
+            else:
+                try:
+                    result = registriere_user(email, st.session_state.config)
+                    if "error" in result:
+                        st.error(result["error"])
+                    elif result["status"] == "neu":
+                        st.session_state["user_email"] = email 
+                        st.success(f"✅ Angemeldet! Du erhältst Empfehlungen an {email}")
+                    else:
+                        st.info(f"✓ Präferenzen für {email} aktualisiert.")
+                except Exception as e:
+                    st.error(f"Fehler: {e}")
+
+    with col2:
+        if st.button("🚫  Abmelden"):
+            if not email:
+                st.error("Bitte Email eingeben.")
+            else:
+                try:
+                    deaktiviere_user(email)
+                    st.success(f"✓ {email} vom Newsletter abgemeldet.")
+                except Exception as e:
+                    st.error(f"Fehler: {e}")
+
+    # Registrierte User anzeigen (Admin-Ansicht)
+    st.markdown("---")
+    st.markdown("### Registrierte User")
+    try:
+        from database.users import lade_alle_user
+        users = lade_alle_user()
+        if users:
+            st.caption(f"{len(users)} aktive Abonnenten")
+            for u in users:
+                st.markdown(f"- **{u['email']}** | {u['groesse']} | max {u['max_preis']}€ | {', '.join(u.get('stile', []))}")
+        else:
+            st.info("Noch keine Abonnenten.")
+    except Exception as e:
+        st.error(f"Fehler beim Laden: {e}")

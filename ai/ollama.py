@@ -1,109 +1,201 @@
 import json
-import httpx
-from pathlib import Path
+import httpx # type: ignore
+from database.config_defaults import ZUSTAND_RANG
+
+"""
+=== WORKFLOW GROB ===
+1. Informationen werden reingebracht --> frage_ollama
+2. Informationen werden geprüft --> analysiere_artikel 
+"""
 
 
-# ─────────────────────────────────────────────
-#  OLLAMA
-# ─────────────────────────────────────────────
+"""
+=== STUFE 1 ===
+Funktion nur als Schnittstelle zwischen menschlichem Prompt und dem LLM Gehirn (ollama), 
+weiss nichts über Vinted o.ä.
+"""
 def frage_ollama(prompt: str, ollama_url: str, modell: str) -> str:
+    # Prüft, ob Modell vorhanden bzw. angegebebn und erreicht werden muss 
     if not modell:
-        print("  ⚠️  Fehler: Kein Modellname übergeben!")
+        print("  ⚠️  Kein Modellname übergeben!")
         return ""
+    # Versand der Informationen via HTTP-Post an ollama (max 2min)
     try:
-        payload = {"model": modell, "prompt": prompt, "stream": False}
-        response = httpx.post(ollama_url, json=payload, timeout=120.0)
-        
-        # Debug: Zeige was wirklich zurückkommt, wenn es kein 200 OK ist
+        response = httpx.post(
+            ollama_url,
+            json={"model": modell, "prompt": prompt, "stream": False,
+                  "options": {"temperature": 0.1} # Niedrige Temp = KI bleibt sachlich und "erfindet" weniger
+                  }, 
+            timeout=300
+        )
+        # Fehlerbehandlung: ollama erreichbar?
         if response.status_code != 200:
-            print(f"  ⚠️  Ollama HTTP Fehler {response.status_code}: {response.text}")
+            print(f"  ⚠️  Ollama HTTP {response.status_code}")
             return ""
-
         return response.json().get("response", "").strip()
     except Exception as e:
-        print(f"  ⚠️  Ollama-Verbindungsfehler: {e}")
+        print(f"  ⚠️  Ollama-Fehler: {e}")
         return ""
 
+"""
+=== STUFE 2 ===
+Hauptfunktion der Datei: Schritt 1. Subjektive LLM Analyse, 2. Harter Faktencheck 
+"""
 def analysiere_artikel(artikel: dict, config: dict) -> dict:
-    eigene = config.get("eigene_masse", {})
-    stile = ", ".join(config.get("stile", ["Vintage"]))
+    # lädt Daten aus der Konfiguration (config.json, die in streamlit personalisert wird)
+    eigene      = config.get("eigene_masse", {})
+    stile       = ", ".join(config.get("stile", ["Vintage"]))
+    min_zustand = config.get("min_zustand", "Gut")
+    min_rang    = ZUSTAND_RANG.get(min_zustand, 2)
 
-    prompt = f"""You are a fashion assistant analyzing a secondhand clothing listing.
-Buyer preferences: {stile} style, size {config['groesse']}, max price {config['max_preis']}€.
-Buyer measurements: bust {eigene.get('brust','?')}cm, waist {eigene.get('taille','?')}cm, hips {eigene.get('huefte','?')}cm, shoulders {eigene.get('schulter','?')}cm.
+    """
+    1.Prompt: Was soll das LLM machen, wie soll sie bewerten, 
+    und schlussendlich soll sie ihre Ergebnisse in einer JSON zurückgeben
+    """
+    prompt = f"""You are a vintage fashion curator. Evaluate if this item fits the client.
 
-Listing: 
-Title: {artikel['titel']}
-Price: {artikel['preis']}
-Description: {artikel['beschreibung']}
+Client:
+- Style: {stile}
+- Size: {config['groesse']}
+- Max Price: {config['max_preis']}€
+- Min Condition: {min_zustand}
 
-Tasks:
-1. Extract ALL measurements (bust, waist, hips, shoulders, length, sleeve, inseam, rise, any cm/inch values)
-2. Extract condition and material if mentioned
-3. Assess fit for buyer's style and size
-4. Rate relevance 1-10
+Item:
+- Title: {artikel['titel']}
+- Price: {artikel['preis']}
+- Description: {artikel['beschreibung']}
 
-Respond ONLY with JSON, no text before or after:
+CRITICAL RULES:
+SCORING RULES:
+- 9-10: Style matches AND measurements explicitly found in description AND fit perfectly (±4cm)
+- 7-8:  Style matches AND size tag is {config['groesse']}, but NO measurements found → max 7
+- 5-6:  Style uncertain OR size unclear
+- <5:   Style mismatch, wrong size, or price too high
+
+Respond ONLY with this JSON:
 {{
-  "masse": {{
-    "brust_cm": null, "taille_cm": null, "huefte_cm": null,
-    "schulter_cm": null, "laenge_cm": null, "aermel_cm": null,
-    "innennaht_cm": null, "sonstiges": {{}}
-  }},
-  "zustand": null,
-  "material": null,
-  "passt_groesse": true,
-  "passt_stil": true,
-  "begruendung": "kurze Begründung auf Deutsch",
-  "bewertung": 7,
-  "empfohlen": true
+  "masse": {{"brust_cm":null,"taille_cm":null,"laenge_cm":null}},
+  "zustand": "Gut/Sehr gut/Wie neu/Befriedigend",
+  "passt_groesse": true/false,
+  "begruendung": "max 2 Sätze auf Deutsch",
+  "bewertung": 1-10,
+  "empfohlen": true/false
 }}"""
 
+# SCORE WEIGHTING: relativ euphorisch angesetzt, um mehr reinzubringen und dann harter auszusortiren 
+    
+    # Nach Prompt kommt der Analyseteil 
     print(f"    🤖 Analysiere: {artikel['titel'][:50]}...")
     antwort = frage_ollama(prompt, config["ollama_url"], config["ollama_modell"])
+
     if not antwort:
         return {**artikel, "analyse_fehler": True}
 
+    
+    
+    """
+    2. JSON Parsen: LLM Ausgabe in Dict packen
+    """
     try:
         analyse = json.loads(antwort)
     except:
+    # Falls die KI Text vor oder nach dem JSON schreibt, suchen wir nur die Klammern { } --> flexibler 
         try:
             start = antwort.find("{")
-            end = antwort.rfind("}") + 1
+            end   = antwort.rfind("}") + 1
             analyse = json.loads(antwort[start:end])
         except:
             return {**artikel, "analyse_fehler": True, "raw": antwort[:200]}
 
-    # Passform-Vergleich
+    
+    """
+    3. Harte Python-Checks mit eigenen Maßen (), verhindert auch Hallzunationen 
+    """
+    try:
+        """
+        3.1 Preis-Parsing und harter Check, ob ollama nicht falsche Preise ausgegeben hat oder formatiert hat
+        """
+        # Ersetze Komma durch Punkt, falls vorhanden
+        preis_roh = artikel["preis"].replace(',', '.')
+        
+        # Extrahiere nur Ziffern und den (jetzt vorhandenen) Punkt
+        preis_bereinigt = ''.join(c for c in preis_roh if c.isdigit() or c == '.')
+        
+       # Falls mehrere Punkte entstanden sind (z.B. durch Tippfehler), nimm nur den ersten
+        if preis_bereinigt.count('.') > 1:
+            teile = preis_bereinigt.split('.')
+            preis_bereinigt = teile[0] + "." + "".join(teile[1:])
+            
+        preis_zahl = float(preis_bereinigt)
+        
+        # Wenn Preis > Budget: Artikel ablehnen (Score auf 4 runter)
+        if preis_zahl > config["max_preis"]:
+            analyse["empfohlen"] = False
+            analyse["bewertung"] = min(analyse.get("bewertung", 5), 4)
+            analyse["begruendung"] = f"Preis {preis_zahl}€ zu hoch (Max: {config['max_preis']}€). "
+    except Exception as e:
+        print(f"DEBUG: Preis-Parsing fehlgeschlagen für '{artikel['preis']}': {e}")
+
+
+    
+    """
+    3.2 Zustand überprüfen
+    """
+    zustand = analyse.get("zustand", "")
+    if zustand in ZUSTAND_RANG:
+        if ZUSTAND_RANG[zustand] < min_rang:
+            analyse["empfohlen"] = False
+            analyse["bewertung"] = min(analyse.get("bewertung", 5), 4)
+            analyse["begruendung"] = f"Zustand '{zustand}' unter '{min_zustand}'. " + analyse.get("begruendung", "")
+
+    """
+    3.3 Mindestbewertung, jedoch aktuell auf 6 hardgecodet --> soll mit Schieberegl in "Ergebnissen" angepasst werden
+    was dann letztendlich in der Empfehlung JSON landet
+    """
+    mindest_bewertung = 6
+    if (analyse.get("bewertung") or 0) < mindest_bewertung:
+        analyse["empfohlen"] = False
+    else:
+        analyse["empfohlen"] = True # ← Überschreibt Ollamas zu strenges Urteil
+
+    
+    """
+    4. PASSFORM-VERGLEICH: Mathematische Berechnung der Differenz von Maßen, was gefunden wurde und was angegeben wurde
+    """
     passform_hinweise = []
-    masse = analyse.get("masse", {})
+    masse = analyse.get("masse", {}) or {}
     for key, label, eigener_wert in [
-        ("brust_cm", "Brust", eigene.get("brust")),
-        ("taille_cm", "Taille", eigene.get("taille")),
-        ("huefte_cm", "Hüfte", eigene.get("huefte")),
-        ("schulter_cm", "Schulter", eigene.get("schulter")),
+        ("brust_cm",     "Brust",     eigene.get("brust")),
+        ("taille_cm",    "Taille",    eigene.get("taille")),
+        ("huefte_cm",    "Hüfte",     eigene.get("huefte")),
+        ("schulter_cm",  "Schulter",  eigene.get("schulter")),
+        ("laenge_cm",    "Länge",     eigene.get("laenge_oberteil")),
+        ("innennaht_cm", "Innennaht", eigene.get("innennaht")),
     ]:
         if masse.get(key) and eigener_wert:
             diff = masse[key] - eigener_wert
-            if abs(diff) <= 4:
+            if abs(diff) <= 4: # Differenzwert liegt hardgecodet bei 4cm??? --> so lassen???
                 passform_hinweise.append(f"{label}: passt gut")
             elif diff > 0:
                 passform_hinweise.append(f"{label}: +{diff}cm größer")
             else:
                 passform_hinweise.append(f"{label}: {diff}cm kleiner")
 
+    
+    """
+    5. RÜCKGABE: Alle Daten für MongoDB und das Dashboard zusammenführen --> an main.py geschickt 
+    """
     return {
-        "url": artikel["url"],
-        "titel": artikel["titel"],
-        "preis": artikel["preis"],
-        "beschreibung": artikel["beschreibung"],
-        "masse": analyse.get("masse", {}),
-        "zustand": analyse.get("zustand"),
-        "material": analyse.get("material"),
-        "passt_groesse": analyse.get("passt_groesse"),
-        "passt_stil": analyse.get("passt_stil"),
+        "url":               artikel["url"],
+        "titel":             artikel["titel"],
+        "preis":             artikel["preis"],
+        "beschreibung":      artikel["beschreibung"],
+        "masse":             analyse.get("masse", {}),
+        "zustand":           zustand,
+        "passt_groesse":     analyse.get("passt_groesse"),
+        "passt_stil":        analyse.get("passt_stil"),
         "passform_hinweise": passform_hinweise or None,
-        "begruendung": analyse.get("begruendung"),
-        "bewertung": analyse.get("bewertung"),
-        "empfohlen": analyse.get("empfohlen", False),
+        "begruendung":       analyse.get("begruendung"),
+        "bewertung":         analyse.get("bewertung"),
+        "empfohlen":         analyse.get("empfohlen", False),
     }

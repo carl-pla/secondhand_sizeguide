@@ -1,6 +1,8 @@
-streamlit 
-playwright 
-playwright-stealth 
+streamlit
+playwright
+playwright-stealth
 httpx
+pymongo
+pytest
 requests
-base64
+python-dotenv

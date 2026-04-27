@@ -1,123 +1,444 @@
-# 🛍️ Vinted Smart Finder
+# 🛍️ Vinted Smart Finder — Matchfit
 
-Ein automatisierter Secondhand-Artikel-Finder mit KI-gestützter Passform-Analyse.
+Ein automatisierter Secondhand-Artikel-Finder mit KI-gestützter Passform-Analyse.  
+Der Scraper durchsucht Vinted nach Kleidung, analysiert Passform und Stil mit einem lokalen LLM (Ollama) und verschickt täglich einen personalisierten Newsletter.
+
+---
+
+## Inhaltsverzeichnis
+
+1. [Systemarchitektur](#systemarchitektur)
+2. [Voraussetzungen](#voraussetzungen)
+3. [Setup](#setup)
+   - [Option A: .venv (lokal)](#option-a-venv-lokal)
+   - [Option B: Docker](#option-b-docker)
+4. [Konfiguration](#konfiguration)
+5. [Workflow & Features](#workflow--features)
+6. [CI/CD & Newsletter](#cicd--newsletter)
+7. [Projektentwicklung — Probleme & Learnings](#projektentwicklung--probleme--learnings)
+8. [Stand der Dinge](#stand-der-dinge)
+9. [Ausarbeitung Projektarbeit](#ausarbeitung-projektarbeit)
+
+---
+
+## Systemarchitektur
+
+```
+Vinted (Web)
+    │
+    ▼
+Playwright Scraper (integriert in streamlit)
+    │                    
+    ▼                
+Streamlit (Docker Container) ──► Ollama (lokal via Host-IP) ──► MongoDB Atlas
+    │                                                    │
+    │                    Passform-Analyse                │
+    │                    JSON-Ausgabe                    │
+    ▼                                                    │
+GitHub Actions ──────────────────────────────────────────┘
+    │
+    ▼
+Newsletter (Google SMTP)
+```
+
+| Komponente | Technologie | Zweck |
+|---|---|---|
+| Scraping | Playwright + Stealth | Vinted durchsuchen, Anti-Ban |
+| KI-Analyse | Ollama / llama3.2:3b | Passform, Stil, Bewertung |
+| Datenbank | MongoDB Atlas | Cloud-Persistenz, Team-Sharing |
+| Dashboard | Streamlit | Konfiguration, Ergebnisse |
+| Newsletter | GitHub Actions + Google SMTP | Wöchentliche Empfehlungen |
+
+---
+
+## Voraussetzungen
+
+**Für beide Optionen benötigt:**
+- [Ollama](https://ollama.com) installiert und laufend
+- [MongoDB Atlas](https://www.mongodb.com/atlas) Account (kostenlos)
+- Python 3.10+
+
+**Nur für Docker:**
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+---
 
 ## Setup
 
-```bash
-# 1. Abhängigkeiten installieren
-pip(3) install -r requirements.txt --> "(3)", wenn Mac User
+### Option A: .venv (lokal)
 
-# 2. Playwright Browser
+Empfohlen für Entwicklung und schnelles Testen.
+
+#### macOS
+
+```bash
+# 1. Repository klonen
+git clone https://github.com/dein-user/vinted-finder.git
+cd vinted-finder
+
+# 2. Virtuelles Environment erstellen und aktivieren
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Abhängigkeiten installieren
+pip3 install -r requirements.txt
+
+# 4. Playwright Browser installieren
 playwright install chromium
 
-# 3. Projekt als Package registrieren (einmalig)
+# 5. Projekt als Package registrieren (einmalig)
 pip install -e .
 
-# 4. Ollama starten (in separatem Terminal)
-Mac:
-OLLAMA_HOST=0.0.0.0:11435 ollama serve
-Windows (Powershell):
-$env:OLLAMA_HOST="0.0.0.0:11435"
-ollama serve
+# 6. Umgebungsvariablen setzen
+cp .env.example .env
+# .env mit deinen Werten befüllen (MongoDB URI, etc.)
 
-# 5. Dashboard starten
+# 7. Ollama starten  (separates Terminal)
+OLLAMA_HOST=0.0.0.0:11434 ollama serve 
+
+# 8. KI-Modell laden (einmalig)
+ollama pull llama3.2:3b
+
+# 9. Dashboard starten
 streamlit run dashboard/dashboard.py
+```
 
-# 6. Scraper manuell starten
-python3 main.py
+#### Windows (PowerShell)
+
+```powershell
+# 1. Repository klonen
+git clone https://github.com/carl-pla/secondhand_sizeguide.git
+cd secondhand_sizeguide
+
+# 2. Virtuelles Environment erstellen und aktivieren
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+
+# 3. Abhängigkeiten installieren
+pip install -r requirements.txt
+
+# 4. Playwright Browser installieren
+playwright install chromium
+
+# 5. Projekt als Package registrieren (einmalig)
+pip install -e .
+
+# 6. Umgebungsvariablen setzen
+copy .env.example .env
+# .env mit deinen Werten befüllen
+
+# 7. Ollama starten (separates Terminal)
+$env:OLLAMA_HOST="0.0.0.0:11434"; ollama serve
+
+# 8. KI-Modell laden (einmalig)
+ollama pull llama3.2:3b
+
+# 9. Dashboard starten
+streamlit run dashboard/dashboard.py
 ```
 
 ---
-## Workflow 
---> Konfiguration (Input) über das Streamlit Dashboard, Konfigurationsdaten landen in der config.json 
---> Datengewinnung durch Scraper: Biblitothek "Playwright" um Rohtext und Beschreibungen zu extrahieren, ohne geblockt zu werden
---> Auswertung der Scraping Ergebnisse mit ollama lokal. LLM fungiert als Parser: unstrukturiertre Daten zu harten Daten 
---> Specherung und Output: LLM gibt sauberes JSON zurück mit Empfehlungen (Grundlage für relationale Datenbank und dementesprechend Newsletter (Github kann automatisieren)
 
-## Stand der Dinge ✅
+Option B: Docker (Hybrid-Setup)
 
-### Scraping
+Empfohlen für ein sauberes System. Streamlit läuft isoliert im Container, während es die GPU-Leistung deines Host-Rechners (Ollama) und die MongoDB Atlas Cloud nutzt.
 
-- [x] Vinted Suchergebnisseiten scrapen (gefiltert nach Größe, Preis, Suchbegriff)
-- [x] Einzelartikel aufrufen: Titel, Preis, Beschreibung extrahieren
-- [x] Anti-Ban-Maßnahmen: randomisierte Pausen, Stealth-Modus, realistischer User-Agent
-- [x] Cookie-Banner automatisch wegklicken
-- [x] Deduplizierung gefundener Artikel
+1. Vorbereitung (Host-System)
+Stelle sicher, dass Ollama auf deinem Rechner installiert ist und externe Verbindungen zulässt:
 
---> dauert sehr lange! Scrapt nur sehr wenig Volumen! 
-==> Lösung?: zunächst nur erste Parameter des Artikels scannen, wenn true dann weiter 
-==> Lösung?: Cookie-Persistenz, speichern der Cookies unter selben IP-Adresse, sonst wirkt auf hohes Volumen "verdächtig"
+```bash
+macOS/Linux: OLLAMA_HOST=0.0.0.0:11434 ollama serve
+Windows: Setze die Umgebungsvariable OLLAMA_HOST auf 0.0.0.0 in den Systemeigenschaften und starte die Ollama App neu.
+```
 
-### KI-Analyse (Ollama / llama3, lokal)
+2. Container-Start
 
-- [x] Maße aus Artikelbeschreibung extrahieren (Brust, Taille, Hüfte, Schulter, Länge, Ärmel, Innennaht)
-- [x] Zustand & Material aus Beschreibung erkennen
-- [x] Stil-Matching (Vintage, Retro, Y2K, etc.)
-- [x] Passform-Vergleich mit eigenen Maßen (Differenz in cm)
-- [x] Bewertung 1–10 + Empfehlung ja/nein
-- [x] Strukturierte JSON-Ausgabe pro Artikel, die in MongoDB gespeichert wird
+```bash
+# 1. Repository klonen
+git clone https://github.com/dein-user/vinted-finder.git
+cd vinted-finder
 
-### Konfiguration & UI
+# 2. Umgebungsvariablen setzen
+cp .env.example .env
+# WICHTIG: Setze OLLAMA_BASE_URL=http://host.docker.internal:11434
+# WICHTIG: Setze MONGO_URL auf deinen Atlas Connection String
 
-- [x] Zentrale `config_defaults.py` (ein Single Source of Truth für alle Module)
-- [x] Streamlit Dashboard: Präferenzen, Maße, Suche, Ollama-Einstellungen
-- [x] Ergebnisse & Empfehlungen als JSON 
-
-### CI/CD
-
-- [ ] GitHub Actions Pipeline (noch nicht automatisch --> bzw. tests, security, docker, deploy unvollständig)
-- [ ] Für die GitHub Actions brauchen wir in der Ergebnis Json ein Zeitfeld, also bei jedem gespeicherten Objekt ein "created_at"-item, damit die Actions wissen, was jede Woche neu ist 
-- [ ] Ergebnisse als Workflow-Artifact herunterladbar
-- [ ] Github Actions timed die Code Ausführung und "Resend" verschickt die Mail (sehr simple API, weil wir brauchen nur API-Key, Absender-/ Empfängeradresse)
-- [ ] ### wichtig: GitHub erreicht MongoDB nur, wenn die Datenbank öffentlich erreichbar ist (mit Connection URI in MongoDB-Atlas)
-- [ ] Wir brauchen jetzt eine weekly_newsletter.YML Datei im /workflow Ordner auf dem Default Branch (GitHub erkennt automatisch den Flow) und eine workflow_dispatch Datei. Dann erscheint bei den Actions ein Button mit "Run Workflow"
-- [ ] Auch brauchen wir in den Secrets: MONGO_URI, RESEND_API_KEY und MAIL_FROM und MAIL_TO
-
----
+# 3. Streamlit Container starten
+docker compose up --build
+```
+**Dashboard:** http://localhost:8501  
+**Ollama API:** http://ollama:11434
 
 
-### Weitere geplante Features
+#### Nützliche Docker-Befehle
 
-- [ ] MongoDB aufsetzen und dort JSON speichern lassen
-- [ ] Volumen des Scrapers erhöhen --> noch unzufriedene Ergebnisse!
-- [ ] LLm-Analyse zu wenig kritisch
+```bash
+# Nur bestimmten Service neu starten
+docker compose restart app
 
-- [ ] E-mail Benachrichtung als eine Art "Newsletter"
-1. Daten aus Scrapper identifiziert 
-2. in JSON Datei gespeichert, gleichzeitig landen Empfehlungen in MongoDB 
-3. Empfehlungen werden pro Recherche agregiert und dann in einen Newsletter verpackt 
-4. Newsletter soll automatisiert 1mal pro Woche kommen
+# Logs anzeigen
+docker compose logs -f app
 
----
+# Container stoppen (Daten bleiben erhalten)
+docker compose down
 
-## Aufgetretene Probleme
+# Alles inklusive Volumes löschen (Achtung: löscht lokale DB-Daten)
+docker compose down -v
 
-- Synchronisieren der Variablen des streamlit Dashboards und der JSON Dateien
-- Scraper öfters blockiert, besonders sensibel ist Sellpy
-- Überblick geht schenll verloren, über Service 
+# Abhängigkeiten aktualisiert? Images neu bauen
+docker compose up --build
+```
+
+> **Hinweis für Entwicklung:** Dank Docker Volumes werden Änderungen am Code sofort im Container übernommen — kein Neustart nötig. Neue Python-Pakete in `requirements.txt` eintragen und `--build` ausführen.
+
+> Note on Playwright & Docker: Das mitgelieferte Dockerfile basiert auf python:3.11-slim und installiert automatisch alle notwendigen Browser-Abhängigkeiten, damit der Scraper "Headless" im Hintergrund laufen kann, ohne dein lokales System mit Browser-Instanzen zu belasten.
+
 
 ## Konfiguration
 
-Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `config.json` gespeichert:
+Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `secrets/config.json` gespeichert.
 
 | Parameter | Beschreibung | Beispiel |
-
+|---|---|---|
+| `user_email` | Email des Users | `"max@example.com"` |
 | `groesse` | Kleidungsgröße | `"M / 38"` |
 | `stile` | Bevorzugte Stile | `["Vintage", "Retro"]` |
 | `max_preis` | Maximaler Preis in € | `50` |
-| `eigene_masse` | Eigene Körpermaße in cm | `{"brust": 88, "taille": 70}` |
-| `suchbegriffe` | Vinted Suchbegriffe | `["vintage", "y2k"]` |
-| `ollama_url` | Ollama API Endpunkt | `"http://localhost:11435/api/generate"` |
-| `ollama_modell` | Lokales LLM | `"llama3"` |
+| `min_zustand` | Mindest-Zustand | `"Gut"` |
+| `eigene_masse` | Körpermaße in cm | `{"brust": 88, "taille": 70}` |
+| `ollama_url` | Ollama API Endpunkt | `"http://ollama:11434/api/generate"` |
+| `ollama_modell` | Lokales LLM | `"llama3.2:3b"` |
 | `max_artikel_pro_suche` | Artikel pro Suchbegriff | `5` |
 | `pause_zwischen_artikeln` | Anti-Ban Pause (Sek.) | `[4, 7]` |
 
+**Für CI/CD:** Den Inhalt von `secrets/config.json` als GitHub Secret `VINTED_CONFIG` hinterlegen.
+
 ---
 
-## Hinweise
+## Workflow & Features
 
-- Für CI/CD den Inhalt von `secrets/config.json` als GitHub Secret `VINTED_CONFIG` hinterlegen
-- Ollama muss lokal laufen – kein externer API-Key nötig
-- Für die CI/CD Pipeline `headless=True` in `vinted_scraper.py` setzen
+### 1. Hybrid-Infrastruktur & Containerisierung
 
+Um maximale Performance mit Flexibilität zu vereinen, nutzt das Projekt einen hybriden Ansatz:
+- Streamlit (Docker): Die gesamte Applikationslogik und das UI sind containerisiert. Das sorgt für eine saubere Trennung der Abhängigkeiten (Playwright, Pymongo, etc.) vom Betriebssystem.
+- Ollama (Local Host): Läuft nativ auf dem Host-System, um direkt auf die GPU-Ressourcen zuzugreifen, was innerhalb von Docker-Containern oft unnötig komplex ist.
+- MongoDB Atlas (Cloud): Als persistenter Datenspeicher. Durch die Cloud-Anbindung ist der Datenstand unabhängig vom lokalen Container-Status.
+
+### 2. Asynchrones Scraping (Playwright Stealth)
+
+- Stealth-Modus: Modifikation von navigator.webdriver und Fingerprinting, um Dienste wie Cloudflare zu passieren.
+- Session-Persistenz: Die main.py verwaltet den Browser-Kontext zentral. Einmal eingeloggt, bleibt die Session über verschiedene Suchbegriffe hinweg bestehen.
+- Deduplizierung: Bevor die rechenintensive KI-Analyse startet, wird geprüft, ob die Artikel-ID bereits in der MongoDB existiert.
+
+### 3. KI-Analyse (Ollama / llama3.2:3b)
+
+- Strukturierung: Extraktion von unstrukturierten Beschreibungen in ein valides JSON-Format.
+- Parallelisierung: Einsatz von ThreadPoolExecutor (3 Worker), um mehrere Artikel gleichzeitig zu analysieren, ohne die System-Latenz zu gefährden.
+- Local-First: Komplette Inferenz ohne externe API-Kosten oder Datenschutzbedenken.
+
+### 4. Deterministische Validierungsschicht
+
+- Um "KI-Halluzinationen" zu vermeiden, folgt auf die LLM-Analyse eine harte Logikschicht in Python:
+- Hybrid-Entscheidungen: Die KI liefert den Kontext (z.B. Material, Passform), aber die finale Kaufempfehlung (Score > 6) wird durch festen Code berechnet.
+
+### 5. Datenhaltung (MongoDB Atlas)
+
+Schema-Flexibilität für variierende KI-Ausgaben (mal mit Maßen, mal ohne). JSON-nativer Workflow ohne Impedance Mismatch. Zentrale Cloud-Datenbank für konsistenten Team-Datenstand.
+
+### 6. Wöchentlicher Newsletter (GitHub Actions + Google SMTP)
+
+```
+Jeden Tag 08:01 UTC (Überlastung auf typischen Uhrzeiten)
+    │
+    ▼
+GitHub Actions liest neue Artikel aus MongoDB
+(Artikel mit created_at > letzten Tag)
+    │
+    ▼
+Newsletter wird zusammengestellt
+    │
+    ▼
+Google SMTP verschickt HTML-Email
+```
+
+**Setup:**
+1. Google Account → Sicherheit → 2-Faktor-Authentifizierung aktivieren
+2. Google Account → Sicherheit → App-Passwörter → "App-Passwort erstellen"
+   → App: "E-Mail", Gerät: "Windows/Mac" → 16-stelligen Key kopieren
+3. GitHub Secrets setzen:
+   - MONGO_URL     — MongoDB Atlas Connection String
+   - MAIL_FROM     — deine Gmail-Adresse
+   - MAIL_PASSWORD — der 16-stellige App-Passwort Key (nicht dein normales Passwort und LEERZEICHEN ENTFERNEN!)
+
+---
+
+## CI/CD & Newsletter
+
+### Pipeline (`.github/workflows/ci-cd.yml`)
+
+```
+Push auf main
+    │
+    ├── 1. Tests (pytest)
+    ├── 2. Security Scan (scannt nach Secrets mit gitleaks)
+    ├── 3. Docker Build & Push (Baut das Image für den Scraper/Backend und pusht es in die GitHub Container Registry)
+    └── 4.1 Deploy (Automatisches Update der Streamlit Cloud bei Push)
+            --> 4.2 Newsletter: Scheduled Action greift auf MongoDB Atlas zu, um die Funde der letzten 24h zu senden.
+```
+```yaml
+on:
+   schedule:
+     - cron: '0 18 * * 1'   # 18:01 UTC = 20:01 Uhr deutsche Zeit
+``` 
+
+### Newsletter-Workflow (`.github/workflows/newsletter.yml`)
+
+```yaml
+# Läuft jeden Tag + manuell auslösbar
+on:
+  schedule:
+    - cron: '1 6 * * *' # 6:01 UTC = 8:01 Uhr deutsche Zeit
+  workflow_dispatch:   # Button in GitHub Actions UI
+```
+
+**Benötigte GitHub Secrets:**
+
+| Secret | Beschreibung |
+|---|---|
+| `MONGO_URL` | MongoDB Atlas Connection String |
+| `MAIL_FROM` | Absender |
+| `MAIL_PASSWORD` | Inhalt von Google 16-stelligem-Appkey |
+
+> **Wichtig:** GitHub Actions erreicht MongoDB nur wenn die Datenbank öffentlich erreichbar ist — MongoDB Atlas mit Network Access `0.0.0.0/0` oder GitHub Actions IP-Ranges.
+
+---
+
+## Projektentwicklung — Probleme & Learnings
+
+### Phase 1: Grundaufbau & erste Scraping-Versuche
+
+**Problem:** Scraper wurde nach kurzer Zeit von Vinted blockiert.  
+**Ursache:** Fehlende Stealth-Maßnahmen — `navigator.webdriver` verriet die Automatisierung.  
+**Lösung:** `playwright-stealth`, randomisierte Pausen, echter User-Agent. Cookie-Persistenz für konsistente Sessions.  
+**Learning:** Ethisches Scraping erfordert Human-Mimicry auf mehreren Ebenen gleichzeitig.
+
+---
+
+### Phase 2: KI-Integration & Prompt-Engineering
+
+**Problem:** KI lieferte inkonsistente JSON-Ausgaben ("Hier ist das Ergebnis: {...}") die den Parser abstürzten.  
+**Lösung:** `antwort.find("{")` extrahiert den JSON-Block robust aus beliebigem Text.  
+**Learning:** KI-Outputs sind nicht-deterministisch — robustes Error-Handling ist Pflicht.
+
+**Problem:** KI bewertete Artikel mit Score 7 aber `empfohlen: false` — inkonsistente Logik.  
+**Ursache:** KI gewichtet qualitative Argumente stärker als numerische Regeln.  
+**Lösung:** Post-Processing in Python: `IF Score > 6 THEN empfohlen = True` — KI liefert Daten, Python trifft Entscheidungen.  
+**Learning:** Hybride Architektur: KI für Verständnis, Code für Logik ("Code-in-the-loop").
+
+**Problem:** Modell `llama3` zu groß (hoher RAM-Bedarf), `llama3.2:3b` zu konservativ.  
+**Lösung:** `llama3.2:3b` als Default mit weniger strengen Prompt-Regeln.  
+**Learning:** Modellwahl ist ein Trade-off zwischen Hardware-Anforderungen und Analyse-Qualität.
+
+---
+
+### Phase 3: Datenhaltung & Team-Kollaboration
+
+**Problem:** Lokale MongoDB im Docker erschwerte Zusammenarbeit — kein gemeinsamer Datenstand.  
+**Lösung:** Migration zu MongoDB Atlas. `.env`-Datei für sichere Passwort-Verwaltung.  
+**Learning:** "Single Source of Truth" — für kollaborative Projekte ist eine zentrale Cloud-DB essentiell.
+
+**Problem:** Streamlit-Variablen wurden nicht in `config.json` gespeichert — Ollama schlug fehl.  
+**Ursache:** `speichere_config()` schrieb nicht korrekt zurück.  
+**Lösung:** Session-State-Synchronisation zwischen Dashboard und Dateisystem.  
+**Learning:** UI-State und Persistenz-Layer müssen explizit synchronisiert werden.
+
+---
+
+### Phase 4: CI/CD & Secret Management
+
+**Problem:** `requirements.txt` nicht gefunden in GitHub Actions.  
+**Ursache:** `working-directory` nicht gesetzt — Pipeline lief im Root statt in `backend/`.  
+**Lösung:** `defaults.run.working-directory: backend` im YAML.  
+**Learning:** YAML-Einrückung ist kritisch — 2 Leerzeichen pro Ebene, keine Tabs.
+
+**Problem:** Sensible Daten (API-Keys, DB-Passwörter) dürfen nicht im Repository landen.  
+**Lösung:** GitHub Secrets für CI/CD, `.env`-Datei lokal (in `.gitignore`).  
+**Learning:** Code und Konfiguration trennen — Code kann öffentlich sein, Secrets nie.
+
+**Problem:** SMTP-Versand schlug fehl.  
+**Ursache:** `login()` vor `starttls()` aufgerufen — Google lehnt unverschlüsselte Passwörter ab.  
+**Lösung:** Reihenfolge: Verbindung → `starttls()` → `login()`.  
+**Learning:** SMTP über Port 587 erfordert TLS-Handshake vor Authentifizierung.
+
+**Problem:** Streamlit Cloud und lokales Ollama nicht erreichbar
+**Ursache:** localhost:11434 ist aus der Cloud nicht erreichbar.
+**Lösung:** zuerst grok, sehr aufwändig! BEides auf localhost umgestellt
+**Learning:** Hybride Architekture mit reversy Proxy Tunnel zu kompliziert und unnötig für das Projekt!
+
+**Problem:** Performance von Ollama nicht tragbar bzw. unzählige Timeouts 
+**Ursache:** Ollama läuft im docker container standardmäßig auf der CPU, Nividia Extension müsste installiert werden
+**Lösung:** "NVIDIA Container Toolkit" aus Komplexitätsgründen nicht installiert, ollama läuft nun lokal (wieder) im Terminal
+**Learning:** Ollama Performance sehr stark gedrosselt, wenn nur auf die CPU zugegriffen werden kann
+
+---
+
+## Stand der Dinge
+
+### ✅ Scraping
+- [x] Suchergebnisseiten scrapen (gefiltert nach Größe, Preis, Suchbegriff)
+- [x] Einzelartikel: Titel, Preis, Beschreibung extrahieren
+- [x] Anti-Ban: randomisierte Pausen, Stealth-Modus, User-Agent
+- [x] Cookie-Banner automatisch wegklicken
+- [x] Deduplizierung
+
+> ⚠️ Scraping-Volumen noch gering. Geplante Optimierungen: Vorab-Filter (nur erste Parameter prüfen, dann Vollanalyse), Cookie-Persistenz für höheres Volumen.
+
+### ✅ KI-Analyse (llama3.2:3b)
+- [x] Maße extrahieren (Brust, Taille, Hüfte, Schulter, Länge, Ärmel, Innennaht)
+- [x] Zustand & Material erkennen
+- [x] Stil-Matching (Vintage, Retro, Y2K)
+- [x] Passform-Vergleich mit eigenen Maßen
+- [x] Bewertung 1–10 + Empfehlung
+- [x] Strukturierte JSON-Ausgabe → MongoDB
+
+> ⚠️ LLM-Analyse noch zu wenig kritisch — Prompt-Optimierung geplant.
+
+### ✅ Konfiguration & UI
+- [x] Zentrale `config_defaults.py`
+- [x] Streamlit Dashboard
+- [x] Ergebnisse & Empfehlungen als JSON
+
+### 🔄 CI/CD & Newsletter
+- [x] GitHub Actions Pipeline (Tests, Security, Docker Build)
+- [ ] `created_at`-Feld in Ergebnis-JSON für wöchentliche Filterung
+- [ ] Ergebnisse als Workflow-Artifact herunterladbar
+- [ ] `newsletter.yml` — wöchentlicher Versand via Resend
+- [ ] MongoDB Atlas öffentlich erreichbar für GitHub Actions
+
+### 📋 Geplant
+- [ ] Pytests schreiben, keine dummys mehr
+- [x] Deploy-Schritt in CI/CD aktivieren
+- [x] LLM-Analyse kritischer gestalten
+- [ ] Ebay Integration?
+
+### Zusätzliche Ideen in Zukunft
+- [] Multi-Platform Search: Gleichzeitiges Scraping von Vinted, eBay Kleinanzeigen, Grailed und Depop, anderen Datensätzen, um Doubletten zu finden oder Preise zu vergleichen
+- [] Stil-Beratung & Outfits: Generierung von Outfit-Vorschlägen basierend auf dem gescrapten Kleidungsstück (z. B. "Dazu passt am besten eine Blue-Jean").
+- [] Mobile-First UI: Optimierung des Streamlit-Interfaces für die Nutzung auf dem Smartphone (PWA).
+---
+
+## Ausarbeitung Projektarbeit
+
+1. **Einleitung & Problemstellung** (~1,5 Seiten) — Motivation, Problem der Secondhand-Suche
+2. **Ziele & Anforderungen** (~1 Seite) — Funktionale & nicht-funktionale Anforderungen
+3. **Systemarchitektur & Tech Stack** (~2,5 Seiten) — Docker-Compose, Komponenten, Begründung für MongoDB / Ollama / Playwright / Streamlit
+4. **Technische Implementierung** (~6 Seiten)
+   - 4.1 Scraping & Stealth — Playwright, Anti-Ban, Asyncio
+   - 4.2 LLM-Analyse — Ollama, Prompt-Engineering, JSON-Parsing
+   - 4.3 Validierungsschicht — Harte Checks, deterministisch vs. KI
+   - 4.4 Datenhaltung — MongoDB Atlas, Schema-Flexibilität
+   - 4.5 Dashboard & Config — Streamlit, config.json, Sync-Probleme
+   - 4.6 CI/CD & Newsletter — GitHub Actions, Google SMTP, Secrets
+5. **Herausforderungen & Design-Entscheidungen** (~2 Seiten)
+6. **Projektplanung & Teamaufteilung** (~1,5 Seiten)
+7. **Fazit & Ausblick** (~1,5 Seiten)

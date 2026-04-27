@@ -6,11 +6,19 @@ __pycache__/
 .env 
 env
 venv
+dashboard/secrets/results/
+dashboard/secrets/results/vinted_empfehlungen.json
+dashboard/secrets/results/vinted_ergebnisse.json
+node_modules
+datascienceprojekt.egg-info
  
 # Debug
 debug.png
 debug_vinted.html
 
-# own files
+database/
+
+secrets.toml
+
 src_ebay/ebay_ids.py
 src_ebay/temp.py

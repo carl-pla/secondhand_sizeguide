@@ -36,8 +36,7 @@ def extract_important_data(single_json):
     clean_item = {
         "itemId": single_json.get("itemId", "Unbekannt"),
         "title": single_json.get("title", "Unbekannt"),
-        "price": single_json.get("price", {}).get("value", "Unbekannt"),
-        "currency": single_json.get("price", {}).get("currency", "Unbekannt"),
+        "price": single_json.get("price", {}).get("value" + ", €", "Unbekannt"),
         "condition": single_json.get("condition", "Unbekannt"),
 
         "brand": raw_aspects.get("Marke", "Unbekannt"),

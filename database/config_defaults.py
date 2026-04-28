@@ -3,6 +3,7 @@ import json
 import os
 import streamlit as st
 
+
 # 1. Versuche die URL aus den Streamlit Secrets zu laden (Cloud-Modus)
 # 2. Falls nicht da, schaue in Umgebungsvariablen
 # 3. Falls beides leer, nutze localhost (Lokal-Modus)
@@ -25,16 +26,19 @@ def get_mongo_url():
     # 3. Priorität: Lokal-Modus
     return "mongodb://localhost:27017"
 
+
 MONGO_URL = get_mongo_url()
 
-BASE_DIR    = Path(__file__).parent.parent
+BASE_DIR = Path(__file__).parent.parent
 SECRETS_DIR = BASE_DIR / "dashboard" / "secrets"
 RESULTS = BASE_DIR / "dashboard" / "secrets" / "results"
 SECRETS_DIR.mkdir(exist_ok=True)
 
-CONFIG_FILE       = SECRETS_DIR / "config.json"
-ERGEBNISSE_FILE   = RESULTS / "vinted_ergebnisse.json"
-EMPFEHLUNGEN_FILE = RESULTS / "vinted_empfehlungen.json"
+CONFIG_FILE = SECRETS_DIR / "config.json"
+ERGEBNISSE_FILE_VINTED = RESULTS / "vinted_ergebnisse.json"
+ERGEBNISSE_FILE_EBAY = RESULTS / "ebay_ergebnisse.json"
+EMPFEHLUNGEN_FILE_VINTED = RESULTS / "vinted_empfehlungen.json"
+EMPFEHLUNGEN_FILE_EBAY = RESULTS / "ebay_empfehlungen.json"
 
 # ─────────────────────────────────────────────
 #  LOOKUP-TABELLEN
@@ -65,7 +69,8 @@ category_ids_ebay = {
     "Herren Handschuhe und Fäustlinge": "2994",
     "Herren Taschen": "52357",
     "Herren Schmuck": "10290",
-    "Herren Armbanduhren & Taschenuhren": "260325",
+
+    "Armbanduhren & Taschenuhren": "260325",
 
     "Damen Alles": "260010",
     "Damen Pullover & Strickpullover": "63866",
@@ -90,7 +95,6 @@ category_ids_ebay = {
     "Damen Hüte und Mützen": "45230",
     "Damen Handschuhe & Fäustlinge": "105559",
     "Damen Modeschmuck": "10968",
-    "Damen Armbanduhren & Taschenuhren": "260325",
     "Damen Kopfschmuck & Fascinators": "168998",
     "Damen Gürtel": "3003"
 }
@@ -103,18 +107,39 @@ condition_ids_ebay = {
     "Befriedigend": "1000|1500|1750|2000|2010|2020|2030|2500|2750|2990|3000|3010|4000|5000|6000"
 }
 
+ebay_groessen = ["XS", "S", "M", "L", "XL", "XXL"]
+# Suche nach Größen ist sowieso nicht möglich bei eBay, nur für Auswertung mit Ollama und Dashboard gebraucht
+
+ebay_farben = ["Schwarz", "Weiß", "Grau", "Blau", "Rot",
+               "Beige", "Braun", "Khaki", "Olivgrün", "Marineblau (Navy Blue)",
+               "Creme", "Grün", "Gelb", "Orange", "Rosa", "Lila",
+               "Türkis", "Gold", "Silber", "Mehrfarbig"]
+# ausgewählte Farben für selector-Menü im Dashboard
+
 VINTED_GROESSEN = {
     "XS / 34": "206", "S / 36": "207", "M / 38": "208",
     "L / 40": "209", "XL / 42": "210", "XXL / 44": "211",
 }
 VINTED_KATEGORIEN = {
-    "Herren Alles": "2050", "Herren Anzüge & Blazer": "32","Herren Jacken & Mäntel": "1206", "Herren Hosen": "34", "Herren Jeans": "257", "Herren Shorts": "80", "Herren Nachtwäsche": "2910", "Herren Socken & Unterwäsche": "85",
-    "Herren Badebekleidung": "84", "Herren Sportartikel": "30", "Herren Tops & T-Shirts": "76", "Herren Pullover & Sweater": "79",
-    "Herren Stiefel": "1233", "Herren Elegante Schuhe": "1238", "Herren Sneaker": "1242", "Herren Loafer & Bootsschuhe": "2656", "Herren Sportschuhe": "1452",
-    "Herren Kopftücher": "2960", "Herren Halstücher" : "2958", "Herren Krawatten": "2956", "Herren Einstechtücher": "2957", "Herren Gürtel": "96", "Herren Handschuhe": "91", "Herren Taschen": "94", "Herren Schmuck": "95", "Herren Uhren": "97",
-    "Damen Alles": "4", "Damen Pullover & Strickpullover": "13", "Damen Kleider": "10", "Damen Skorts": "5491", "Damen Jeans": "183", "Damen Shorts": "15", "Damen Bademode": "28", "Damen Jacken & Mäntel": "1037", "Damen Anzüge & Blaze": "8", "Damen Röcke": "11", "Damen Tops & T-Shirts": "12", "Damen Hosen & Leggings": "9", "Damen Unterwäsche & Nachtwäsche": "29",
-    "Damen Sportschuhe": "2630", "Damen Ballerinas": "2955", "Damen Stiefel": "1049", "Damen Absatzschuhe": "543", "Damen Hausschuhe, Pantoffeln & Slipper": "215", "Damen Sneaker": "2632", "Damen Bootsschuhe & Loafer": "2954", "Damen Schnürschuhe": "2951", "Damen Sandalen": "2949",
-    "Damen Taschen": "19", "Damen Halstücher": "2932", "Damen Tücher & Schals": "89", "Damen Kopftücher": "2931", "Damen Hüte und Mützen": "88", "Damen Handschuhe": "90", "Damen Schmuck": "21", "Damen Uhren": "22", "Damen Haarschmuck": "1123", "Damen Gürtel": "20"
+    "Herren Alles": "2050", "Herren Anzüge & Blazer": "32", "Herren Jacken & Mäntel": "1206", "Herren Hosen": "34",
+    "Herren Jeans": "257", "Herren Shorts": "80", "Herren Nachtwäsche": "2910", "Herren Socken & Unterwäsche": "85",
+    "Herren Badebekleidung": "84", "Herren Sportartikel": "30", "Herren Tops & T-Shirts": "76",
+    "Herren Pullover & Sweater": "79",
+    "Herren Stiefel": "1233", "Herren Elegante Schuhe": "1238", "Herren Sneaker": "1242",
+    "Herren Loafer & Bootsschuhe": "2656", "Herren Sportschuhe": "1452",
+    "Herren Kopftücher": "2960", "Herren Halstücher": "2958", "Herren Krawatten": "2956",
+    "Herren Einstechtücher": "2957", "Herren Gürtel": "96", "Herren Handschuhe": "91", "Herren Taschen": "94",
+    "Herren Schmuck": "95", "Herren Uhren": "97",
+    "Damen Alles": "4", "Damen Pullover & Strickpullover": "13", "Damen Kleider": "10", "Damen Skorts": "5491",
+    "Damen Jeans": "183", "Damen Shorts": "15", "Damen Bademode": "28", "Damen Jacken & Mäntel": "1037",
+    "Damen Anzüge & Blaze": "8", "Damen Röcke": "11", "Damen Tops & T-Shirts": "12", "Damen Hosen & Leggings": "9",
+    "Damen Unterwäsche & Nachtwäsche": "29",
+    "Damen Sportschuhe": "2630", "Damen Ballerinas": "2955", "Damen Stiefel": "1049", "Damen Absatzschuhe": "543",
+    "Damen Hausschuhe, Pantoffeln & Slipper": "215", "Damen Sneaker": "2632", "Damen Bootsschuhe & Loafer": "2954",
+    "Damen Schnürschuhe": "2951", "Damen Sandalen": "2949",
+    "Damen Taschen": "19", "Damen Halstücher": "2932", "Damen Tücher & Schals": "89", "Damen Kopftücher": "2931",
+    "Damen Hüte und Mützen": "88", "Damen Handschuhe": "90", "Damen Schmuck": "21", "Damen Uhren": "22",
+    "Damen Haarschmuck": "1123", "Damen Gürtel": "20"
 }
 HABILLEUR_GROESSEN = {
     "XS": "xs", "S": "s", "M": "m", "L": "l", "XL": "xl"
@@ -126,14 +151,14 @@ HABILLEUR_KATEGORIEN = {
 # Standard-Maße für Habilleur Anzüge (Jacke + Hose, Größe M Beispiel)
 HABILLEUR_MASSE_BEISPIEL = {
     # Jackenmaße
-    "schulterbreite": 46,           # Schulterbreite (Naht zu Naht)
-    "aermellange": 68,              # Ärmellänge (65 + 3 Erweiterung)
-    "jackenlaenge": 75,             # Jackenlänge
-    "achselbreite": 55,             # Achselbreite
-    "jacke_taillenweite": 52,       # Taillenweite Jacke
+    "schulterbreite": 46,  # Schulterbreite (Naht zu Naht)
+    "aermellange": 68,  # Ärmellänge (65 + 3 Erweiterung)
+    "jackenlaenge": 75,  # Jackenlänge
+    "achselbreite": 55,  # Achselbreite
+    "jacke_taillenweite": 52,  # Taillenweite Jacke
     # Hosenmaße
-    "hose_taillenweite": 50,        # Taillenweite Hose (45 + 5)
-    "gabelhoehe": 30,               # Gabelhöhe
+    "hose_taillenweite": 50,  # Taillenweite Hose (45 + 5)
+    "gabelhoehe": 30,  # Gabelhöhe
     "beinoeffnung": 26,             # Beinöffnung
     "hosenlaenge": 110,             # Hosenlänge (103 + 7)
     # Mantelmaße

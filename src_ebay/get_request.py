@@ -1,9 +1,11 @@
-import requests
-from concurrent.futures import ThreadPoolExecutor
+import asyncio
 
-from get_new_token import get_new_token
+import httpx
+import requests
+
 import ebay_helper as helper
 from database.config_defaults import category_ids_ebay, condition_ids_ebay
+from get_new_token import get_new_token
 
 
 def get_summary_of_articles_json(
@@ -14,11 +16,11 @@ def get_summary_of_articles_json(
         category=None,
         size="",
         min_condition=None,
-        styles=None
+        item_amount=5
 ):
     """
-    Holt json mit Produkten und allgemeinen Produktdaten über Browse API.
-    Enthält keine genauen Größen oder Artikelbeschreibung.
+    Holt JSON-Objekt mit Produkten und zugehörigen Produktdaten über Browse API.
+    Enthält keine genauen Details wie Größen oder Artikelbeschreibungen.
 
     :param max_price: maximaler Preis
     :param min_condition: schlechtester erlaubter Zustand des Zielprodukts
@@ -28,10 +30,14 @@ def get_summary_of_articles_json(
     :param category: gesuchte Kategorie
     :param size: Größe
     :param min_condition: schlechtester erlaubter Zustand des Artikels
-    :param styles: Styles
+    :param item_amount: Menge von zu prüfenden Artikeln, die geholt werden soll
 
-    :return: Tupel von json mit Produkten und allgemeinen zugehörigen Daten,
+    :return: set der gefundenen Item-IDs
     """
+    # falls unmögliche item-Menge angefordert wird
+    if item_amount > 200:
+        return None
+
     user_token = get_new_token()
     url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 
@@ -40,7 +46,7 @@ def get_summary_of_articles_json(
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"
     }
 
-    keywords = f"{keywords} {color} {size} {" ".join(styles)}"
+    keywords = f"{keywords} {color} {size}"
 
     try:
         cat_id = category_ids_ebay[category]
@@ -70,8 +76,8 @@ def get_summary_of_articles_json(
         "category_ids_ebay": cat_id,
         "filter": ",".join(filter_options),
         "aspect_filter": aspect_string,
-        "sort": "-price", # teuere Produkte zuerst, sonst kriegt man nur Pfennigartikel angezeigt
-        "limit": "200"  # Maximum 200
+        "sort": "-price",  # teuere Produkte zuerst, sonst kriegt man nur Pfennigartikel angezeigt
+        "limit": f"{item_amount}"  # Maximum 200
     }
 
     try:
@@ -109,41 +115,65 @@ def get_summary_of_articles_json(
     except Exception as e:
         print(f"Unerwarteter Fehler: {e}")
 
-    return None, None
+    return None
 
 
 # einzeln, weil get_items nur für eBay-Partner reserviert
-def get_detailed_items(item_ids):
+async def fetch_one_item(client, item_id):
     """
-    Holt jsons mit genaueren Details zu einzelnen Items über Browse API.
+    Asynchroner Abruf der Daten zu einem einzelnen Item.
+
+    :param client: Client mit Header-Daten
+    :param item_id: ID eines einzelnen Items
+    :return: dict mit relevanten Eckdaten zum Artikel
+    """
+    url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
+    try:
+        response = await client.get(url)
+        response.raise_for_status()
+        return helper.extract_important_data(response.json())
+    except Exception as e:
+        print(f"Fehler bei Item {item_id}: {e}")
+        return None
+
+
+async def get_detailed_items_async(item_ids):
+    """
+    Führt nicht-blockierende HTTP-GET-Requests für eine Menge von Item-IDs aus.
+
+    Nutzt Multiplexing via httpx, um die Latenz durch gleichzeitige Anfragen zu
+    minimieren. Resultate werden durch helper.extract_important_data gesäubert.
 
     :param item_ids: Set mit allen gefundenen Item-IDs
-    :return: Liste von dicts mit genauen Produktdaten (Größe, Beschreibung usw.)
+    :return: Liste von dicts mit genauen Produktdaten (Größe, Beschreibung, Material usw.)
     """
     user_token = get_new_token()
-    session = requests.Session()
-    session.headers.update({
+    headers = {
         "Authorization": f"Bearer {user_token}",
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"
-    })
+    }
 
-    def fetch_one_item(item_id):
-        """Holt nur wichtige Daten zu genau EINEM Produkt als dict."""
-        try:
-            url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
-            response = session.get(url, timeout=(3, 10))
-            response.raise_for_status()
+    # EINEN Client für alle Anfragen (Connection Pooling) erstellen
+    async with httpx.AsyncClient(headers=headers,
+                                 limits=httpx.Limits(max_connections=20),
+                                 timeout=10.0) as client:
+        tasks = [fetch_one_item(client, item_id) for item_id in item_ids]
 
-            return helper.extract_important_data(response.json())
-
-        except Exception as e:
-            print(f"Fehler bei {item_id}: {e}")
-            return None
-
-    # Laufzeitoptimum bei 20 Workers
-    with ThreadPoolExecutor(max_workers=20) as executor:
-        results = list(executor.map(fetch_one_item, item_ids))
+        # 'gather' führt alle Tasks gleichzeitig aus und wartet auf alle Ergebnisse
+        results = await asyncio.gather(*tasks)
 
     return [res for res in results if res is not None]
 
-# jetzt: jeden Artikel von Ollama auf Größe bewerten lassen, nur wenn größe passt +1, bis Zahl der gewollten Artikel erreicht
+
+def starter_get_detailed_items(item_ids):
+    """
+    Startet den parallelen Abruf von Artikeldetails für die übergebenen IDs.
+
+    Nutzt asyncio.run, um die asynchrone Ereignisschleife für den parallelen
+    Netzwerkzugriff zu starten.
+
+    :param item_ids: Set mit allen gefundenen Item-IDs
+    :return: Liste von dicts mit genauen Produktdaten (Größe, Beschreibung, Material usw.)
+    """
+    # Startet die asynchrone Welt aus der synchronen Streamlit-Welt
+    return asyncio.run(get_detailed_items_async(item_ids))

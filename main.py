@@ -15,7 +15,7 @@ if sys.platform == "win32":
 from scraper.vinted_scraper import scrape_artikel_details as vinted_scrape_details, scrape_suchergebnisse as vinted_scrape_suchergebnisse
 from scraper.habilleur_scraper import scrape_artikel_details as habilleur_scrape_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
 from ai.ollama import analysiere_artikel
-from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
+from database.config_defaults import lade_config, ERGEBNISSE_FILE_VINTED, EMPFEHLUNGEN_FILE_VINTED
 from database.scrapping_sessions import speichere_in_mongo
 import concurrent.futures
 
@@ -45,13 +45,13 @@ async def main(config: dict, user_email: str=None):
 
     # Quelle festlegen (Vinted oder Habilleur)
     quelle = config.get("quelle", "vinted").lower()
-    if quelle not in ["vinted", "habilleur"]:
-        print(f"❌ KRITISCH: quelle muss 'vinted' oder 'habilleur' sein, erhalten: {quelle}")
+    if quelle not in ["vinted", "habilleur", "ebay"]:
+        print(f"❌ KRITISCH: quelle muss 'vinted', 'habilleur' oder 'ebay' sein, erhalten: {quelle}")
         return
 
     print(f"🚀 {quelle.upper()} Scraper | Modell: {config['ollama_modell']} | {config['groesse']} | {config['kategorie']} | max {config['max_preis']}€\n")
 
-    # Verbindungstest zu Ollama wird gestartet 
+    # Verbindungstest zu Ollama wird gestartet
     try:
         httpx.get(config["ollama_url"].replace("/api/generate", ""), timeout=3)
         print("✓ Ollama erreichbar\n")
@@ -67,9 +67,9 @@ async def main(config: dict, user_email: str=None):
     #hier werden alle Daten gesammelt
     alle_roh = []
 
-    
+
     """
-    2. SCRAPING – VINTED (mit Browser) oder HABILLEUR (ohne Browser)
+    2. SCRAPING – VINTED (mit Browser) oder HABILLEUR (ohne Browser) oder EBAY (API-Requests)
     """
     if quelle == "vinted":
         # ─────────────────────────────────────────────
@@ -111,17 +111,17 @@ async def main(config: dict, user_email: str=None):
 
             await browser.close()
 
-    else:  # habilleur
+    elif quelle == "habilleur":  # habilleur
         # ─────────────────────────────────────────────
         #  HABILLEUR: DIREKTE HTTP-REQUESTS (kein Browser)
         # ─────────────────────────────────────────────
         groesse = config.get("groesse", "M")
         kategorie = config.get("kategorie", "Anzug")
-        
+
         async with httpx.AsyncClient() as client:
             # Habilleur braucht Kategorie + Größe, nicht Suchbegriffe
             print(f"  Kategorien-Scrape: {kategorie} / {groesse}\n")
-            
+
             try:
                 # ── STUFE 1: Grob-Suche ──
                 grob_links = await habilleur_scrape_suchergebnisse(kategorie, groesse, config, client)
@@ -137,6 +137,11 @@ async def main(config: dict, user_email: str=None):
 
             except Exception as e:
                 print(f"  ⚠️  Fehler bei Habilleur Scrape: {e}")
+
+    elif quelle == "ebay":
+
+    else:
+        print("Error bei der Marketplace-Wahl.")
 
 
     """
@@ -164,7 +169,7 @@ async def main(config: dict, user_email: str=None):
         # WICHTIGES ZUSAMMENSPIEL!
         ergebnisse = list(executor.map(analysiere_wrapper, unique))
 
-    # sortieren: Beste Empfehlungen nach oben 
+    # sortieren: Beste Empfehlungen nach oben
     ergebnisse.sort(key=lambda x: x.get("bewertung") or 0, reverse=True)
     empfohlen = [a for a in ergebnisse if a.get("empfohlen")]
 
@@ -173,19 +178,19 @@ async def main(config: dict, user_email: str=None):
     5. SPEICHERUNG UND EXPORT: 
     """
     # Speicherung A: lokale JSON-Dateien für das streamlit-dashboard erstellen
-    ERGEBNISSE_FILE.parent.mkdir(exist_ok=True)
-    with open(ERGEBNISSE_FILE, "w", encoding="utf-8") as f:
+    ERGEBNISSE_FILE_VINTED.parent.mkdir(exist_ok=True)
+    with open(ERGEBNISSE_FILE_VINTED, "w", encoding="utf-8") as f:
         json.dump(ergebnisse, f, ensure_ascii=False, indent=2)
-    with open(EMPFEHLUNGEN_FILE, "w", encoding="utf-8") as f:
+    with open(EMPFEHLUNGEN_FILE_VINTED, "w", encoding="utf-8") as f:
         json.dump(empfohlen, f, ensure_ascii=False, indent=2)
 
-    # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung 
+    # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung
     try:
         speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email"))
     except Exception as e:
         print(f"⚠️  MongoDB nicht erreichbar: {e}")
 
-    
+
     # Ausgabe im Terminal über momentanen Ablauf
     print(f"\n{'='*60}")
     print(f"✅ {len(empfohlen)} von {len(ergebnisse)} empfohlen")
@@ -195,8 +200,8 @@ async def main(config: dict, user_email: str=None):
         print(f"   Stufe 1 (Grob):  {config.get('kategorie')} / {config.get('groesse')}")
     print(f"   Stufe 2 (Detail): {len(unique)} Artikel gescrapt")
     print(f"   Stufe 3 (Ollama): {len(ergebnisse)} analysiert")
-    print(f"💾 {ERGEBNISSE_FILE}")
-    print(f"💾 {EMPFEHLUNGEN_FILE}")
+    print(f"💾 {ERGEBNISSE_FILE_VINTED}")
+    print(f"💾 {EMPFEHLUNGEN_FILE_VINTED}")
     print("="*60)
 
     return ergebnisse

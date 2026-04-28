@@ -15,8 +15,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
     VINTED_GROESSEN, VINTED_KATEGORIEN, HABILLEUR_GROESSEN, HABILLEUR_KATEGORIEN, HABILLEUR_MASSE_BEISPIEL,
-    OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
-    speichere_config, lade_config
+    ebay_groessen, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE_VINTED, ZUSTAND_OPTIONEN,
+    speichere_config, lade_config, category_ids_ebay, condition_ids_ebay, ebay_farben
 )
 
 
@@ -152,7 +152,7 @@ with st.sidebar:
     st.divider()
     seite = st.radio(
         "",
-        ["⚙️  Vinted", "🛍️  Habilleur", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
+        ["⚙️  Vinted", "🛍️  Habilleur", "🛒  eBay", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
         label_visibility="collapsed"
     )
     st.markdown("---")
@@ -218,7 +218,7 @@ if "Vinted" in seite:
             
         with col2:
             st.session_state.config["max_preis"] = st.slider(
-                "Maximaler Preis (€)", 5, 200,
+                "Maximaler Preis (€)", 5, 500,
                 st.session_state.config.get("max_preis", 50), step=5
             )
             st.session_state.config["min_zustand"] = st.selectbox(
@@ -254,6 +254,10 @@ if "Vinted" in seite:
     with tab3:
         col1, col2 = st.columns(2)
         with col1:
+            max_artikel = st.session_state.config.get("max_artikel_pro_suche", 20)
+            # wir wollen nicht sehr hohe Suchanzahlen erlauben, weil das sehr lange dauert (bei eBay durch get-request schneller)
+            if max_artikel > 60:
+                max_artikel = 60
             st.session_state.config["max_artikel_pro_suche"] = st.slider(
                 "Artikel pro Suchbegriff", 1, 60,
                 st.session_state.config.get("max_artikel_pro_suche", 5)
@@ -338,7 +342,7 @@ elif "Suche" in seite:
         for s in config["stile"][:config.get("max_suchen", 2)]:
             st.markdown(f'<span class="badge">{s}</span>', unsafe_allow_html=True)
     
-    else:
+    elif quelle == "habilleur":
         # ─────────────────────────────────────────────
         #  HABILLEUR SUCHE
         # ─────────────────────────────────────────────
@@ -362,7 +366,7 @@ elif "Suche" in seite:
 
         with st.spinner("Scraper läuft... (kann einige Minuten dauern)"):
             result = subprocess.run(
-                ["python3", "main.py", "--config", str(CONFIG_FILE)],
+                ["python", "main.py", "--config", str(CONFIG_FILE)], # achtung: mit python3 hardgecoded!!
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
@@ -387,7 +391,7 @@ elif "Suche" in seite:
 #  SEITE: HABILLEUR
 # ═══════════════════════════════════════════════
 elif "Habilleur" in seite:
-    st.markdown("# 🛍️ Habilleur Jean Einstellungen")
+    st.markdown("# ⚙️ Habilleur Jean Einstellungen")
     st.markdown("Finde perfekt sitzende Second-Hand Anzüge, Jacken und Mäntel von Habilleur Jean.")
     st.markdown("---")
     
@@ -427,6 +431,8 @@ elif "Habilleur" in seite:
                 st.session_state.config.get("max_preis", 150), step=10
             )
             max_artikel = st.session_state.config.get("max_artikel_pro_suche", 20)
+            if max_artikel > 100:
+                max_artikel = 100
             st.session_state.config["max_artikel_pro_suche"] = st.slider(
                 "Max. Artikel pro Kategorie", 5, 100,
                 max_artikel, step=5
@@ -556,15 +562,133 @@ Der Scraper wird mit Habilleur Jean konfiguriert...
             """)
 
 # ═══════════════════════════════════════════════
+#  SEITE: eBay
+# ═══════════════════════════════════════════════
+elif "eBay" in seite:
+    st.markdown("# ⚙️ eBay Einstellungen")
+    st.markdown("Konfiguriere deine eBay-Sucheinstellungen.")
+    st.markdown("---")
+
+    # Setze Quelle auf Vinted
+    st.session_state.config["quelle"] = "ebay"
+
+    aktuelle_groesse = st.session_state.config.get("groesse", "M")
+    if " / " in str(aktuelle_groesse):  # Vinted-Format "M / 38" → "M"
+        aktuelle_groesse = aktuelle_groesse.split(" / ")[0].strip()
+    if aktuelle_groesse not in ebay_groessen:  # Fallback auf Default
+        aktuelle_groesse = "M"
+    st.session_state.config["groesse"] = aktuelle_groesse
+
+    tab1, tab2, tab3, tab4 = st.tabs(["👗  Sucheinstellungen & Größe", "📐  Maße", "🔍  Suche", "🤖  Ollama"])
+
+    # ── TAB 1: Stil & Größe ──
+    with tab1:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.session_state.config["groesse"] = st.selectbox(
+                "Kleidungsgröße (eBay)",
+                list(ebay_groessen),
+                index=list(ebay_groessen).index(st.session_state.config["groesse"])
+            )
+            st.session_state.config["kategorie"] = st.selectbox(
+                "Kategorie (eBay)",
+                list(category_ids_ebay.keys()),
+                index=list(category_ids_ebay.keys()).index(
+                    st.session_state.config.get("kategorie", "Herren Jacken, Mäntel und Westen") if st.session_state.config.get(
+                        "kategorie") in category_ids_ebay.keys() else "Herren Jacken, Mäntel und Westen"
+                ))
+            st.session_state.config["min_zustand"] = st.selectbox(
+                "Mindest-Zustand",
+                condition_ids_ebay,
+                index=list(condition_ids_ebay.keys()).index(
+                    st.session_state.config.get("min_zustand", "Gut")
+                ))
+            st.session_state.config["farbe"] = st.selectbox(
+                "Gewünschte Farbe des Artikels",
+                list(ebay_farben),
+                index=ebay_farben.index(st.session_state.config["farbe"])
+            )
+
+        with col2:
+            st.session_state.config["max_preis"] = st.slider(
+                "Maximaler Preis (€)", 5, 500,
+                st.session_state.config.get("max_preis", 50), step=5
+            )
+            st.session_state.config["suchbegriffe"] = st.text_input(
+                "Suchbegriffe eingeben",
+                value=st.session_state.config.get("suchbegriffe", ""),
+                placeholder="z.B. Stile, Material"
+            )
+            st.session_state.config["marke"] = st.text_input(
+                "Gewünschte Marke des Artikels (Achtung: Eingabe ist case-sensitive)",
+                value=st.session_state.config.get("marke", ""),
+                placeholder="z.B. Adidas",
+            )
+
+    # ── TAB 2: Maße ──
+    with tab2:
+        st.markdown("Trage deine Maße ein – das LLM vergleicht sie mit den Angaben in der Beschreibung.")
+        masse = st.session_state.config.get("ebay_masse", {})
+        col1, col2 = st.columns(2)
+        with col1:
+            masse["brust"] = st.number_input("Brustumfang (cm)", 60, 130, masse.get("brust", 88))
+            masse["taille"] = st.number_input("Taillenumfang (cm)", 50, 120, masse.get("taille", 70))
+            masse["huefte"] = st.number_input("Hüftumfang (cm)", 70, 140, masse.get("huefte", 96))
+        with col2:
+            masse["schulter"] = st.number_input("Schulterbreite (cm)", 30, 60, masse.get("schulter", 38))
+            masse["laenge_oberteil"] = st.number_input("Bevorzugte Länge Oberteil (cm)", 40, 100,
+                                                       masse.get("laenge_oberteil", 60))
+            masse["innennaht"] = st.number_input("Innennaht / Schrittlänge (cm)", 60, 100, masse.get("innennaht", 78))
+        st.session_state.config["eigene_masse"] = masse
+
+    # ── TAB 3: Suche ──
+    with tab3:
+        col1, col2 = st.columns(2)
+        with col1:
+            email_input = st.text_input(
+                "Deine Email-Adresse",
+                placeholder="maxmusterfrau@gmail.com",
+            )
+            if email_input:
+                st.session_state.config["user_email"] = email_input
+                st.session_state["user_email"] = email_input
+
+        with col2:
+            st.session_state.config["max_artikel_pro_suche"] = st.slider(
+                "Artikelanzahl pro Suche", 1, 200,
+                st.session_state.config.get("max_artikel_pro_suche", 5)
+            )
+
+    # ── TAB 4: Ollama ──
+    with tab4:
+        st.session_state.config["ollama_url"] = st.text_input(
+            "Ollama API URL",
+            st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
+        )
+        st.session_state.config["ollama_modell"] = st.selectbox(
+            "Modell",
+            OLLAMA_MODELLE,
+            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3.2:3b"))
+            if st.session_state.config.get("ollama_modell") in OLLAMA_MODELLE else 0
+        )
+        st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
+
+    st.markdown("---")
+    if st.button("💾  Einstellungen speichern"):
+        speichere_config(st.session_state.config)
+        st.success(f"✓ Gespeichert in `{CONFIG_FILE}`")
+        st.json(st.session_state.config)  # zur Kontrolle
+# ═══════════════════════════════════════════════
 #  SEITE: ERGEBNISSE
+#  Problem: Bisher auf nur Vinted hardgecoded
 # ═══════════════════════════════════════════════
 elif "Ergebnisse" in seite:
     st.markdown("# Ergebnisse")
 
-    if not ERGEBNISSE_FILE.exists():
-        st.warning("Noch keine Ergebnisse. Starte zuerst eine Suche.")
+    if not ERGEBNISSE_FILE_VINTED.exists():
+        st.warning("Noch keine Ergebnisse für Vinted. Starte zuerst eine Suche.")
     else:
-        with open(ERGEBNISSE_FILE, "r") as f:
+        with open(ERGEBNISSE_FILE_VINTED, "r") as f:
             ergebnisse = json.load(f)
 
         # Filter
@@ -579,7 +703,7 @@ elif "Ergebnisse" in seite:
         gefiltert = [
             a for a in ergebnisse
             if (not nur_empfohlen or a.get("empfohlen"))
-            and (a.get("bewertung") or 0) >= min_bewertung
+            and ( (a.get("bewertung") or 0) >= min_bewertung )
         ]
 
         if sortierung == "Bewertung ↓":
@@ -655,7 +779,7 @@ elif "Newsletter" in seite:
     with col2:
         st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]}€</div></div>', unsafe_allow_html=True)
     with col3:
-        st.markdown(f'<div class="metric-card"><div class="metric-label">Stile</div><div class="metric-value">{", ".join(config.get("stile", []))}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Stile für Vinted</div><div class="metric-value">{", ".join(config.get("stile", []))}</div></div>', unsafe_allow_html=True)
 
     st.caption("💡 Passe deine Präferenzen unter Einstellungen an, bevor du dich registrierst.")
     st.markdown("---")

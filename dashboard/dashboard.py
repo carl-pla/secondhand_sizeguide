@@ -138,11 +138,11 @@ config = st.session_state.config
 #  SIDEBAR – NAVIGATION
 # ─────────────────────────────────────────────
 with st.sidebar:
-    # Pfad zur aktuellen Datei (dashboard.py)
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    # Pfad zum Ordner, in dem dashboard.py liegt
+    BASE_DIR = Path(__file__).resolve().parent
 
-    # Verbinde den Ordner der Datei mit dem Logo-Pfad
-    logo_path = os.path.join(BASE_DIR, "logo", "logo_matchfit.png")
+    # Pfad zum Logo (sehr sauber lesbar)
+    logo_path = BASE_DIR / "logo" / "logo_matchfit.png"
 
     st.image(logo_path, width=180)
     st.markdown(
@@ -286,7 +286,7 @@ if "Vinted" in seite:
     with tab4:
         st.session_state.config["ollama_url"] = st.text_input(
             "Ollama API URL",
-            st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
+            st.session_state.config.get("ollama_url", "http://localhost:11434/api/generate")
         )
         st.session_state.config["ollama_modell"] = st.selectbox(
             "Modell",
@@ -526,7 +526,7 @@ elif "Habilleur" in seite:
     with tab4:
         st.session_state.config["ollama_url"] = st.text_input(
             "Ollama API URL",
-            value=st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
+            value=st.session_state.config.get("ollama_url", "http://localhost:11434/api/generate")
         )
         st.session_state.config["ollama_modell"] = st.selectbox(
             "Modell",

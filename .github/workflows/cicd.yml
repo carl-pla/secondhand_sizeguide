@@ -78,6 +78,6 @@ jobs:
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
           TARGET_USER_EMAIL: ${{ matrix.email }}
-        run: python runner_single.py
+        run: python runner.py
         # ↑ neues kleines Wrapper-Script (siehe unten)
         timeout-minutes: 15

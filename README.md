@@ -384,6 +384,10 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 **Lösung:** "NVIDIA Container Toolkit" aus Komplexitätsgründen nicht installiert, ollama läuft nun lokal (wieder) im Terminal
 **Learning:** Ollama Performance sehr stark gedrosselt, wenn nur auf die CPU zugegriffen werden kann
 
+**Problem:** GitHub Actions Job läuft für alle User nacheinander und überschreitet die maximale Laufzeit
+**Ursache:** runner.py iteriert sequentiell über alle User in einer for-Schleife — jeder Scrape blockiert den nächsten, die Gesamtzeit summiert sich auf potenziell 100+ Minuten
+**Lösung:** Matrix Strategy in GitHub Actions — load-users liest alle User-IDs aus MongoDB und gibt sie als JSON-Array weiter, scrape-per-user startet daraufhin für jeden User einen eigenen parallelen Job über runner_single.py
+**Learning:** Unabhängige Aufgaben über N Datensätze (Scraping, API-Calls, DB-Writes) sollten nie sequentiell laufen — sobald eine for-Schleife über externe Ressourcen iteriert, ist das ein Signal zur Parallelisierung, entweder auf Code-Ebene (asyncio) oder auf Infrastrukturebene (parallele Jobs)
 ---
 
 ## Stand der Dinge

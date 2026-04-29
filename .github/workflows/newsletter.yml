@@ -1,17 +1,25 @@
 name: Automated Newsletter
 
 on:
+  # Wird automatisch getriggert sobald der "Nightly Vinted Scraper" Workflow fertig ist
   workflow_run:
-    workflows: ["Nightly Vinted Scraper"]
+    workflows: ["Nightly Vinted Scraper"]  # Muss exakt so heißen wie der andere Workflow
     types:
-      - completed
+      - completed   # Triggert bei Abschluss – egal ob success oder failure (gefiltert unten)
+
+  # Zusätzlich manuell über GitHub UI startbar (z.B. zum Testen)
   workflow_dispatch:
 
 jobs:
   send-newsletter:
+    # Läuft nur wenn:
+    # a) Manuell gestartet (workflow_dispatch), ODER
+    # b) Der Scraper erfolgreich durchgelaufen ist (conclusion == 'success')
+    # → Verhindert dass ein Newsletter bei fehlgeschlagenem Scraper rausgeht
     if: >
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +30,7 @@ jobs:
 
       - name: Newsletter versenden
         env:
-          MONGO_URL: ${{ secrets.MONGO_URL }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MONGO_URL: ${{ secrets.MONGO_URL }}       # MongoDB Atlas Verbindung
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}       # Absender-E-Mail (Gmail)
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }} # Gmail App-Passwort
         run: python newsletter/newsletter.py

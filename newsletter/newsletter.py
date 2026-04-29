@@ -45,7 +45,6 @@ def generiere_html(items):
 
     html = f"""
     <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
-    <h1 style="color:#1a1a2e">🛍️ Deine Vinted Deals – {heute}</h1>
     <p>Heute wurden <b>{anzahl_gesamt} Artikel</b> gefunden –
        hier sind die besten <b>{anzahl_angezeigt}</b>:</p>
     <hr>

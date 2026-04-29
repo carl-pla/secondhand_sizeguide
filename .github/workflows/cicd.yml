@@ -6,7 +6,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Schritt 1: User-Liste bauen
+  # ─────────────────────────────────────────────
+  # JOB 1: Welche User sollen gescrapt werden?
+  # Lädt alle aktiven User aus MongoDB und baut
+  # daraus eine Matrix für die parallelen Jobs.
+  # ─────────────────────────────────────────────
   load-users:
     runs-on: ubuntu-latest
     outputs:
@@ -39,9 +43,14 @@ jobs:
           print(f"✅ {len(emails)} User gefunden: {emails}")
           EOF
 
-  # Schritt 2: Pro User ein eigener paralleler Job
+  # ─────────────────────────────────────────────
+  # JOB 2: Pro User ein paralleler Scrape-Job
+  # Jeder Runner bekommt genau eine E-Mail und
+  # scrapt + bewertet Artikel mit Ollama/LLM.
+  # Ergebnisse landen in MongoDB (scraping_sessions).
+  # ─────────────────────────────────────────────
   scrape-per-user:
-    needs: load-users
+    needs: load-users # Wartet bis Job 1 die Matrix gebaut hat
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -49,16 +58,6 @@ jobs:
       fail-fast: false      # ein fehlgeschlagener User stoppt nicht die anderen
       max-parallel: 10      # alle gleichzeitig (GitHub Free erlaubt 20)
 
-    services:
-      mongodb:
-        image: mongo:7.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +74,8 @@ jobs:
           ollama serve &
           sleep 10
           ollama pull llama3.2:3b
-
+      # Eigentlicher Scrape – runner.py weiß durch TARGET_USER_EMAIL
+      # welcher User gerade dran ist.  
       - name: Scrape für ${{ matrix.email }}
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}

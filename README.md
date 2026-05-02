@@ -429,24 +429,24 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 ### Tests
 
 **ollama.py -> newsletter.py -> scraping_sessions.py -> users.py -> main.py**
-- [ ] frage_ollama (4 Tests) — HTTP 200 Normalfall, HTTP 500 Fehlerfall, Netzwerkausfall, und dass ohne Modellnamen kein unnötiger HTTP-Call gemacht wird.
-- [ ] analysiere_artikel (9 Tests) — Das ist das Herzstück. Abgedeckt sind: valide JSON-Antwort, JSON mit Präambel (der find("{") Trick), leere Antwort, kein JSON, und alle drei harten deterministischen Checks (Preis zu hoch, Zustand zu schlecht, Score unter 6). Dazu der wichtigste Test: Score 7 aber Ollama sagt empfohlen: false → Python muss das korrigieren.
-- [ ] generiere_html (5 Tests) — Leere Liste, Titel/Preise/Links im Output, MAX_ARTIKEL-Limit (nicht mehr als 10).
-- [ ] sende_email (3 Tests) — Normalfall, und der kritische Reihenfolge-Test dass starttls() wirklich vor login() kommt.
-- [ ] speichere_in_mongo (5 Tests) — Normalfall, leere Liste, nur Empfohlene werden gespeichert, keine Empfohlenen → kein DB-Call, DB-Fehler kein Absturz.
-- [ ] users.py (5 Tests) — Neu registrieren, Update bei bestehendem User, ungültige E-Mail, Deaktivieren, Laden mit _id-Entfernung.
-- [ ] main.py (5 Tests) — Alle 4 Pflichtfeld-Validierungen + Ollama offline.
+- [x] frage_ollama (4 Tests) — HTTP 200 Normalfall, HTTP 500 Fehlerfall, Netzwerkausfall, und dass ohne Modellnamen kein unnötiger HTTP-Call gemacht wird.
+- [x] analysiere_artikel (9 Tests) — Das ist das Herzstück. Abgedeckt sind: valide JSON-Antwort, JSON mit Präambel (der find("{") Trick), leere Antwort, kein JSON, und alle drei harten deterministischen Checks (Preis zu hoch, Zustand zu schlecht, Score unter 6). Dazu der wichtigste Test: Score 7 aber Ollama sagt empfohlen: false → Python muss das korrigieren.
+- [x] generiere_html (5 Tests) — Leere Liste, Titel/Preise/Links im Output, MAX_ARTIKEL-Limit (nicht mehr als 10).
+- [x] sende_email (3 Tests) — Normalfall, und der kritische Reihenfolge-Test dass starttls() wirklich vor login() kommt.
+- [x] speichere_in_mongo (5 Tests) — Normalfall, leere Liste, nur Empfohlene werden gespeichert, keine Empfohlenen → kein DB-Call, DB-Fehler kein Absturz.
+- [x] users.py (5 Tests) — Neu registrieren, Update bei bestehendem User, ungültige E-Mail, Deaktivieren, Laden mit _id-Entfernung.
+- [x] main.py (5 Tests) — Alle 4 Pflichtfeld-Validierungen + Ollama offline.
 Integrationstest (1 Test) — Vollständiger Flow: analysiere_artikel → speichere_in_mongo.
 
 **test_scraper (soll skalierbar bleiben, deswegen trennen sich diese Tests von den anderen**
-- [ ] _parse_preis (beide Scraper, je 7 Tests) — Da beide Scraper eigene Implementierungen haben, werden beide separat getestet. Habilleur bekommt zusätzlich den Tausender-Trennzeichen-Test ("1.234,99 €" → 1234.99), weil dort höherpreisige Artikel auftauchen.
-- [ ] scrape_suchergebnisse Vinted (6 Tests) — Normalfall, Pflichtfelder, Preisfilter, Duplikat-Entfernung, max_artikel-Limit, Fehlerfall. Der Page-Mock simuliert Playwright ohne Browser, indem er Karten-Locatoren mit echten get_attribute- und inner_text-Werten zurückgibt.
-- [ ] scrape_suchergebnisse Habilleur (7 Tests) — Dieselbe Logik, aber mit httpx-Response-Mock statt Playwright. Zusätzlich: Tracking-Parameter-Entfernung (?ref=...) und korrekte URL-Konstruktion.
-- [ ] scrape_artikel_details (je 5 Tests pro Scraper) — Vollständiges Dict, alle Pflichtfelder, Beschreibungskürzung auf 800 Zeichen, HTTP-Fehler, URL-Durchreichung. Habilleur bekommt zwei Zusatztests für material/brand/zustand.
-- [ ] Cross-Scraper Interface-Test (2 Tests) — Stellt sicher, dass beide Scraper dasselbe Output-Format liefern, das main.py und ollama.py erwarten. Am Ende ist eine kommentierte Vorlage, wie ein dritter Scraper (eBay, Grailed) ergänzt werden kann, ohne bestehende Tests anfassen zu müssen.
+- [x] _parse_preis (beide Scraper, je 7 Tests) — Da beide Scraper eigene Implementierungen haben, werden beide separat getestet. Habilleur bekommt zusätzlich den Tausender-Trennzeichen-Test ("1.234,99 €" → 1234.99), weil dort höherpreisige Artikel auftauchen.
+- [x] scrape_suchergebnisse Vinted (6 Tests) — Normalfall, Pflichtfelder, Preisfilter, Duplikat-Entfernung, max_artikel-Limit, Fehlerfall. Der Page-Mock simuliert Playwright ohne Browser, indem er Karten-Locatoren mit echten get_attribute- und inner_text-Werten zurückgibt.
+- [x] scrape_suchergebnisse Habilleur (7 Tests) — Dieselbe Logik, aber mit httpx-Response-Mock statt Playwright. Zusätzlich: Tracking-Parameter-Entfernung (?ref=...) und korrekte URL-Konstruktion.
+- [x] scrape_artikel_details (je 5 Tests pro Scraper) — Vollständiges Dict, alle Pflichtfelder, Beschreibungskürzung auf 800 Zeichen, HTTP-Fehler, URL-Durchreichung. Habilleur bekommt zwei Zusatztests für material/brand/zustand.
+- [x] Cross-Scraper Interface-Test (2 Tests) — Stellt sicher, dass beide Scraper dasselbe Output-Format liefern, das main.py und ollama.py erwarten. Am Ende ist eine kommentierte Vorlage, wie ein dritter Scraper (eBay, Grailed) ergänzt werden kann, ohne bestehende Tests anfassen zu müssen.
 
 ### Geplant
-- [ ] Pytests schreiben, keine dummys mehr
+- [x] Pytests schreiben, keine dummys mehr
 - [x] Deploy-Schritt in CI/CD aktivieren
 - [x] LLM-Analyse kritischer gestalten
 - [ ] Ebay Integration?

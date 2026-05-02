@@ -56,7 +56,7 @@ def get_summary_of_articles_json(
     try:
         min_condition = condition_ids_ebay[min_condition]
     except KeyError:
-        min_condition = condition_ids_ebay["Befriedigend"]  # Befriedigend als Default
+        min_condition = condition_ids_ebay["Gut"]  # Gut als Default
 
     filter_options = [
         f"priceCurrency:EUR",
@@ -177,3 +177,5 @@ def starter_get_detailed_items(item_ids):
     """
     # Startet die asynchrone Welt aus der synchronen Streamlit-Welt
     return asyncio.run(get_detailed_items_async(item_ids))
+
+print(get_summary_of_articles_json(keywords="shirt"))

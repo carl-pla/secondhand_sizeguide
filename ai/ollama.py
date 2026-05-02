@@ -149,7 +149,7 @@ Respond ONLY with this JSON:
             analyse["begruendung"] = f"Zustand '{zustand}' unter '{min_zustand}'. " + analyse.get("begruendung", "")
 
     """
-    3.3 Mindestbewertung, jedoch aktuell auf 6 hardgecodet --> soll mit Schieberegl in "Ergebnissen" angepasst werden
+    3.3 Mindestbewertung, jedoch aktuell auf 6 hardgecodet --> soll mit Schieberegel in "Ergebnissen" angepasst werden
     was dann letztendlich in der Empfehlung JSON landet
     """
     mindest_bewertung = 6
@@ -186,7 +186,7 @@ Respond ONLY with this JSON:
     5. RÜCKGABE: Alle Daten für MongoDB und das Dashboard zusammenführen --> an main.py geschickt 
     """
     return {
-        "url":               artikel["url"],
+        "url":               artikel.get("url"),
         "titel":             artikel["titel"],
         "preis":             artikel["preis"],
         "beschreibung":      artikel["beschreibung"],

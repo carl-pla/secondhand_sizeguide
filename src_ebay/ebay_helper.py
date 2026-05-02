@@ -36,6 +36,8 @@ def extract_important_data(single_json):
     clean_item = {
         "marketplace": "ebay",
         "itemId": single_json.get("itemId", "Unbekannt"),
+        "legacyItemId": single_json.get("legacyItemId", "Unbekannt"),
+        "url": f"https://www.ebay.de/itm/{single_json.get("legacyUrl")}",
         "title": single_json.get("title", "Unbekannt"),
         "price": single_json.get("price", {}).get("value" + ", €", "Unbekannt"),
         "condition": single_json.get("condition", "Unbekannt"),
@@ -47,5 +49,8 @@ def extract_important_data(single_json):
         "description": clean_description(single_json.get("description", ""))
         # description wird als HTML zurückgegeben, muss noch für LLM zu Markdown konvertiert werden
     }
+
+    if not clean_item["url"][-1].isdigit():
+        clean_item["url"] = "Unbekannter Link"
 
     return clean_item

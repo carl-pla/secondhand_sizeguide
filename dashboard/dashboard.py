@@ -152,7 +152,7 @@ with st.sidebar:
     st.divider()
     seite = st.radio(
         "",
-        ["⚙️  Vinted", "🛍️  Habilleur", "🛒  eBay", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
+        ["⚙️  Vinted", "🛍️  Habilleur", "🛒  eBay", "🦿 Ollama", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
         label_visibility="collapsed"
     )
     st.markdown("---")
@@ -192,7 +192,7 @@ if "Vinted" in seite:
         aktuelle_groesse = "M / 38"
     st.session_state.config["groesse"] = aktuelle_groesse
 
-    tab1, tab2, tab3, tab4 = st.tabs(["👗  Stil & Größe", "📐  Maße", "🔍  Suche", "🤖  Ollama"])
+    tab1, tab2, tab3 = st.tabs(["👗  Stil & Größe", "📐  Maße", "🔍  Sucheinstellungen"])
 
     # ── TAB 1: Stil & Größe ──
     with tab1:
@@ -250,7 +250,7 @@ if "Vinted" in seite:
             masse["innennaht"]      = st.number_input("Innennaht / Schrittlänge (cm)", 60, 100, masse.get("innennaht", 78))
         st.session_state.config["eigene_masse"] = masse
 
-    # ── TAB 3: Suche ──
+    # ── TAB 3: Sucheinstelluungen ──
     with tab3:
         col1, col2 = st.columns(2)
         with col1:
@@ -286,106 +286,13 @@ if "Vinted" in seite:
             )
             st.session_state.config["pause_zwischen_suchen"] = list(p_such)
 
-    # ── TAB 4: Ollama ──
-    with tab4:
-        st.session_state.config["ollama_url"] = st.text_input(
-            "Ollama API URL",
-            st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
-        )
-        st.session_state.config["ollama_modell"] = st.selectbox(
-            "Modell",
-            OLLAMA_MODELLE,
-            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3.2:3b"))
-            if st.session_state.config.get("ollama_modell") in OLLAMA_MODELLE else 0
-        )
-        st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
-
     st.markdown("---")
+
     if st.button("💾  Einstellungen speichern"):
         speichere_config(st.session_state.config)
         st.success(f"✓ Gespeichert in `{CONFIG_FILE}`")
         st.json(st.session_state.config)  # zur Kontrolle
 
-
-# ═══════════════════════════════════════════════
-#  SEITE: SUCHE STARTEN
-# ═══════════════════════════════════════════════
-elif "Suche" in seite:
-    st.markdown("# 🔍 Suche starten")
-    
-    quelle = st.session_state.config.get("quelle", "vinted")
-    user_email = st.session_state.config.get("user_email") or st.session_state.get("user_email", "anonym")
-    
-    if user_email and user_email != "anonym":
-        st.caption(f"🔗 Suche wird gespeichert für: **{user_email}**")
-    else:
-        st.warning("⚠️ Keine Email hinterlegt – Suche wird als 'anonym' gespeichert.")
-
-    st.markdown("---")
-    
-    if quelle == "vinted":
-        # ─────────────────────────────────────────────
-        #  VINTED SUCHE
-        # ─────────────────────────────────────────────
-        st.markdown("### ⚙️ Vinted Konfiguration")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>', unsafe_allow_html=True)
-        with col2:
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>', unsafe_allow_html=True)
-        with col3:
-            anzahl = config["max_artikel_pro_suche"] * min(config.get("max_suchen", 2), len(config["stile"]))
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Artikel</div><div class="metric-value">~{anzahl}</div></div>', unsafe_allow_html=True)
-
-        st.markdown("**Aktive Suchbegriffe (Stile):**")
-        for s in config["stile"][:config.get("max_suchen", 2)]:
-            st.markdown(f'<span class="badge">{s}</span>', unsafe_allow_html=True)
-    
-    elif quelle == "habilleur":
-        # ─────────────────────────────────────────────
-        #  HABILLEUR SUCHE
-        # ─────────────────────────────────────────────
-        st.markdown("### 🛍️ Habilleur Jean Konfiguration")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>', unsafe_allow_html=True)
-        with col2:
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Kategorie</div><div class="metric-value">{config["kategorie"]}</div></div>', unsafe_allow_html=True)
-        with col3:
-            st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    if st.button(f"🚀  {quelle.upper()} Scraper starten"):
-        speichere_config(st.session_state.config)
-        st.info(f"✓ Gespeichert in `{CONFIG_FILE}`\n\n**Quelle:** {quelle.upper()}")
-
-        projekt_pfad = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-
-        with st.spinner("Scraper läuft... (kann einige Minuten dauern)"):
-            result = subprocess.run(
-                ["python", "main.py", "--config", str(CONFIG_FILE)], # achtung: mit python3 hardgecoded!!
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='replace',
-                cwd=projekt_pfad
-            )
-
-        if result.returncode == 0:
-            st.success("✅ Fertig!")
-            if result.stdout:
-                st.code(result.stdout[-3000:])
-            else:
-                st.info("(Keine Ausgabe erfasst)")
-        else:
-            st.error("❌ Fehler!")
-            if result.stderr:
-                st.code(result.stderr[-1000:])
-            else:
-                st.code(f"Return Code: {result.returncode}\n(Keine Fehlerausgabe erfasst)")
 
 # ═══════════════════════════════════════════════
 #  SEITE: HABILLEUR
@@ -407,7 +314,7 @@ elif "Habilleur" in seite:
     st.session_state.config["groesse"] = aktuelle_groesse
 
     # Tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["👗  Größe & Kategorie", "📐  Maße", "🔍  Suche", "🤖  Ollama"])
+    tab1, tab2, tab3 = st.tabs(["👗  Größe & Kategorie", "📐  Maße", "🔍  Suche"])
 
     # ── TAB 1: Größe & Kategorie ──
     with tab1:
@@ -528,19 +435,6 @@ elif "Habilleur" in seite:
         if user_email:
             st.session_state.config["user_email"] = user_email
 
-    # ── TAB 4: Ollama ──
-    with tab4:
-        st.session_state.config["ollama_url"] = st.text_input(
-            "Ollama API URL",
-            value=st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
-        )
-        st.session_state.config["ollama_modell"] = st.selectbox(
-            "Modell",
-            OLLAMA_MODELLE,
-            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", OLLAMA_MODELLE[0]))
-        )
-        st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
-
     st.markdown("---")
     
     col1, col2 = st.columns(2)
@@ -579,7 +473,7 @@ elif "eBay" in seite:
         aktuelle_groesse = "M"
     st.session_state.config["groesse"] = aktuelle_groesse
 
-    tab1, tab2, tab3, tab4 = st.tabs(["👗  Sucheinstellungen & Größe", "📐  Maße", "🔍  Suche", "🤖  Ollama"])
+    tab1, tab2, tab3 = st.tabs(["👗  Sucheinstellungen & Größe", "📐  Maße", "🔍  Suche"])
 
     # ── TAB 1: Stil & Größe ──
     with tab1:
@@ -628,18 +522,83 @@ elif "eBay" in seite:
     # ── TAB 2: Maße ──
     with tab2:
         st.markdown("Trage deine Maße ein – das LLM vergleicht sie mit den Angaben in der Beschreibung.")
-        masse = st.session_state.config.get("ebay_masse", {})
-        col1, col2 = st.columns(2)
+        masse = st.session_state.config.get("ebay_masse", HABILLEUR_MASSE_BEISPIEL.copy())
+
+        st.markdown("##### 👔 Jackenmaße")
+        col1, col2, col3 = st.columns(3)
         with col1:
-            masse["brust"] = st.number_input("Brustumfang (cm)", 60, 130, masse.get("brust", 88))
-            masse["taille"] = st.number_input("Taillenumfang (cm)", 50, 120, masse.get("taille", 70))
-            masse["huefte"] = st.number_input("Hüftumfang (cm)", 70, 140, masse.get("huefte", 96))
+            masse["schulterbreite"] = st.number_input(
+                "Schulterbreite (cm)", 40, 55,
+                int(masse.get("schulterbreite", 46))
+            )
+            masse["aermellange"] = st.number_input(
+                "Ärmellänge (cm)", 60, 75,
+                int(masse.get("aermellange", 68))
+            )
         with col2:
-            masse["schulter"] = st.number_input("Schulterbreite (cm)", 30, 60, masse.get("schulter", 38))
-            masse["laenge_oberteil"] = st.number_input("Bevorzugte Länge Oberteil (cm)", 40, 100,
-                                                       masse.get("laenge_oberteil", 60))
-            masse["innennaht"] = st.number_input("Innennaht / Schrittlänge (cm)", 60, 100, masse.get("innennaht", 78))
-        st.session_state.config["eigene_masse"] = masse
+            masse["jackenlaenge"] = st.number_input(
+                "Jackenlänge (cm)", 65, 85,
+                int(masse.get("jackenlaenge", 75))
+            )
+            masse["achselbreite"] = st.number_input(
+                "Achselbreite (cm)", 48, 65,
+                int(masse.get("achselbreite", 55))
+            )
+        with col3:
+            masse["jacke_taillenweite"] = st.number_input(
+                "Taillenweite Jacke (cm)", 45, 65,
+                int(masse.get("jacke_taillenweite", 52))
+            )
+
+        st.markdown("##### 👖 Hosenmaße")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            masse["hose_taillenweite"] = st.number_input(
+                "Taillenweite Hose (cm)", 40, 60,
+                int(masse.get("hose_taillenweite", 50))
+            )
+            masse["gabelhoehe"] = st.number_input(
+                "Gabelhöhe (cm)", 25, 35,
+                int(masse.get("gabelhoehe", 30))
+            )
+        with col2:
+            masse["beinoeffnung"] = st.number_input(
+                "Beinöffnung (cm)", 20, 32,
+                int(masse.get("beinoeffnung", 26))
+            )
+            masse["hosenlaenge"] = st.number_input(
+                "Hosenlänge (cm)", 95, 120,
+                int(masse.get("hosenlaenge", 110))
+            )
+
+        st.markdown("##### 🧥 Mantelmaße")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            masse["mantel_schulterbreite"] = st.number_input(
+                "Mantel Schulterbreite (cm)", 42, 58,
+                int(masse.get("mantel_schulterbreite", 48))
+            )
+            masse["mantel_aermellange"] = st.number_input(
+                "Mantel Ärmellänge (cm)", 55, 70,
+                int(masse.get("mantel_aermellange", 62))
+            )
+        with col2:
+            masse["mantel_gesamtlaenge"] = st.number_input(
+                "Mantel Gesamtlänge (cm)", 70, 95,
+                int(masse.get("mantel_gesamtlaenge", 80))
+            )
+            masse["mantel_achselbreite"] = st.number_input(
+                "Mantel Achselbreite (cm)", 50, 68,
+                int(masse.get("mantel_achselbreite", 57))
+            )
+        with col3:
+            masse["mantel_taillenweite"] = st.number_input(
+                "Mantel Taillenweite (cm)", 48, 70,
+                int(masse.get("mantel_taillenweite", 54))
+            )
+
+        st.session_state.config["habilleur_masse"] = masse
+
 
     # ── TAB 3: Suche ──
     with tab3:
@@ -659,25 +618,155 @@ elif "eBay" in seite:
                 st.session_state.config.get("max_artikel_pro_suche", 5)
             )
 
-    # ── TAB 4: Ollama ──
-    with tab4:
-        st.session_state.config["ollama_url"] = st.text_input(
-            "Ollama API URL",
-            st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
-        )
-        st.session_state.config["ollama_modell"] = st.selectbox(
-            "Modell",
-            OLLAMA_MODELLE,
-            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3.2:3b"))
-            if st.session_state.config.get("ollama_modell") in OLLAMA_MODELLE else 0
-        )
-        st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
-
     st.markdown("---")
+
     if st.button("💾  Einstellungen speichern"):
         speichere_config(st.session_state.config)
         st.success(f"✓ Gespeichert in `{CONFIG_FILE}`")
         st.json(st.session_state.config)  # zur Kontrolle
+
+
+# ═══════════════════════════════════════════════
+#  SEITE: Ollama
+# ═══════════════════════════════════════════════
+elif "Ollama" in seite:
+    st.markdown("# Ollama-Konfiguration")
+
+    st.session_state.config["ollama_url"] = st.text_input(
+        "Ollama API URL",
+        st.session_state.config.get("ollama_url", "http://host.docker.internal:11434/api/generate")
+    )
+
+    st.session_state.config["ollama_modell"] = st.selectbox(
+        "Modell",
+        OLLAMA_MODELLE,
+        index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3.2:3b"))
+        if st.session_state.config.get("ollama_modell") in OLLAMA_MODELLE else 0
+    )
+    st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
+
+    st.markdown("---")
+
+    if st.button("💾  Einstellungen speichern"):
+        speichere_config(st.session_state.config)
+        st.success(f"✓ Gespeichert in `{CONFIG_FILE}`")
+        st.json(st.session_state.config)  # zur Kontrolle
+
+
+# ═══════════════════════════════════════════════
+#  SEITE: SUCHE STARTEN
+# ═══════════════════════════════════════════════
+elif "Suche" in seite:
+    st.markdown("# 🔍 Suche starten")
+
+    quelle = st.session_state.config.get("quelle", "vinted")
+    user_email = st.session_state.config.get("user_email") or st.session_state.get("user_email", "anonym")
+
+    if user_email and user_email != "anonym":
+        st.caption(f"🔗 Suche wird gespeichert für: **{user_email}**")
+    else:
+        st.warning("⚠️ Keine Email hinterlegt – Suche wird als 'anonym' gespeichert.")
+
+    st.markdown("---")
+
+    if quelle == "vinted":
+        # ─────────────────────────────────────────────
+        #  VINTED SUCHE
+        # ─────────────────────────────────────────────
+        st.markdown("### ⚙️ Vinted Konfiguration")
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>',
+                unsafe_allow_html=True)
+        with col2:
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>',
+                unsafe_allow_html=True)
+        with col3:
+            anzahl = config["max_artikel_pro_suche"] * min(config.get("max_suchen", 2), len(config["stile"]))
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">Max. Artikel</div><div class="metric-value">~{anzahl}</div></div>',
+                unsafe_allow_html=True)
+
+        st.markdown("**Aktive Suchbegriffe (Stile):**")
+        for s in config["stile"][:config.get("max_suchen", 2)]:
+            st.markdown(f'<span class="badge">{s}</span>', unsafe_allow_html=True)
+
+    elif quelle == "habilleur":
+        # ─────────────────────────────────────────────
+        #  HABILLEUR SUCHE
+        # ─────────────────────────────────────────────
+        st.markdown("### 🛍️ Habilleur Jean Konfiguration")
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>',
+                unsafe_allow_html=True)
+        with col2:
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">Kategorie</div><div class="metric-value">{config["kategorie"]}</div></div>',
+                unsafe_allow_html=True)
+        with col3:
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>',
+                unsafe_allow_html=True)
+
+    elif quelle == "ebay":
+        # ─────────────────────────────────────────────
+        #  EBAY SUCHE
+        # ─────────────────────────────────────────────
+        st.markdown("### ⚙️ eBay Einstellungen")
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>',
+                unsafe_allow_html=True)
+        with col2:
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">Kategorie</div><div class="metric-value">{config["kategorie"]}</div></div>',
+                unsafe_allow_html=True)
+        with col3:
+            st.markdown(
+                f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]} €</div></div>',
+                unsafe_allow_html=True)
+
+
+    st.markdown("---")
+
+    if st.button(f"🚀  {quelle.upper()} Scraper/API-Caller starten"):
+        speichere_config(st.session_state.config)
+        st.info(f"✓ Gespeichert in `{CONFIG_FILE}`\n\n**Quelle:** {quelle.upper()}")
+
+        projekt_pfad = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+        with st.spinner("Vorgang läuft... (kann einige Minuten dauern)"):
+            result = subprocess.run(
+                ["python", "main.py", "--config", str(CONFIG_FILE)],  # achtung: mit python3 hardgecoded!!
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                cwd=projekt_pfad
+            )
+
+        if result.returncode == 0:
+            st.success("✅ Fertig!")
+            if result.stdout:
+                st.code(result.stdout[-3000:])
+            else:
+                st.info("(Keine Ausgabe erfasst)")
+        else:
+            st.error("❌ Fehler!")
+            if result.stderr:
+                st.code(result.stderr[-1000:])
+            else:
+                st.code(f"Return Code: {result.returncode}\n(Keine Fehlerausgabe erfasst)")
+
+
 # ═══════════════════════════════════════════════
 #  SEITE: ERGEBNISSE
 #  Problem: Bisher auf nur Vinted hardgecoded
@@ -688,7 +777,7 @@ elif "Ergebnisse" in seite:
     if not ERGEBNISSE_FILE_VINTED.exists():
         st.warning("Noch keine Ergebnisse für Vinted. Starte zuerst eine Suche.")
     else:
-        with open(ERGEBNISSE_FILE_VINTED, "r") as f:
+        with open(ERGEBNISSE_FILE_VINTED, "r", encoding="utf-8") as f:
             ergebnisse = json.load(f)
 
         # Filter

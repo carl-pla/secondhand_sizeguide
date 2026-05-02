@@ -21,6 +21,6 @@ database/
 .DS_Store
 dashboard/secrets/*.json
 dashboard/secrets/results/*.json
-playground-2.mongodb.js
+playground-2.mongodb.jsö
 
 src_ebay/ebay_ids.py

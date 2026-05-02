@@ -14,6 +14,7 @@ if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 from scraper.vinted_scraper import scrape_artikel_details as vinted_scrape_details, scrape_suchergebnisse as vinted_scrape_suchergebnisse
 from scraper.habilleur_scraper import scrape_artikel_details as habilleur_scrape_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
+from src_ebay.get_request import get_summary_of_articles_json, starter_get_detailed_items
 from ai.ollama import analysiere_artikel
 from database.config_defaults import lade_config, ERGEBNISSE_FILE_VINTED, EMPFEHLUNGEN_FILE_VINTED
 from database.scrapping_sessions import speichere_in_mongo
@@ -139,6 +140,33 @@ async def main(config: dict, user_email: str=None):
                 print(f"  ⚠️  Fehler bei Habilleur Scrape: {e}")
 
     elif quelle == "ebay":
+        # ─────────────────────────────────────────────
+        #  EBAY: REST-API-Calls
+        # ─────────────────────────────────────────────
+
+        kategorie = config.get("kategorie", None)
+        groesse = config.get("groesse", "M")
+
+        print(f"  Artikelsuche auf eBay gestartet.\n")
+
+        item_ids = get_summary_of_articles_json(
+            max_price=config.get("max_preis", 40),
+            keywords=config.get("suchbegriffe", ""),
+            brand=config.get("marke", None),
+            color=config.get("farbe", ""),
+            category=kategorie,
+            size=groesse,
+            min_condition=config.get("min_zustand", "Gut"),
+            item_amount=config.get("max_artikel_pro_suche", 10)
+        )
+
+        product_details = starter_get_detailed_items(item_ids)
+
+        print("    Gefundene Artikel:\n")
+
+        for product in product_details:
+            alle_roh.append(product)
+            print(f"    ✓ {product['title'][:50]} – {product['price']}")
 
     else:
         print("Error bei der Marketplace-Wahl.")

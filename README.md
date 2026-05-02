@@ -385,12 +385,13 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 **Problem:** Performance von Ollama nicht tragbar bzw. unzählige Timeouts 
 **Ursache:** Ollama läuft im docker container standardmäßig auf der CPU, Nividia Extension müsste installiert werden
 **Lösung:** "NVIDIA Container Toolkit" aus Komplexitätsgründen nicht installiert, ollama läuft nun lokal (wieder) im Terminal
-**Learning:** Ollama Performance sehr stark gedrosselt, wenn nur auf die CPU zugegriffen werden kann
+**Learning:** Ollama Performance sehr stark gedrosselt, wenn nur auf die CPU zugegriffen werden kann 
 
 **Problem:** GitHub Actions Job läuft für alle User nacheinander und überschreitet die maximale Laufzeit
 **Ursache:** runner.py iteriert sequentiell über alle User in einer for-Schleife — jeder Scrape blockiert den nächsten, die Gesamtzeit summiert sich auf potenziell 100+ Minuten
 **Lösung:** Matrix Strategy in GitHub Actions — load-users liest alle User-IDs aus MongoDB und gibt sie als JSON-Array weiter, scrape-per-user startet daraufhin für jeden User einen eigenen parallelen Job über runner_single.py
 **Learning:** Unabhängige Aufgaben über N Datensätze (Scraping, API-Calls, DB-Writes) sollten nie sequentiell laufen — sobald eine for-Schleife über externe Ressourcen iteriert, ist das ein Signal zur Parallelisierung, entweder auf Code-Ebene (asyncio) oder auf Infrastrukturebene (parallele Jobs)
+
 ---
 
 ## Stand der Dinge
@@ -403,7 +404,7 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 - [x] Deduplizierung
 
 
-### ✅ KI-Analyse (llama3.2:3b)
+### KI-Analyse (llama3.2:3b)
 - [x] Maße extrahieren (Brust, Taille, Hüfte, Schulter, Länge, Ärmel, Innennaht)
 - [x] Zustand & Material erkennen
 - [x] Stil-Matching (Vintage, Retro, Y2K)
@@ -413,19 +414,38 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 
 > ⚠️ LLM-Analyse noch zu wenig kritisch — Prompt-Optimierung geplant.
 
-### ✅ Konfiguration & UI
+### Konfiguration & UI
 - [x] Zentrale `config_defaults.py`
 - [x] Streamlit Dashboard
 - [x] Ergebnisse & Empfehlungen als JSON
 
-### 🔄 CI/CD & Newsletter
+### CI/CD & Newsletter
 - [x] GitHub Actions Pipeline (Tests, Security, Docker Build)
 - [ ] `created_at`-Feld in Ergebnis-JSON für wöchentliche Filterung
 - [ ] Ergebnisse als Workflow-Artifact herunterladbar
 - [ ] `newsletter.yml` — wöchentlicher Versand via Resend
 - [ ] MongoDB Atlas öffentlich erreichbar für GitHub Actions
 
-### 📋 Geplant
+### Tests
+
+**ollama.py -> newsletter.py -> scraping_sessions.py -> users.py -> main.py**
+- [ ] frage_ollama (4 Tests) — HTTP 200 Normalfall, HTTP 500 Fehlerfall, Netzwerkausfall, und dass ohne Modellnamen kein unnötiger HTTP-Call gemacht wird.
+- [ ] analysiere_artikel (9 Tests) — Das ist das Herzstück. Abgedeckt sind: valide JSON-Antwort, JSON mit Präambel (der find("{") Trick), leere Antwort, kein JSON, und alle drei harten deterministischen Checks (Preis zu hoch, Zustand zu schlecht, Score unter 6). Dazu der wichtigste Test: Score 7 aber Ollama sagt empfohlen: false → Python muss das korrigieren.
+- [ ] generiere_html (5 Tests) — Leere Liste, Titel/Preise/Links im Output, MAX_ARTIKEL-Limit (nicht mehr als 10).
+- [ ] sende_email (3 Tests) — Normalfall, und der kritische Reihenfolge-Test dass starttls() wirklich vor login() kommt.
+- [ ] speichere_in_mongo (5 Tests) — Normalfall, leere Liste, nur Empfohlene werden gespeichert, keine Empfohlenen → kein DB-Call, DB-Fehler kein Absturz.
+- [ ] users.py (5 Tests) — Neu registrieren, Update bei bestehendem User, ungültige E-Mail, Deaktivieren, Laden mit _id-Entfernung.
+- [ ] main.py (5 Tests) — Alle 4 Pflichtfeld-Validierungen + Ollama offline.
+Integrationstest (1 Test) — Vollständiger Flow: analysiere_artikel → speichere_in_mongo.
+
+**test_scraper (soll skalierbar bleiben, deswegen trennen sich diese Tests von den anderen**
+- [ ] _parse_preis (beide Scraper, je 7 Tests) — Da beide Scraper eigene Implementierungen haben, werden beide separat getestet. Habilleur bekommt zusätzlich den Tausender-Trennzeichen-Test ("1.234,99 €" → 1234.99), weil dort höherpreisige Artikel auftauchen.
+- [ ] scrape_suchergebnisse Vinted (6 Tests) — Normalfall, Pflichtfelder, Preisfilter, Duplikat-Entfernung, max_artikel-Limit, Fehlerfall. Der Page-Mock simuliert Playwright ohne Browser, indem er Karten-Locatoren mit echten get_attribute- und inner_text-Werten zurückgibt.
+- [ ] scrape_suchergebnisse Habilleur (7 Tests) — Dieselbe Logik, aber mit httpx-Response-Mock statt Playwright. Zusätzlich: Tracking-Parameter-Entfernung (?ref=...) und korrekte URL-Konstruktion.
+- [ ] scrape_artikel_details (je 5 Tests pro Scraper) — Vollständiges Dict, alle Pflichtfelder, Beschreibungskürzung auf 800 Zeichen, HTTP-Fehler, URL-Durchreichung. Habilleur bekommt zwei Zusatztests für material/brand/zustand.
+- [ ] Cross-Scraper Interface-Test (2 Tests) — Stellt sicher, dass beide Scraper dasselbe Output-Format liefern, das main.py und ollama.py erwarten. Am Ende ist eine kommentierte Vorlage, wie ein dritter Scraper (eBay, Grailed) ergänzt werden kann, ohne bestehende Tests anfassen zu müssen.
+
+### Geplant
 - [ ] Pytests schreiben, keine dummys mehr
 - [x] Deploy-Schritt in CI/CD aktivieren
 - [x] LLM-Analyse kritischer gestalten

@@ -3,7 +3,11 @@ playwright
 playwright-stealth
 httpx
 pymongo
+
 pytest
+pytest-asyncio
+pytest-cov
+
 requests
 python-dotenv
 beautifulsoup4

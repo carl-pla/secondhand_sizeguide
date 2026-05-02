@@ -2,24 +2,53 @@ name: Nightly Vinted Scraper
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # 04:00 deutsche Zeit
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
+
   # ─────────────────────────────────────────────
-  # JOB 1: Welche User sollen gescrapt werden?
-  # Lädt alle aktiven User aus MongoDB und baut
-  # daraus eine Matrix für die parallelen Jobs.
+  # JOB 0: Tests laufen lassen – Pipeline stoppt
+  # bei Fehler, bevor etwas gescrapt wird.
+  # ─────────────────────────────────────────────
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Abhängigkeiten installieren
+        run: pip install -r requirements.txt
+      - name: Tests ausführen
+        env:
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+        run: pytest test_testdaten.py test_ollama.py test_newsletter.py test_scraping_sessions test_users.py test_scraper.py test_main.py -v --tb=short
+          --cov=ai \
+          --cov=database \
+          --cov=scraper \
+          --cov=newsletter \
+          --cov-report=term-missing \
+          --cov-report=xml:coverage.xml
+
+  # ─────────────────────────────────────────────
+  # JOB 1: User-Matrix laden
+  # Läuft nur, wenn run-tests erfolgreich war.
   # ─────────────────────────────────────────────
   load-users:
+    needs: run-tests  
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.get-users.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - run: pip install -r requirements.txt
 
       - name: User-IDs aus MongoDB laden
@@ -31,40 +60,34 @@ jobs:
           import json, os, sys
           sys.path.insert(0, ".")
           from database.users import lade_alle_user
-
           users = lade_alle_user()
-          # Nur die E-Mails als Matrix-Werte — runner.py kennt sie bereits
           emails = [u["email"] for u in users]
           matrix = json.dumps(emails)
-
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"matrix={matrix}\n")
-
           print(f"✅ {len(emails)} User gefunden: {emails}")
           EOF
 
   # ─────────────────────────────────────────────
   # JOB 2: Pro User ein paralleler Scrape-Job
-  # Jeder Runner bekommt genau eine E-Mail und
-  # scrapt + bewertet Artikel mit Ollama/LLM.
-  # Ergebnisse landen in MongoDB (scraping_sessions).
   # ─────────────────────────────────────────────
   scrape-per-user:
-    needs: load-users # Wartet bis Job 1 die Matrix gebaut hat
+    needs: load-users
     runs-on: ubuntu-latest
     strategy:
       matrix:
         email: ${{ fromJson(needs.load-users.outputs.matrix) }}
-      fail-fast: false      # ein fehlgeschlagener User stoppt nicht die anderen
-      max-parallel: 10      # alle gleichzeitig (GitHub Free erlaubt 20)
-
-
+      fail-fast: false
+      max-parallel: 10
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - run: pip install -r requirements.txt
+
       - name: Playwright Browser installieren
         run: playwright install chromium --with-deps
 
@@ -74,12 +97,10 @@ jobs:
           ollama serve &
           sleep 10
           ollama pull llama3.2:3b
-      # Eigentlicher Scrape – runner.py weiß durch TARGET_USER_EMAIL
-      # welcher User gerade dran ist.  
+
       - name: Scrape für ${{ matrix.email }}
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
           TARGET_USER_EMAIL: ${{ matrix.email }}
         run: python runner.py
-        # ↑ neues kleines Wrapper-Script (siehe unten)
         timeout-minutes: 15

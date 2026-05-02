@@ -25,7 +25,7 @@ from database.config_defaults import (
 # ─────────────────────────────────────────────
 st.set_page_config(
     page_title="MatchFit",
-    page_icon="dashboard/logo/logo_matchfit.png",
+    page_icon="docs/logo_matchfit.png", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -142,7 +142,7 @@ with st.sidebar:
     BASE_DIR = Path(__file__).resolve().parent
 
     # Pfad zum Logo (sehr sauber lesbar)
-    logo_path = BASE_DIR / "logo" / "logo_matchfit.png"
+    logo_path = BASE_DIR / "docs" / "logo_matchfit.png"
 
     st.image(logo_path, width=180)
     st.markdown(

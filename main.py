@@ -16,7 +16,7 @@ from scraper.vinted_scraper import scrape_artikel_details as vinted_scrape_detai
 from scraper.habilleur_scraper import scrape_artikel_details as habilleur_scrape_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
 from ai.ollama import analysiere_artikel
 from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
-from database.scrapping_sessions import speichere_in_mongo
+from database.scraping_sessions import speichere_in_mongo
 import concurrent.futures
 
 """
@@ -29,7 +29,7 @@ Unterstützt nun: Vinted (mit Browser) und Habilleur (ohne Browser)
 1. Setup & Validierung 
 """
 # Prüft, ob alle Werkzeuge bereit sind (LLM und Config.json)
-async def main(config: dict, user_email: str=None):
+async def main(config: dict, user_email: str=None): # type: ignore
     print(f"DEBUG: Lade Config von {config.get('_pfad', 'unbekannt')}")
 
     # Pflichtfelder prüfen
@@ -181,7 +181,7 @@ async def main(config: dict, user_email: str=None):
 
     # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung 
     try:
-        speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email"))
+        speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email")) # type: ignore
     except Exception as e:
         print(f"⚠️  MongoDB nicht erreichbar: {e}")
 

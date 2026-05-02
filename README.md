@@ -276,20 +276,23 @@ Google SMTP verschickt HTML-Email
 
 ### Pipeline (`.github/workflows/ci-cd.yml`)
 
+```mermaid
+flowchart TD
+    A[Trigger: schedule / dispatch] --> B
+
+    B["Job: run-tests (NEU)\npytest test_matchfit.py test_scraper.py"]
+    B -->|Tests fail| C[Pipeline stoppt]
+    B -->|Tests pass| D
+
+    D["Job: load-users\nUser-E-Mails aus MongoDB → Matrix"]
+    D --> E & F & G
+
+    E["scrape-per-user\nuser@a.com"]
+    F["scrape-per-user\nuser@b.com"]
+    G["scrape-per-user\nuser@c.com"]
+
+    E & F & G --> H["MongoDB Atlas\nErgebnisse in scraping_sessions"]
 ```
-Push auf main
-    │
-    ├── 1. Tests (pytest)
-    ├── 2. Security Scan (scannt nach Secrets mit gitleaks)
-    ├── 3. Docker Build & Push (Baut das Image für den Scraper/Backend und pusht es in die GitHub Container Registry)
-    └── 4.1 Deploy (Automatisches Update der Streamlit Cloud bei Push)
-            --> 4.2 Newsletter: Scheduled Action greift auf MongoDB Atlas zu, um die Funde der letzten 24h zu senden.
-```
-```yaml
-on:
-   schedule:
-     - cron: '0 18 * * 1'   # 18:01 UTC = 20:01 Uhr deutsche Zeit
-``` 
 
 ### Newsletter-Workflow (`.github/workflows/newsletter.yml`)
 

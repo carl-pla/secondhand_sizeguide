@@ -427,6 +427,8 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 - [ ] MongoDB Atlas öffentlich erreichbar für GitHub Actions
 
 ### Tests
+**conftest.py**
+--> dient als Datei für Testdaten 
 
 **ollama.py -> newsletter.py -> scraping_sessions.py -> users.py -> main.py**
 - [x] frage_ollama (4 Tests) — HTTP 200 Normalfall, HTTP 500 Fehlerfall, Netzwerkausfall, und dass ohne Modellnamen kein unnötiger HTTP-Call gemacht wird.

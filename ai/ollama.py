@@ -1,7 +1,6 @@
 import json
 import httpx # type: ignore
 from database.config_defaults import ZUSTAND_RANG
-from database.config_defaults import condition_ids_ebay
 
 """
 === WORKFLOW GROB ===
@@ -70,22 +69,34 @@ MEASUREMENT_RULES_VINTED = """MEASUREMENT RULES (all values in cm, convert if ne
 - innennaht_cm = inseam length from crotch to ankle ONLY, NOT outseam, NOT total leg length
 - If a measurement is ambiguous, unclear or missing, use null"""
 
-MEASUREMENT_RULES_EBAY_HAB = """MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
-- schulterbreite      = jacket shoulder width from seam to seam (full width)
-- aermellange         = jacket sleeve length from shoulder seam to cuff (full length)
-- jackenlaenge        = jacket body length from shoulder to hem (full length)
-- achselbreite        = jacket chest width measured flat from underarm to underarm (full width)
-- jacke_taillenweite  = jacket waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
-- hose_taillenweite   = trouser waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
-- gabelhoehe          = trouser rise from crotch seam to waistband (full length)
-- beinoeffnung        = trouser leg opening as HALF width (flat measurement). If description states full opening, divide by 2.
-- hosenlaenge         = trouser total length from waistband to hem (full length)
-- mantel_schulterbreite = coat shoulder width from seam to seam (full width)
-- mantel_gesamtlaenge   = coat total length from shoulder to hem (full length), NOT jacket length
-- mantel_aermellange    = coat sleeve length from shoulder seam to cuff (full length)
-- mantel_achselbreite   = coat chest width measured flat from underarm to underarm (full width)
-- mantel_taillenweite   = coat waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
-- If a measurement is ambiguous, unclear or missing, use null"""
+MEASUREMENT_RULES_EBAY_HAB = """MEASUREMENT RULES (all values in cm, convert if necessary, null if not found):
+JACKET:
+If article is a jacket, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
+- schulterbreite     = shoulder width seam to seam (full width)
+- aermellange        = sleeve length shoulder seam to cuff (full length)
+- jackenlaenge       = jacket length shoulder to hem (full length)
+- achselbreite       = chest width underarm to underarm laid flat (full width, NOT half)
+- jacke_taillenweite = jacket waist laid flat (HALF circumference). Divide by 2 if full circumference given.
+
+TROUSERS:
+If article is a pair of trousers, ONLY fill the following 4 fields. ALL other masse fields MUST be null.
+- hose_taillenweite  = trouser waist laid flat (HALF circumference). Divide by 2 if full circumference given.
+- gabelhoehe         = rise from crotch seam to waistband (full length)
+- beinoeffnung       = leg opening laid flat (HALF width). Divide by 2 if full opening given.
+- hosenlaenge        = total trouser length waistband to hem (full length)
+
+COAT:
+If article is a coat, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
+- mantel_schulterbreite = shoulder width seam to seam (full width)
+- mantel_gesamtlaenge   = coat length shoulder to hem (full length). NOT jacket length.
+- mantel_aermellange    = sleeve length shoulder seam to cuff (full length)
+- mantel_achselbreite   = chest width underarm to underarm laid flat (full width, NOT half)
+- mantel_taillenweite   = coat waist laid flat (HALF circumference). Divide by 2 if full circumference given.
+
+- For each measurement, determine whether the given value in the article description is a full or half measurement before inserting. 
+  Convert to the format specified above (some require half, some full).
+
+When uncertain which measurement is meant, use null"""
 
 JSON_MASSE_VINTED = """{
   "masse": {
@@ -114,7 +125,7 @@ JSON_MASSE_EBAY_HAB = """{
       "mantel_achselbreite": <insert value as integer/null>,
       "mantel_taillenweite": <insert value as integer/null>}"""
 
-JSON_FOOTER_STANDARD = """  "zustand": "Neu mit Etikett/Neu ohne Etikett/Sehr gut/Gut/Befriedigend (only insert one as string)",
+JSON_FOOTER_STANDARD = """  "zustand": <insert either "Neu mit Etikett", "Neu ohne Etikett", "Sehr gut", "Gut" or "Befriedigend" depending on what matches best>,
   "passt_groesse": true/false,
   "begruendung": "<insert max 2 Sätze auf Deutsch>",
   "bewertung": 1-10 (rating out of ten),
@@ -454,11 +465,12 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
     - Size: {config['groesse']}
     - Max Price: {config['max_preis']}€
     - Minimal Condition: {min_zustand}
-    - Brand: {config["marke"]}
-    - Color: {config["farbe"]}
-    - Custom keywords: {config["suchbegriffe"]}
+    - Brand: {config.get("marke") or "No Preference"}
+    - Color: {config.get("farbe") or "No Preference"}
+    - Custom keywords: {config.get("suchbegriffe") or "No Preference"}
     - Category: {config.get("kategorie")}
-    - Material: {config["material"]}
+    - Material: {config.get("material") or "No Preference"}
+    - URL: {config.get("url")}
 
     Item:
     - Title: {artikel['title']}
@@ -470,9 +482,8 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
     - Color: {artikel['color']}
     - Size: {artikel['size']}
     - Material: {artikel['material']}
-
-    Dictionary for Condition IDs:
-    {condition_ids_ebay}
+    - Additonal Information: {artikel['localizedAspects']}
+    - Short Description: {artikel['shortDescription']}
 
     CRITICAL RULES:
     {SCORING_RULES}
@@ -483,7 +494,7 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
 
     Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
     {JSON_MASSE_EBAY_HAB},
-      "zustand": <insert first key from given dict (as string) whose value contains the given Condition ID>,
+      "zustand": <insert either "Neu mit Etikett", "Neu ohne Etikett", "Sehr gut", "Gut" or "Befriedigend" depending on what matches best>,
       "passt_groesse": true/false,
       "begruendung": "<insert max 2 Sätze auf Deutsch>",
       "bewertung": 1-10 (rating out of ten),

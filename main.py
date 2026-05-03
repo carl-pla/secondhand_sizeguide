@@ -164,7 +164,12 @@ async def main(config: dict, user_email: str=None):
             user_token=user_token,
         )
 
-        product_details = await get_detailed_items_async(item_ids, user_token)
+
+        product_details = await get_detailed_items_async(item_ids=item_ids, user_token=user_token)
+
+        if not product_details:
+            return
+
         print("    Gefundene Artikel:\n")
 
         for product in product_details:

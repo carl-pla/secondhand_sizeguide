@@ -7,11 +7,11 @@ __pycache__/
 env
 venv
 dashboard/secrets/results/
-dashboard/secrets/results/vinted_empfehlungen.json
-dashboard/secrets/results/vinted_ergebnisse.json
+dashboard/secrets/results/empfehlungen.json
+dashboard/secrets/results/ergebnisse.json
 node_modules
 datascienceprojekt.egg-info
- 
+
 # Debug
 debug.png
 debug_vinted.html
@@ -21,4 +21,6 @@ database/
 .DS_Store
 dashboard/secrets/*.json
 dashboard/secrets/results/*.json
-playground-2.mongodb.js
+playground-2.mongodb.jsö
+
+src_ebay/ebay_ids.py

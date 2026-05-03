@@ -5,7 +5,6 @@ import argparse
 import sys
 import io
 import httpx # type: ignore
-from pathlib import Path
 from playwright.async_api import async_playwright # type: ignore
 from playwright_stealth import Stealth # type: ignore
 
@@ -13,8 +12,10 @@ from playwright_stealth import Stealth # type: ignore
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 from scraper.vinted_scraper import scrape_artikel_details as vinted_scrape_details, scrape_suchergebnisse as vinted_scrape_suchergebnisse
-from scraper.habilleur_scraper import scrape_artikel_details as habilleur_scrape_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
-from ai.ollama import analysiere_artikel
+from scraper.habilleur_scraper import scrape_artikel_details as scrape_artikel_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
+from src_ebay.get_request import get_summary_of_articles_json, get_detailed_items_async
+from src_ebay.get_new_token import get_new_token
+from ai.ollama import analysiere_artikel_vinted, analysiere_artikel_habilleur, analysiere_artikel_ebay
 from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
 from database.scraping_sessions import speichere_in_mongo
 import concurrent.futures
@@ -45,13 +46,13 @@ async def main(config: dict, user_email: str=None): # type: ignore
 
     # Quelle festlegen (Vinted oder Habilleur)
     quelle = config.get("quelle", "vinted").lower()
-    if quelle not in ["vinted", "habilleur"]:
-        print(f"❌ KRITISCH: quelle muss 'vinted' oder 'habilleur' sein, erhalten: {quelle}")
+    if quelle not in ["vinted", "habilleur", "ebay"]:
+        print(f"❌ KRITISCH: quelle muss 'vinted', 'habilleur' oder 'ebay' sein, erhalten: {quelle}")
         return
 
     print(f"🚀 {quelle.upper()} Scraper | Modell: {config['ollama_modell']} | {config['groesse']} | {config['kategorie']} | max {config['max_preis']}€\n")
 
-    # Verbindungstest zu Ollama wird gestartet 
+    # Verbindungstest zu Ollama wird gestartet
     try:
         httpx.get(config["ollama_url"].replace("/api/generate", ""), timeout=3)
         print("✓ Ollama erreichbar\n")
@@ -67,9 +68,9 @@ async def main(config: dict, user_email: str=None): # type: ignore
     #hier werden alle Daten gesammelt
     alle_roh = []
 
-    
+
     """
-    2. SCRAPING – VINTED (mit Browser) oder HABILLEUR (ohne Browser)
+    2. SCRAPING – VINTED (mit Browser) oder HABILLEUR (ohne Browser) oder EBAY (API-Requests)
     """
     if quelle == "vinted":
         # ─────────────────────────────────────────────
@@ -111,17 +112,17 @@ async def main(config: dict, user_email: str=None): # type: ignore
 
             await browser.close()
 
-    else:  # habilleur
+    elif quelle == "habilleur":  # habilleur
         # ─────────────────────────────────────────────
         #  HABILLEUR: DIREKTE HTTP-REQUESTS (kein Browser)
         # ─────────────────────────────────────────────
         groesse = config.get("groesse", "M")
         kategorie = config.get("kategorie", "Anzug")
-        
+
         async with httpx.AsyncClient() as client:
             # Habilleur braucht Kategorie + Größe, nicht Suchbegriffe
             print(f"  Kategorien-Scrape: {kategorie} / {groesse}\n")
-            
+
             try:
                 # ── STUFE 1: Grob-Suche ──
                 grob_links = await habilleur_scrape_suchergebnisse(kategorie, groesse, config, client)
@@ -129,7 +130,7 @@ async def main(config: dict, user_email: str=None): # type: ignore
 
                 # ── STUFE 2: Detail-Scraping ──
                 for link in grob_links:
-                    details = await habilleur_scrape_details(link["url"], client)
+                    details = await scrape_artikel_details(link["url"], client)
                     if details:
                         alle_roh.append(details)
                         print(f"    ✓ {details['titel'][:50]} – {details['preis']}")
@@ -138,15 +139,51 @@ async def main(config: dict, user_email: str=None): # type: ignore
             except Exception as e:
                 print(f"  ⚠️  Fehler bei Habilleur Scrape: {e}")
 
+    elif quelle == "ebay":
+        # ─────────────────────────────────────────────
+        #  EBAY: REST-API-Calls
+        # ─────────────────────────────────────────────
+
+        kategorie = config.get("kategorie", None)
+        groesse = config.get("groesse", "M")
+
+        print(f"  Artikelsuche auf eBay gestartet.\n")
+
+        user_token = get_new_token()
+
+        item_ids = get_summary_of_articles_json(
+            max_price=config.get("max_preis", 40),
+            keywords=config.get("suchbegriffe", ""),
+            brand=config.get("marke", None),
+            color=config.get("farbe", ""),
+            category=kategorie,
+            size=groesse,
+            min_condition=config.get("min_zustand", "Gut"),
+            item_amount=config.get("max_artikel_pro_suche", 10),
+            material=config.get("material", ""),
+
+            user_token=user_token,
+        )
+
+        product_details = await get_detailed_items_async(item_ids, user_token)
+        print("    Gefundene Artikel:\n")
+
+        for product in product_details:
+            alle_roh.append(product)
+            print(f"    ✓ {product['title'][:50]} – {product['price']}")
+
+    else:
+        print("Error bei der Marketplace-Wahl.")
+
 
     """
     3. DEDUPLIZIERUNG --> verhindert, dass Artikel mehrfach gescannt werden
     """
     seen, unique = set(), []
-    for a in alle_roh:
-        if a["url"] not in seen:
-            seen.add(a["url"])
-            unique.append(a)
+    for artikel in alle_roh:
+        if artikel["url"] not in seen:
+            seen.add(artikel["url"])
+            unique.append(artikel)
 
 
     """
@@ -154,17 +191,24 @@ async def main(config: dict, user_email: str=None): # type: ignore
     --> gesammelte Daten werden an ollama geschickt (Performance/Größe gut)
     --> "ThreadPoolExecuter", um 3 Artikel parallel zu analysieren (spart Zeit)
     """
-    print(f"\n✨ {len(unique)} Artikel → Ollama (parallel, 3 gleichzeitig)...\n")
+    print(f"\n✨ {len(unique)} Artikel → Ollama (asynchron)...\n")
 
-    def analysiere_wrapper(artikel):
-        return analysiere_artikel(artikel, config)
+    if quelle == "vinted":
+        tasks = [analysiere_artikel_vinted(artikel, config) for artikel in unique]
+        ergebnisse = await asyncio.gather(*tasks)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        # hier wird "analyse_artikel"-Funktion aus ollama.py aufgerufen, um die fertig gescannten Artikel zu analysieren
-        # WICHTIGES ZUSAMMENSPIEL!
-        ergebnisse = list(executor.map(analysiere_wrapper, unique))
+    elif quelle == "habilleur":
+        tasks = [analysiere_artikel_habilleur(artikel, config) for artikel in unique]
+        ergebnisse = await asyncio.gather(*tasks)
 
-    # sortieren: Beste Empfehlungen nach oben 
+    elif quelle == "ebay":
+        tasks = [analysiere_artikel_ebay(artikel, config) for artikel in unique]
+        ergebnisse = await asyncio.gather(*tasks)
+
+    else:
+        print("Error bei der Marketplace-Wahl.")
+        return
+
     ergebnisse.sort(key=lambda x: x.get("bewertung") or 0, reverse=True)
     empfohlen = [a for a in ergebnisse if a.get("empfohlen")]
 
@@ -179,21 +223,24 @@ async def main(config: dict, user_email: str=None): # type: ignore
     with open(EMPFEHLUNGEN_FILE, "w", encoding="utf-8") as f:
         json.dump(empfohlen, f, ensure_ascii=False, indent=2)
 
-    # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung 
+    # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung
     try:
         speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email")) # type: ignore
     except Exception as e:
         print(f"⚠️  MongoDB nicht erreichbar: {e}")
 
-    
+
     # Ausgabe im Terminal über momentanen Ablauf
     print(f"\n{'='*60}")
     print(f"✅ {len(empfohlen)} von {len(ergebnisse)} empfohlen")
+
     if quelle == "vinted":
         print(f"   Stufe 1 (Grob):  {min(max_suchen, len(config['stile']))} Suchen")
-    else:
+    elif quelle == "habilleur":
         print(f"   Stufe 1 (Grob):  {config.get('kategorie')} / {config.get('groesse')}")
-    print(f"   Stufe 2 (Detail): {len(unique)} Artikel gescrapt")
+    elif quelle == "ebay":
+        print(f"   Stufe 1 (Grob):  {config.get('kategorie')} / {config.get('groesse')}")
+    print(f"   Stufe 2 (Detail): {len(unique)} Artikel erhalten")
     print(f"   Stufe 3 (Ollama): {len(ergebnisse)} analysiert")
     print(f"💾 {ERGEBNISSE_FILE}")
     print(f"💾 {EMPFEHLUNGEN_FILE}")

@@ -5,7 +5,6 @@ import requests
 
 import src_ebay.ebay_helper as helper
 from database.config_defaults import category_ids_ebay, condition_ids_ebay
-from src_ebay.get_new_token import get_new_token
 
 
 def get_summary_of_articles_json(
@@ -16,7 +15,10 @@ def get_summary_of_articles_json(
         category=None,
         size="",
         min_condition=None,
-        item_amount=5
+        item_amount=5,
+        material="",
+
+        user_token="",
 ):
     """
     Holt JSON-Objekt mit Produkten und zugehörigen Produktdaten über Browse API.
@@ -31,6 +33,8 @@ def get_summary_of_articles_json(
     :param size: Größe
     :param min_condition: schlechtester erlaubter Zustand des Artikels
     :param item_amount: Menge von zu prüfenden Artikeln, die geholt werden soll
+    :param material: Material des Kleidungsstücks
+    :param user_token: Authentifizierungstoken für get-Request
 
     :return: set der gefundenen Item-IDs
     """
@@ -38,7 +42,6 @@ def get_summary_of_articles_json(
     if item_amount > 200:
         return None
 
-    user_token = get_new_token()
     url = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 
     headers = {
@@ -46,7 +49,7 @@ def get_summary_of_articles_json(
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"
     }
 
-    keywords = f"{keywords} {color} {size}"
+    keywords = f"{keywords} {color} {size} {material}"
 
     try:
         cat_id = category_ids_ebay[category]
@@ -73,7 +76,7 @@ def get_summary_of_articles_json(
 
     params = {
         "q": keywords,
-        "category_ids_ebay": cat_id,
+        "category_ids": cat_id,
         "filter": ",".join(filter_options),
         "aspect_filter": aspect_string,
         "sort": "-price",  # teuere Produkte zuerst, sonst kriegt man nur Pfennigartikel angezeigt
@@ -137,7 +140,7 @@ async def fetch_one_item(client, item_id):
         return None
 
 
-async def get_detailed_items_async(item_ids):
+async def get_detailed_items_async(item_ids, user_token):
     """
     Führt nicht-blockierende HTTP-GET-Requests für eine Menge von Item-IDs aus.
 
@@ -145,9 +148,14 @@ async def get_detailed_items_async(item_ids):
     minimieren. Resultate werden durch helper.extract_important_data gesäubert.
 
     :param item_ids: Set mit allen gefundenen Item-IDs
+    :param user_token: Authentifizierungstoken für get-Request
     :return: Liste von dicts mit genauen Produktdaten (Größe, Beschreibung, Material usw.)
     """
-    user_token = get_new_token()
+
+    if not item_ids:
+        print("❌ Keine Artikel gefunden")
+        return
+
     headers = {
         "Authorization": f"Bearer {user_token}",
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_DE"
@@ -163,5 +171,3 @@ async def get_detailed_items_async(item_ids):
         results = await asyncio.gather(*tasks)
 
     return [res for res in results if res is not None]
-
-print(get_summary_of_articles_json(keywords="shirt"))

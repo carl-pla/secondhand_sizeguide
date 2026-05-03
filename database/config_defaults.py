@@ -105,16 +105,16 @@ condition_ids_ebay = {
     "Befriedigend": "1000|1500|1750|2000|2010|2020|2030|2500|2750|2990|3000|3010|4000|5000|6000"
 }
 
-ebay_groessen = ["XS", "S", "M", "L", "XL", "XXL"]
+ebay_groessen = ["", "XS", "S", "M", "L", "XL", "XXL"]
 # Suche nach Größen ist nur per Suchbegriffe bei eBay möglich
 
-ebay_farben = ["Schwarz", "Weiß", "Grau", "Blau", "Rot",
+ebay_farben = ["", "Schwarz", "Weiß", "Grau", "Blau", "Rot",
                "Beige", "Braun", "Khaki", "Olivgrün", "Marineblau (Navy Blue)",
                "Creme", "Grün", "Gelb", "Orange", "Rosa", "Lila",
                "Türkis", "Gold", "Silber", "Mehrfarbig"]
 # ausgewählte Farben für selector-Menü im Dashboard
 
-ebay_materials = ["Baumwolle", "Leinen", "Wolle", "Seide", "Kaschmir", "Alpaka", "Hanf",
+ebay_materials = ["", "Baumwolle", "Leinen", "Wolle", "Seide", "Kaschmir", "Alpaka", "Hanf",
                   "Polyester", "Nylon", "Acryl", "Elasthan", "Viskose", "Modal", "Polyamid",
                   "Baumwolle-Polyester", "Wolle-Acryl", "Baumwolle-Elasthan",
                   "Leder", "Kunstleder", "Denim", "Fleece", "Gore-Tex", "Mikrofaser"]

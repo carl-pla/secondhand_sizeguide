@@ -14,10 +14,10 @@ if sys.platform == "win32":
 from scraper.vinted_scraper import scrape_artikel_details as vinted_scrape_details, scrape_suchergebnisse as vinted_scrape_suchergebnisse
 from scraper.habilleur_scraper import scrape_artikel_details as scrape_artikel_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
 from src_ebay.get_request import get_summary_of_articles_json, get_detailed_items_async
-from ai.ollama import ## hier neue ollama funktionen importieren
+from src_ebay.get_new_token import get_new_token
+from ai.ollama import analysiere_artikel_vinted, analysiere_artikel_habilleur, analysiere_artikel_ebay
 from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
 from database.scrapping_sessions import speichere_in_mongo
-import concurrent.futures
 
 """
 === WORKFLOW GROB 
@@ -148,6 +148,8 @@ async def main(config: dict, user_email: str=None):
 
         print(f"  Artikelsuche auf eBay gestartet.\n")
 
+        user_token = get_new_token()
+
         item_ids = get_summary_of_articles_json(
             max_price=config.get("max_preis", 40),
             keywords=config.get("suchbegriffe", ""),
@@ -156,10 +158,13 @@ async def main(config: dict, user_email: str=None):
             category=kategorie,
             size=groesse,
             min_condition=config.get("min_zustand", "Gut"),
-            item_amount=config.get("max_artikel_pro_suche", 10)
+            item_amount=config.get("max_artikel_pro_suche", 10),
+            material=config.get("material", ""),
+
+            user_token=user_token,
         )
 
-        product_details = await get_detailed_items_async(item_ids)
+        product_details = await get_detailed_items_async(item_ids, user_token)
         print("    Gefundene Artikel:\n")
 
         for product in product_details:
@@ -185,28 +190,26 @@ async def main(config: dict, user_email: str=None):
     --> gesammelte Daten werden an ollama geschickt (Performance/Größe gut)
     --> "ThreadPoolExecuter", um 3 Artikel parallel zu analysieren (spart Zeit)
     """
-    print(f"\n✨ {len(unique)} Artikel → Ollama (parallel, 3 gleichzeitig)...\n")
+    print(f"\n✨ {len(unique)} Artikel → Ollama (asynchron)...\n")
 
-    if ( quelle == "habilleur" ) or ( quelle == "vinted" ): # noch auftrennen
+    if quelle == "vinted":
+        tasks = [analysiere_artikel_vinted(artikel, config) for artikel in unique]
+        ergebnisse = await asyncio.gather(*tasks)
 
-        def analysiere_wrapper(artikel):
-            return analysiere_artikel(artikel, config)
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            # hier wird "analyse_artikel"-Funktion aus ollama.py aufgerufen, um die fertig gescannten Artikel zu analysieren
-            # WICHTIGES ZUSAMMENSPIEL!
-            ergebnisse = list(executor.map(analysiere_wrapper, unique))
-
-        # sortieren: Beste Empfehlungen nach oben
-        ergebnisse.sort(key=lambda x: x.get("bewertung") or 0, reverse=True)
-        empfohlen = [a for a in ergebnisse if a.get("empfohlen")]
+    elif quelle == "habilleur":
+        tasks = [analysiere_artikel_habilleur(artikel, config) for artikel in unique]
+        ergebnisse = await asyncio.gather(*tasks)
 
     elif quelle == "ebay":
-        # hier neu in ollama.py implementierte Funktionen nutzen
+        tasks = [analysiere_artikel_ebay(artikel, config) for artikel in unique]
+        ergebnisse = await asyncio.gather(*tasks)
 
-    # sollte eigentlich nie anschlagen
     else:
         print("Error bei der Marketplace-Wahl.")
+        return
+
+    ergebnisse.sort(key=lambda x: x.get("bewertung") or 0, reverse=True)
+    empfohlen = [a for a in ergebnisse if a.get("empfohlen")]
 
 
     """
@@ -229,11 +232,14 @@ async def main(config: dict, user_email: str=None):
     # Ausgabe im Terminal über momentanen Ablauf
     print(f"\n{'='*60}")
     print(f"✅ {len(empfohlen)} von {len(ergebnisse)} empfohlen")
+
     if quelle == "vinted":
         print(f"   Stufe 1 (Grob):  {min(max_suchen, len(config['stile']))} Suchen")
-    else:
+    elif quelle == "habilleur":
         print(f"   Stufe 1 (Grob):  {config.get('kategorie')} / {config.get('groesse')}")
-    print(f"   Stufe 2 (Detail): {len(unique)} Artikel gescrapt")
+    elif quelle == "ebay":
+        print(f"   Stufe 1 (Grob):  {config.get('kategorie')} / {config.get('groesse')}")
+    print(f"   Stufe 2 (Detail): {len(unique)} Artikel erhalten")
     print(f"   Stufe 3 (Ollama): {len(ergebnisse)} analysiert")
     print(f"💾 {ERGEBNISSE_FILE}")
     print(f"💾 {EMPFEHLUNGEN_FILE}")

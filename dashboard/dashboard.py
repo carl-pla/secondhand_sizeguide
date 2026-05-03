@@ -174,7 +174,7 @@ if "Vinted" in seite:
     st.markdown("# ⚙️ Vinted Einstellungen")
     st.markdown("Konfiguriere deine Vinted-Präferenzen.")
     st.markdown("---")
-    
+
     # Setze Quelle auf Vinted
     st.session_state.config["quelle"] = "vinted"
     
@@ -480,7 +480,7 @@ elif "eBay" in seite:
         col1, col2 = st.columns(2)
         with col1:
             st.session_state.config["groesse"] = st.selectbox(
-                "Kleidungsgröße (eBay)",
+                "Kleidungsgröße (leer lassen für beste Ergebnisse bei Schuhen)",
                 ebay_groessen,
                 index=ebay_groessen.index(st.session_state.config["groesse"])
             )
@@ -498,7 +498,7 @@ elif "eBay" in seite:
                     st.session_state.config.get("min_zustand", "Gut")
                 ))
             st.session_state.config["farbe"] = st.selectbox(
-                "Gewünschte Farbe des Artikels",
+                "Gewünschte Farbe des Artikels (leer lassen für keine Präferenz)",
                 ebay_farben,
                 index=ebay_farben.index(st.session_state.config["farbe"])
             )
@@ -519,7 +519,7 @@ elif "eBay" in seite:
                 placeholder="z.B. Adidas",
             )
             st.session_state.config["material"] = st.selectbox(
-                "Gewünschtes Material des Artikels",
+                "Gewünschtes Material des Artikels (leer lassen für keine Präferenz)",
                 ebay_materials,
                 index=ebay_materials.index(st.session_state.config["material"])
             )
@@ -695,7 +695,7 @@ elif "Suche" in seite:
                 f'<div class="metric-card"><div class="metric-label">Max. Artikel</div><div class="metric-value">~{anzahl}</div></div>',
                 unsafe_allow_html=True)
 
-        st.markdown("**Aktive Suchbegriffe (Stile):**")
+        st.markdown("**Aktive Suchbegriffe für Vinted (Stile):**")
         for s in config["stile"][:config.get("max_suchen", 2)]:
             st.markdown(f'<span class="badge">{s}</span>', unsafe_allow_html=True)
 
@@ -742,7 +742,7 @@ elif "Suche" in seite:
 
     st.markdown("---")
 
-    if st.button(f"🚀  {quelle.upper()} Scraper/API-Caller starten"):
+    if st.button(f"🚀  {quelle.upper()}-Suche starten"):
         speichere_config(st.session_state.config)
         st.info(f"✓ Gespeichert in `{CONFIG_FILE}`\n\n**Quelle:** {quelle.upper()}")
 
@@ -774,10 +774,10 @@ elif "Suche" in seite:
 
 # ═══════════════════════════════════════════════
 #  SEITE: ERGEBNISSE
-#  Problem: Bisher auf nur Vinted hardgecoded
 # ═══════════════════════════════════════════════
 elif "Ergebnisse" in seite:
     st.markdown("# Ergebnisse")
+    quelle = st.session_state.config.get("quelle", "vinted")
 
     if not ERGEBNISSE_FILE.exists():
         st.warning("Noch keine Ergebnisse. Starte zuerst eine Suche.")
@@ -789,6 +789,11 @@ elif "Ergebnisse" in seite:
         col1, col2, col3 = st.columns(3)
         with col1:
             nur_empfohlen = st.checkbox("Nur empfohlene Artikel", value=True)
+
+            if st.button("💾  Einstellungen speichern"):
+                speichere_config(st.session_state.config)
+                st.success(f"✓ Gespeichert in `{CONFIG_FILE}`")
+
         with col2:
             min_bewertung = st.slider("Mindest-Bewertung (Ergebnisanzeige)", 1, 10, 6)
             min_empfehlung = st.slider("Mindest-Bewertung (Empfehlung) ", 1, 10,
@@ -844,7 +849,7 @@ elif "Ergebnisse" in seite:
                 badges += f'<span class="badge">{filter_item["zustand"]}</span>'
             if filter_item.get("material"):
                 badges += f'<span class="badge">{filter_item["material"]}</span>'
-            if filter_item.get("passt_stil"):
+            if ( filter_item.get("passt_stil") ) and ( quelle == "vinted"):
                 badges += '<span class="badge">✓ Stil passt</span>'
 
             st.markdown(f"""
@@ -855,7 +860,7 @@ elif "Ergebnisse" in seite:
   {masse_html}
   <div style="margin-top:0.8rem; color:#8a8478; font-size:0.8rem">{filter_item.get('begruendung','')}</div>
   {f'<div style="color:#e8c97e; font-size:0.75rem; margin-top:0.4rem">📐 {passform}</div>' if passform else ''}
-  <div style="margin-top:0.6rem"><a href="{filter_item.get('url','#')}" target="_blank" style="color:#e8c97e; font-size:0.75rem; text-decoration:none">→ Auf Vinted ansehen</a></div>
+  <div style="margin-top:0.6rem"><a href="{filter_item.get('url','#')}" target="_blank" style="color:#e8c97e; font-size:0.75rem; text-decoration:none">→ Auf Quellwebseite ansehen</a></div>
 </div>
 """, unsafe_allow_html=True)
 

@@ -1,6 +1,7 @@
 import json
 import httpx # type: ignore
 from database.config_defaults import ZUSTAND_RANG
+from database.config_defaults import condition_ids_ebay
 
 """
 === WORKFLOW GROB ===
@@ -65,27 +66,42 @@ Item:
 - Description: {artikel['beschreibung']}
 
 CRITICAL RULES:
-SCORING RULES:
-- 9-10: Style matches AND measurements explicitly found in description AND fit perfectly (±4cm)
-- 7-8:  Style matches AND size tag is {config['groesse']}, but NO measurements found → max 7
-- 5-6:  Style uncertain OR size unclear
-- <5:   Style mismatch, wrong size, or price too high
+SCORING RULES (be conservative and critical):
+- 9-10: ALL client properties match AND measurements explicitly found AND fit perfectly (±4cm)
+- 7-8:  MOST properties match AND size tag matches, NO measurements found → max 7
+- 5-6:  Some properties match but style/color/material deviates noticeably OR size uncertain
+- 3-4:  Price too high OR condition below minimum OR significant property mismatch
+- 1-2:  Multiple mismatches, wrong size, wrong category
+- NEVER give 8+ without at least 3 matching properties
+- NEVER give 7+ if price exceeds budget
+- NEVER give 6+ if condition is below minimum
+- Default to lower score when uncertain
 
-Respond ONLY with this JSON:
+MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
+- brust_cm     = chest circumference at the widest point
+- taille_cm    = waist circumference at the narrowest point
+- huefte_cm    = hip circumference at the widest point
+- schulter_cm  = shoulder width from seam to seam
+- laenge_cm    = body length from shoulder to hem (tops/jackets) OR total length from waistband to ankle (pants). NOT coat length, NOT total body height
+- innennaht_cm = inseam length from crotch to ankle ONLY, NOT outseam, NOT total leg length
+- If a measurement is ambiguous, unclear or missing, use null
+
+Respond ONLY with this JSON (Use cm for measurements, convert if neccesary. No comments, no explanation, no markdown code blocks.):
 {{
   "masse": {{
-        "brust_cm":<insert value as integer if available, else null>,
-        "taille_cm":<insert value as integer if available, else null>,
-        "laenge_cm":<insert value (Oberteil/Top) as integer if available, else null>, 
-        "huefte_cm": <insert value as integer if available, else null>,
-        "schulter_cm": <insert value as integer if available, else null>,
-        "innennaht_cm": <insert value as integer if available, else null>
+        "brust_cm":<insert value as integer/null>,
+        "taille_cm":<insert value as integer/null>,
+        "laenge_cm":<insert value as integer/null>, 
+        "huefte_cm": <insert value as integer/null>,
+        "schulter_cm": <insert value as integer/null>,
+        "innennaht_cm": <insert value as integer/null>
   }},
   "zustand": "Neu mit Etikett/Neu ohne Etikett/Sehr gut/Gut/Befriedigend",
   "passt_groesse": true/false,
   "begruendung": "<insert max 2 Sätze auf Deutsch>",
   "bewertung": 1-10 (rating out of ten),
-  "empfohlen": true/false
+  "empfohlen": true/false,
+  "material": <insert value as string/null>
 }}"""
 
 # SCORE WEIGHTING: relativ euphorisch angesetzt, um mehr reinzubringen und dann harter auszusortiren 
@@ -203,6 +219,7 @@ Respond ONLY with this JSON:
         "begruendung":       analyse.get("begruendung"),
         "bewertung":         analyse.get("bewertung"),
         "empfohlen":         analyse.get("empfohlen", False),
+        "material":          analyse.get("material", "Unbekannt")
     }
 
 
@@ -223,7 +240,7 @@ Client:
 - Max Price: {config['max_preis']}€
 - Category: {config.get("kategorie")}
 - Detailled Size: {config.get("habilleur_masse")}
-    
+
 Item:
 - Title: {artikel['titel']}
 - Price: {artikel['preis']}
@@ -231,34 +248,57 @@ Item:
 - Material: {artikel['material']}
 
 CRITICAL RULES:
-SCORING RULES:
-- 9-10: Properties match AND measurements explicitly found in description AND fit perfectly (±4cm)
-- 7-8:  Properties match, but NO measurements found → max 7
-- 5-6:  Properties uncertain OR size unclear
-- <5:   Property mismatch, wrong size, or price too high
+SCORING RULES (be conservative and critical):
+- 9-10: ALL client properties match AND measurements explicitly found AND fit perfectly (±4cm)
+- 7-8:  MOST properties match AND size tag matches, NO measurements found → max 7
+- 5-6:  Some properties match but style/color/material deviates noticeably OR size uncertain
+- 3-4:  Price too high OR condition below minimum OR significant property mismatch
+- 1-2:  Multiple mismatches, wrong size, wrong category
+- NEVER give 8+ without at least 3 matching properties
+- NEVER give 7+ if price exceeds budget
+- NEVER give 6+ if condition is below minimum
+- Default to lower score when uncertain
 
-Respond ONLY with this JSON (use cm for measurements, convert if neccesary):
+MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
+- schulterbreite      = jacket shoulder width from seam to seam (full width)
+- aermellange         = jacket sleeve length from shoulder seam to cuff (full length)
+- jackenlaenge        = jacket body length from shoulder to hem (full length)
+- achselbreite        = jacket chest width measured flat from underarm to underarm (full width)
+- jacke_taillenweite  = jacket waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
+- hose_taillenweite   = trouser waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
+- gabelhoehe          = trouser rise from crotch seam to waistband (full length)
+- beinoeffnung        = trouser leg opening as HALF width (flat measurement). If description states full opening, divide by 2.
+- hosenlaenge         = trouser total length from waistband to hem (full length)
+- mantel_schulterbreite = coat shoulder width from seam to seam (full width)
+- mantel_gesamtlaenge   = coat total length from shoulder to hem (full length), NOT jacket length
+- mantel_aermellange    = coat sleeve length from shoulder seam to cuff (full length)
+- mantel_achselbreite   = coat chest width measured flat from underarm to underarm (full width)
+- mantel_taillenweite   = coat waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
+- If a measurement is ambiguous, unclear or missing, use null
+
+Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
 {{
   "masse": {{
-      "schulterbreite": <insert value as integer if available, else null>,
-      "aermellange": <insert value as integer if available, else null>,
-      "jackenlaenge": <insert value as integer if available, else null>,
-      "achselbreite": <insert value as integer if available, else null>,
-      "jacke_taillenweite": <insert value as integer if available, else null>,
-      "hose_taillenweite": <insert value as integer if available, else null>,
-      "gabelhoehe": <insert value as integer if available, else null>,
-      "beinoeffnung": <insert value as integer if available, else null>,
-      "hosenlaenge": <insert value as integer if available, else null>,
-      "mantel_schulterbreite": <insert value as integer if available, else null>,
-      "mantel_gesamtlaenge": <insert value as integer if available, else null>,
-      "mantel_aermellange": <insert value as integer if available, else null>,
-      "mantel_achselbreite": <insert value as integer if available, else null>,
-      "mantel_taillenweite": <insert value as integer if available, else null>}},
+      "schulterbreite": <insert value as integer/null>,
+      "aermellange": <insert value as integer/null>,
+      "jackenlaenge": <insert value as integer/null>,
+      "achselbreite": <insert value as integer/null>,
+      "jacke_taillenweite": <insert value as integer/null>,
+      "hose_taillenweite": <insert value as integer/null>,
+      "gabelhoehe": <insert value as integer/null>,
+      "beinoeffnung": <insert value as integer/null>,
+      "hosenlaenge": <insert value as integer/null>,
+      "mantel_schulterbreite": <insert value as integer/null>,
+      "mantel_gesamtlaenge": <insert value as integer/null>,
+      "mantel_aermellange": <insert value as integer/null>,
+      "mantel_achselbreite": <insert value as integer/null>,
+      "mantel_taillenweite": <insert value as integer/null>}},
   "zustand": "Neu mit Etikett/Neu ohne Etikett/Sehr gut/Gut/Befriedigend (only insert one as string)",
   "passt_groesse": true/false,
   "begruendung": "<insert max 2 Sätze auf Deutsch>",
   "bewertung": 1-10 (rating out of ten),
-  "empfohlen": true/false
+  "empfohlen": true/false,
+  "material": <insert value as string/null>
 }}"""
 
     # SCORE WEIGHTING: relativ euphorisch angesetzt, um mehr reinzubringen und dann harter auszusortiren
@@ -371,6 +411,7 @@ Respond ONLY with this JSON (use cm for measurements, convert if neccesary):
         "begruendung": analyse.get("begruendung"),
         "bewertung": analyse.get("bewertung"),
         "empfohlen": analyse.get("empfohlen", False),
+        "material": analyse.get("material", "Unbekannt")
     }
 
 
@@ -398,46 +439,73 @@ Client:
 - Custom keywords: {config["suchbegriffe"]}
 - Category: {config.get("kategorie")}
 - Material: {config["material"]}
-    
+
 Item:
 - Title: {artikel['title']}
 - Price: {artikel['price']}
 - Description: {artikel['description']}
 - Condition: {artikel['condition']}
+- Condition ID: {artikel['conditionId']}
 - Brand: {artikel['brand']}
 - Color: {artikel['color']}
 - Size: {artikel['size']}
 - Material: {artikel['material']}
 
-CRITICAL RULES:
-SCORING RULES:
-- 9-10: Properties match AND measurements explicitly found in description AND fit perfectly (±4cm)
-- 7-8:  Properties match AND size tag is {config['groesse']}, but NO measurements found → max 7
-- 5-6:  Properties uncertain OR size unclear
-- <5:   Property mismatch, wrong size, or price too high
+Dictionary for Condition IDs:
+{condition_ids_ebay}
 
-Respond ONLY with this JSON (use cm for measurements, convert if neccesary):
+CRITICAL RULES:
+SCORING RULES (be conservative and critical):
+- 9-10: ALL client properties match AND measurements explicitly found AND fit perfectly (±4cm)
+- 7-8:  MOST properties match AND size tag matches, NO measurements found → max 7
+- 5-6:  Some properties match but style/color/material deviates noticeably OR size uncertain
+- 3-4:  Price too high OR condition below minimum OR significant property mismatch
+- 1-2:  Multiple mismatches, wrong size, wrong category
+- NEVER give 8+ without at least 3 matching properties
+- NEVER give 7+ if price exceeds budget
+- NEVER give 6+ if condition is below minimum
+- Default to lower score when uncertain
+
+MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
+- schulterbreite      = jacket shoulder width from seam to seam (full width)
+- aermellange         = jacket sleeve length from shoulder seam to cuff (full length)
+- jackenlaenge        = jacket body length from shoulder to hem (full length)
+- achselbreite        = jacket chest width measured flat from underarm to underarm (full width)
+- jacke_taillenweite  = jacket waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
+- hose_taillenweite   = trouser waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
+- gabelhoehe          = trouser rise from crotch seam to waistband (full length)
+- beinoeffnung        = trouser leg opening as HALF width (flat measurement). If description states full opening, divide by 2.
+- hosenlaenge         = trouser total length from waistband to hem (full length)
+- mantel_schulterbreite = coat shoulder width from seam to seam (full width)
+- mantel_gesamtlaenge   = coat total length from shoulder to hem (full length), NOT jacket length
+- mantel_aermellange    = coat sleeve length from shoulder seam to cuff (full length)
+- mantel_achselbreite   = coat chest width measured flat from underarm to underarm (full width)
+- mantel_taillenweite   = coat waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
+- If a measurement is ambiguous, unclear or missing, use null
+
+Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
 {{
   "masse": {{
-      "schulterbreite": <insert value as integer if available, else null>,
-      "aermellange": <insert value as integer if available, else null>,
-      "jackenlaenge": <insert value as integer if available, else null>,
-      "achselbreite": <insert value as integer if available, else null>,
-      "jacke_taillenweite": <insert value as integer if available, else null>,
-      "hose_taillenweite": <insert value as integer if available, else null>,
-      "gabelhoehe": <insert value as integer if available, else null>,
-      "beinoeffnung": <insert value as integer if available, else null>,
-      "hosenlaenge": <insert value as integer if available, else null>,
-      "mantel_schulterbreite": <insert value as integer if available, else null>,
-      "mantel_gesamtlaenge": <insert value as integer if available, else null>,
-      "mantel_aermellange": <insert value as integer if available, else null>,
-      "mantel_achselbreite": <insert value as integer if available, else null>,
-      "mantel_taillenweite": <insert value as integer if available, else null>}},
-  "zustand": "Neu mit Etikett/Neu ohne Etikett/Sehr gut/Gut/Befriedigend (only insert one as string)",
+      "schulterbreite": <insert value as integer/null>,
+      "aermellange": <insert value as integer/null>,
+      "jackenlaenge": <insert value as integer/null>,
+      "achselbreite": <insert value as integer/null>,
+      "jacke_taillenweite": <insert value as integer/null>,
+      "hose_taillenweite": <insert value as integer/null>,
+      "gabelhoehe": <insert value as integer/null>,
+      "beinoeffnung": <insert value as integer/null>,
+      "hosenlaenge": <insert value as integer/null>,
+      "mantel_schulterbreite": <insert value as integer/null>,
+      "mantel_gesamtlaenge": <insert value as integer/null>,
+      "mantel_aermellange": <insert value as integer/null>,
+      "mantel_achselbreite": <insert value as integer/null>,
+      "mantel_taillenweite": <insert value as integer/null>}},
+  "zustand": <insert first key from given dict (as string) whose value contains the given Condition ID>,
   "passt_groesse": true/false,
   "begruendung": "<insert max 2 Sätze auf Deutsch>",
   "bewertung": 1-10 (rating out of ten),
-  "empfohlen": true/false
+  "empfohlen": true/false,
+  "material": <insert value as string/null>
 }}"""
 
     # SCORE WEIGHTING: relativ euphorisch angesetzt, um mehr reinzubringen und dann harter auszusortiren
@@ -560,4 +628,5 @@ Respond ONLY with this JSON (use cm for measurements, convert if neccesary):
         "begruendung": analyse.get("begruendung"),
         "bewertung": analyse.get("bewertung"),
         "empfohlen": analyse.get("empfohlen", False),
+        "material": analyse.get("material", "Unbekannt"),
     }

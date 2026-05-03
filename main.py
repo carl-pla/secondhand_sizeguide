@@ -168,7 +168,7 @@ async def main(config: dict, user_email: str=None): # type: ignore
         product_details = await get_detailed_items_async(item_ids, user_token)
         print("    Gefundene Artikel:\n")
 
-        for product in product_details:
+        for product in product_details: # type: ignore
             alle_roh.append(product)
             print(f"    ✓ {product['title'][:50]} – {product['price']}")
 

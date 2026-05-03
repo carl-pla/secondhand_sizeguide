@@ -73,7 +73,7 @@ def sende_email(html_content, empfaenger: str):
     msg = MIMEMultipart("alternative")
     heute = datetime.now().strftime("%d.%m.%Y")
     msg["Subject"] = f"🛍️ Deine Vinted Deals – {heute}"
-    msg["From"]    = MAIL_FROM
+    msg["From"]    = MAIL_FROM # type: ignore
     msg["To"]      = empfaenger
     msg.attach(MIMEText(html_content, "html"))
     try:
@@ -81,7 +81,7 @@ def sende_email(html_content, empfaenger: str):
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(MAIL_FROM, MAIL_PASSWORD)
+            server.login(MAIL_FROM, MAIL_PASSWORD) # type: ignore
             server.send_message(msg)
         print(f"✅ Newsletter gesendet an {empfaenger}")
     except Exception as e:

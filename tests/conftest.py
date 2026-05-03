@@ -13,6 +13,19 @@ damit die Tests ohne laufende Dienste funktionieren.
 
 import json
 import pytest 
+import os
+from unittest.mock import patch
+
+"""WICHTIG FÜR .ENV VARIABLEN, VON DER KERNDATEI HIER, WERDEN DIE INFOS ALS MOCK AN ALLE VERTEILT!!!"""
+@pytest.fixture(autouse=True)
+def mock_env_vars():
+    """Gaukelt dem System Umgebungsvariablen vor."""
+    with patch.dict(os.environ, {
+        "MAIL_PASSWORD": "dummy_password",
+        "MONGO_URL": "mongodb://localhost:27017",
+        "OLLAMA_HOST": "http://localhost:11434"
+    }):
+        yield
 
 
 # ══════════════════════════════════════════════════════════════════

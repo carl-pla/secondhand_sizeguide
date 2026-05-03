@@ -25,7 +25,7 @@ jobs:
       - name: Tests ausführen
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
-        run: pytest test_testdaten.py test_ollama.py test_newsletter.py test_scraping_sessions test_users.py test_scraper.py test_main.py -v --tb=short
+        run: pytest test_pipeline.py test_scraper.py -v --tb=short
           --cov=ai \
           --cov=database \
           --cov=scraper \

@@ -171,7 +171,7 @@ HABILLEUR_MASSE_BEISPIEL = {
     "mantel_achselbreite": 57,       # Mantel Achselbreite
     "mantel_taillenweite": 54,       # Mantel Taillenweite
 }
-OLLAMA_MODELLE = ["llama3.2:3b", "llama3"]
+OLLAMA_MODELLE = ["llama3.2:3b", "llama3", "llama3.1:8b"]
 STIL_OPTIONEN  = ["Menswear", "Vintage", "Retro", "Y2K", "Streetwear", "Minimalistisch", "Sportlich", "Boho", "Grunge"]
 ZUSTAND_RANG = {
     "Neu mit Etikett": 5, "Neu ohne Etikett": 4,

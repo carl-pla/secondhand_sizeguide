@@ -138,11 +138,9 @@ config = st.session_state.config
 #  SIDEBAR – NAVIGATION
 # ─────────────────────────────────────────────
 with st.sidebar:
-    # Pfad zum Ordner, in dem dashboard.py liegt
-    BASE_DIR = Path(__file__).resolve().parent
 
     # Pfad zum Logo (sehr sauber lesbar)
-    logo_path = BASE_DIR / "docs" / "logo_matchfit.png"
+    logo_path ="docs/logo_matchfit.png"
 
     st.image(logo_path, width=180)
     st.markdown(
@@ -286,21 +284,6 @@ if "Vinted" in seite:
             )
             st.session_state.config["pause_zwischen_suchen"] = list(p_such)
 
-    # ── TAB 4: Ollama ──
-    with tab4:
-        st.session_state.config["ollama_url"] = st.text_input(
-            "Ollama API URL",
-            st.session_state.config.get("ollama_url", "http://localhost:11434/api/generate")
-        )
-        st.session_state.config["ollama_modell"] = st.selectbox(
-            "Modell",
-            OLLAMA_MODELLE,
-            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", "llama3.2:3b"))
-            if st.session_state.config.get("ollama_modell") in OLLAMA_MODELLE else 0
-        )
-        st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
-
-    st.markdown("---")
 
     if st.button("💾  Einstellungen speichern"):
         speichere_config(st.session_state.config)
@@ -449,20 +432,6 @@ elif "Habilleur" in seite:
         if user_email:
             st.session_state.config["user_email"] = user_email
 
-    # ── TAB 4: Ollama ──
-    with tab4:
-        st.session_state.config["ollama_url"] = st.text_input(
-            "Ollama API URL",
-            value=st.session_state.config.get("ollama_url", "http://localhost:11434/api/generate")
-        )
-        st.session_state.config["ollama_modell"] = st.selectbox(
-            "Modell",
-            OLLAMA_MODELLE,
-            index=OLLAMA_MODELLE.index(st.session_state.config.get("ollama_modell", OLLAMA_MODELLE[0]))
-        )
-        st.caption("Modell muss mit `ollama pull <modell>` heruntergeladen sein.")
-
-    st.markdown("---")
     
     col1, col2 = st.columns(2)
     with col1:

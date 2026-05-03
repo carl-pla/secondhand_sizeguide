@@ -218,7 +218,7 @@ if "Vinted" in seite:
             
         with col2:
             st.session_state.config["max_preis"] = st.slider(
-                "Maximaler Preis (€)", 5, 500,
+                "Maximaler Preis (€)", 5, 200,
                 st.session_state.config.get("max_preis", 50), step=5
             )
             st.session_state.config["min_zustand"] = st.selectbox(
@@ -334,8 +334,8 @@ elif "Habilleur" in seite:
             )
         with col2:
             st.session_state.config["max_preis"] = st.slider(
-                "Maximaler Preis (€)", 50, 500,
-                st.session_state.config.get("max_preis", 150), step=10
+                "Maximaler Preis (€)", 50, 200,
+                st.session_state.config.get("max_preis", 50), step=10
             )
             max_artikel = st.session_state.config.get("max_artikel_pro_suche", 20)
             if max_artikel > 100:
@@ -505,7 +505,7 @@ elif "eBay" in seite:
 
         with col2:
             st.session_state.config["max_preis"] = st.slider(
-                "Maximaler Preis (€)", 5, 500,
+                "Maximaler Preis (€)", 5, 200,
                 st.session_state.config.get("max_preis", 50), step=5
             )
             st.session_state.config["suchbegriffe"] = st.text_input(
@@ -672,6 +672,10 @@ elif "Suche" in seite:
     else:
         st.warning("⚠️ Keine Email hinterlegt – Suche wird als 'anonym' gespeichert.")
 
+    min_empfehlung = st.slider("Mindest-Bewertung für Empfehlung", 1, 10,
+                               st.session_state.config.get("min_empfehlung", 6))
+    st.session_state.config["min_empfehlung"] = min_empfehlung
+
     st.markdown("---")
 
     if quelle == "vinted":
@@ -790,15 +794,9 @@ elif "Ergebnisse" in seite:
         with col1:
             nur_empfohlen = st.checkbox("Nur empfohlene Artikel", value=True)
 
-            if st.button("💾  Einstellungen speichern"):
-                speichere_config(st.session_state.config)
-                st.success(f"✓ Gespeichert in `{CONFIG_FILE}`")
-
         with col2:
             min_bewertung = st.slider("Mindest-Bewertung (Ergebnisanzeige)", 1, 10, 6)
-            min_empfehlung = st.slider("Mindest-Bewertung (Empfehlung) ", 1, 10,
-                                       st.session_state.config.get("min_empfehlung", 6))
-            st.session_state.config["min_empfehlung"] = min_empfehlung
+
         with col3:
             sortierung = st.selectbox("Sortierung", ["Bewertung ↓", "Preis ↑", "Preis ↓"])
 
@@ -824,10 +822,36 @@ elif "Ergebnisse" in seite:
 
             masse = filter_item.get("masse", {})
             masse_html = ""
-            masse_felder = [
-                ("brust_cm", "Brust"), ("taille_cm", "Taille"), ("huefte_cm", "Hüfte"),
-                ("schulter_cm", "Schulter"), ("laenge_cm", "Länge"), ("aermel_cm", "Ärmel")
-            ]
+
+            if quelle == "vinted":
+                masse_felder = [
+                    ("brust_cm", "Brust"), ("taille_cm", "Taille"), ("huefte_cm", "Hüfte"),
+                    ("schulter_cm", "Schulter"), ("laenge_cm", "Länge"), ("innennaht_cm", "Ärmel")
+                ]
+
+            elif ( quelle == "habilleur" ) or ( quelle == "ebay"):
+                masse_felder = [
+                    ("schulterbreite", "Schulterbreite"),
+                    ("aermellange", "Ärmellänge"),
+                    ("jackenlaenge", "Jackenlänge"),
+                    ("achselbreite", "Achselbreite"),
+                    ("jacke_taillenweite", "Jacke Taillenweite"),
+                    ("hose_taillenweite", "Hose Taillenweite"),
+                    ("gabelhoehe", "Gabelhöhe"),
+                    ("beinoeffnung", "Beinöffnung"),
+                    ("hosenlaenge", "Hosenlänge"),
+                    ("mantel_schulterbreite", "Mantel Schulterbreite"),
+                    ("mantel_gesamtlaenge", "Mantel Gesamtlänge"),
+                    ("mantel_aermellange", "Mantel Ärmellänge"),
+                    ("mantel_achselbreite", "Mantel Achselbreite"),
+                    ("mantel_taillenweite", "Mantel Taillenweite"),
+                ]
+
+            else:
+                masse_felder = []
+                print("Es ist bei der Suchauswahl ein Fehler aufgetreten.")
+
+
             # Prüfe sicherheitshalber, ob 'masse' überhaupt existiert, bevor wir .get() nutzen
             if masse is not None:
                 masse_items = [(label, masse.get(key)) for key, label in masse_felder if masse.get(key)]
@@ -860,7 +884,7 @@ elif "Ergebnisse" in seite:
   {masse_html}
   <div style="margin-top:0.8rem; color:#8a8478; font-size:0.8rem">{filter_item.get('begruendung','')}</div>
   {f'<div style="color:#e8c97e; font-size:0.75rem; margin-top:0.4rem">📐 {passform}</div>' if passform else ''}
-  <div style="margin-top:0.6rem"><a href="{filter_item.get('url','#')}" target="_blank" style="color:#e8c97e; font-size:0.75rem; text-decoration:none">→ Auf Quellwebseite ansehen</a></div>
+  <div style="margin-top:0.6rem"><a href="{filter_item.get('url','#')}" target="_blank" style="color:#e8c97e; font-size:0.75rem; text-decoration:none">→ Auf Marktplatz ansehen</a></div>
 </div>
 """, unsafe_allow_html=True)
 

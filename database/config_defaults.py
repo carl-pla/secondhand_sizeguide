@@ -45,7 +45,7 @@ category_ids_ebay = {
     "Kleidung & Accessoires": "11450",  # allgemeine ID (übergeordnet)
 
     "Herren Alles": "260012",
-    "Herren Anzüge & Blazer": "3001",
+    "Herren Anzüge": "3001",
     "Herren Badebekleidung": "15690",
     "Herren Fitnessmode": "185099",
     "Herren Hosen": "57989",
@@ -105,7 +105,7 @@ condition_ids_ebay = {
     "Befriedigend": "1000|1500|1750|2000|2010|2020|2030|2500|2750|2990|3000|3010|4000|5000|6000"
 }
 
-ebay_groessen = ["", "XS", "S", "M", "L", "XL", "XXL"]
+ebay_groessen = ["XS", "S", "M", "L", "XL", "XXL"]
 # Suche nach Größen ist nur per Suchbegriffe bei eBay möglich
 
 ebay_farben = ["", "Schwarz", "Weiß", "Grau", "Blau", "Rot",

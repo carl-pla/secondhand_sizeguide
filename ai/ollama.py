@@ -36,6 +36,93 @@ async def frage_ollama(prompt: str, ollama_url: str, modell: str) -> str:
     except Exception as e:
         print(f"  ⚠️  Ollama-Fehler: {e}")
         return ""
+
+
+# ─────────────────────────────────────────────
+# Regeln für LLM
+# ─────────────────────────────────────────────
+
+SCORING_RULES = """SCORING RULES (be conservative and critical):
+- 9-10: ALL client properties match AND measurements explicitly found AND fit perfectly (±4cm)
+- 7-8:  MOST properties match AND size tag matches, NO measurements found → max 7
+- 5-6:  Some properties match but style/color/material deviates noticeably OR size uncertain
+- 3-4:  Price too high OR condition below minimum OR significant property mismatch
+- 1-2:  Multiple mismatches, wrong size, wrong category
+- NEVER give 8+ without at least 3 matching properties
+- NEVER give 7+ if price exceeds budget
+- NEVER give 6+ if condition is below minimum
+- Default to lower score when uncertain"""
+
+UNIT_CONVERSION_RULES = """UNIT CONVERSION RULES:
+- ALWAYS check the unit of measurement in the description
+- If measurements are in inches ("), ALWAYS convert to cm (multiply by 2.54)
+- If measurements are in mm, ALWAYS convert to cm (divide by 10)
+- Common indicators for inches: ", inch, Zoll, '
+- Example: 34" Taille = 34 × 2.54 = 86cm → hose_taillenweite = 43 (half circumference)
+- NEVER copy the raw number without converting"""
+
+MEASUREMENT_RULES_VINTED = """MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
+- brust_cm     = chest circumference at the widest point
+- taille_cm    = waist circumference at the narrowest point
+- huefte_cm    = hip circumference at the widest point
+- schulter_cm  = shoulder width from seam to seam
+- laenge_cm    = body length from shoulder to hem (tops/jackets) OR total length from waistband to ankle (pants). NOT coat length, NOT total body height
+- innennaht_cm = inseam length from crotch to ankle ONLY, NOT outseam, NOT total leg length
+- If a measurement is ambiguous, unclear or missing, use null"""
+
+MEASUREMENT_RULES_EBAY_HAB = """MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
+- schulterbreite      = jacket shoulder width from seam to seam (full width)
+- aermellange         = jacket sleeve length from shoulder seam to cuff (full length)
+- jackenlaenge        = jacket body length from shoulder to hem (full length)
+- achselbreite        = jacket chest width measured flat from underarm to underarm (full width)
+- jacke_taillenweite  = jacket waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
+- hose_taillenweite   = trouser waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
+- gabelhoehe          = trouser rise from crotch seam to waistband (full length)
+- beinoeffnung        = trouser leg opening as HALF width (flat measurement). If description states full opening, divide by 2.
+- hosenlaenge         = trouser total length from waistband to hem (full length)
+- mantel_schulterbreite = coat shoulder width from seam to seam (full width)
+- mantel_gesamtlaenge   = coat total length from shoulder to hem (full length), NOT jacket length
+- mantel_aermellange    = coat sleeve length from shoulder seam to cuff (full length)
+- mantel_achselbreite   = coat chest width measured flat from underarm to underarm (full width)
+- mantel_taillenweite   = coat waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
+- If a measurement is ambiguous, unclear or missing, use null"""
+
+JSON_MASSE_VINTED = """{
+  "masse": {
+        "brust_cm":<insert value as integer/null>,
+        "taille_cm":<insert value as integer/null>,
+        "laenge_cm":<insert value as integer/null>,
+        "huefte_cm": <insert value as integer/null>,
+        "schulter_cm": <insert value as integer/null>,
+        "innennaht_cm": <insert value as integer/null>
+  }"""
+
+JSON_MASSE_EBAY_HAB = """{
+  "masse": {
+      "schulterbreite": <insert value as integer/null>,
+      "aermellange": <insert value as integer/null>,
+      "jackenlaenge": <insert value as integer/null>,
+      "achselbreite": <insert value as integer/null>,
+      "jacke_taillenweite": <insert value as integer/null>,
+      "hose_taillenweite": <insert value as integer/null>,
+      "gabelhoehe": <insert value as integer/null>,
+      "beinoeffnung": <insert value as integer/null>,
+      "hosenlaenge": <insert value as integer/null>,
+      "mantel_schulterbreite": <insert value as integer/null>,
+      "mantel_gesamtlaenge": <insert value as integer/null>,
+      "mantel_aermellange": <insert value as integer/null>,
+      "mantel_achselbreite": <insert value as integer/null>,
+      "mantel_taillenweite": <insert value as integer/null>}"""
+
+JSON_FOOTER_STANDARD = """  "zustand": "Neu mit Etikett/Neu ohne Etikett/Sehr gut/Gut/Befriedigend (only insert one as string)",
+  "passt_groesse": true/false,
+  "begruendung": "<insert max 2 Sätze auf Deutsch>",
+  "bewertung": 1-10 (rating out of ten),
+  "empfohlen": true/false,
+  "material": <insert value as string/null>
+}"""
+
+
 """
 === STUFE 2 ===
 Hauptfunktion der Datei: Schritt 1. Subjektive LLM Analyse, 2. Harter Faktencheck 
@@ -53,58 +140,28 @@ async def analysiere_artikel_vinted(artikel: dict, config: dict) -> dict:
     """
     prompt = f"""You are a vintage fashion curator. Evaluate if this item fits the client.
 
-Client:
-- Style: {stile}
-- Size: {config['groesse']}
-- Detailled Size: {config['eigene_masse']}
-- Max Price: {config['max_preis']}€
-- Min Condition: {min_zustand}
+    Client:
+    - Style: {stile}
+    - Size: {config['groesse']}
+    - Detailled Size: {config['eigene_masse']}
+    - Max Price: {config['max_preis']}€
+    - Min Condition: {min_zustand}
 
-Item:
-- Title: {artikel['titel']}
-- Price: {artikel['preis']}
-- Description: {artikel['beschreibung']}
+    Item:
+    - Title: {artikel['titel']}
+    - Price: {artikel['preis']}
+    - Description: {artikel['beschreibung']}
 
-CRITICAL RULES:
-SCORING RULES (be conservative and critical):
-- 9-10: ALL client properties match AND measurements explicitly found AND fit perfectly (±4cm)
-- 7-8:  MOST properties match AND size tag matches, NO measurements found → max 7
-- 5-6:  Some properties match but style/color/material deviates noticeably OR size uncertain
-- 3-4:  Price too high OR condition below minimum OR significant property mismatch
-- 1-2:  Multiple mismatches, wrong size, wrong category
-- NEVER give 8+ without at least 3 matching properties
-- NEVER give 7+ if price exceeds budget
-- NEVER give 6+ if condition is below minimum
-- Default to lower score when uncertain
+    CRITICAL RULES:
+    {SCORING_RULES}
 
-MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
-- brust_cm     = chest circumference at the widest point
-- taille_cm    = waist circumference at the narrowest point
-- huefte_cm    = hip circumference at the widest point
-- schulter_cm  = shoulder width from seam to seam
-- laenge_cm    = body length from shoulder to hem (tops/jackets) OR total length from waistband to ankle (pants). NOT coat length, NOT total body height
-- innennaht_cm = inseam length from crotch to ankle ONLY, NOT outseam, NOT total leg length
-- If a measurement is ambiguous, unclear or missing, use null
+    {UNIT_CONVERSION_RULES}
 
-Respond ONLY with this JSON (Use cm for measurements, convert if neccesary. No comments, no explanation, no markdown code blocks.):
-{{
-  "masse": {{
-        "brust_cm":<insert value as integer/null>,
-        "taille_cm":<insert value as integer/null>,
-        "laenge_cm":<insert value as integer/null>, 
-        "huefte_cm": <insert value as integer/null>,
-        "schulter_cm": <insert value as integer/null>,
-        "innennaht_cm": <insert value as integer/null>
-  }},
-  "zustand": "Neu mit Etikett/Neu ohne Etikett/Sehr gut/Gut/Befriedigend",
-  "passt_groesse": true/false,
-  "begruendung": "<insert max 2 Sätze auf Deutsch>",
-  "bewertung": 1-10 (rating out of ten),
-  "empfohlen": true/false,
-  "material": <insert value as string/null>
-}}"""
+    {MEASUREMENT_RULES_VINTED}
 
-# SCORE WEIGHTING: relativ euphorisch angesetzt, um mehr reinzubringen und dann harter auszusortiren 
+    Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
+    {JSON_MASSE_VINTED},
+    {JSON_FOOTER_STANDARD}"""
     
     # Nach Prompt kommt der Analyseteil 
     print(f"    🤖 Analysiere: {artikel['titel'][:50]}...")
@@ -170,15 +227,13 @@ Respond ONLY with this JSON (Use cm for measurements, convert if neccesary. No c
             analyse["begruendung"] = f"Zustand '{zustand}' unter '{min_zustand}'. " + analyse.get("begruendung", "")
 
     """
-    3.3 Mindestbewertung, jedoch aktuell auf 6 hardgecodet --> soll mit Schieberegel in "Ergebnissen" angepasst werden
-    was dann letztendlich in der Empfehlung JSON landet
+    3.3 Mindestbewertung prüfen
     """
     mindest_bewertung = config.get("min_empfehlung", 6)
     if analyse.get("bewertung", 0) < mindest_bewertung:
         analyse["empfohlen"] = False
     else:
         analyse["empfohlen"] = True # ← Überschreibt Ollamas zu strenges Urteil
-
     
     """
     4. PASSFORM-VERGLEICH: Mathematische Berechnung der Differenz von Maßen, was gefunden wurde und was angegeben wurde
@@ -197,6 +252,11 @@ Respond ONLY with this JSON (Use cm for measurements, convert if neccesary. No c
             diff = masse[key] - eigener_wert
             if abs(diff) <= 4: # Differenzwert liegt hardgecodet bei 4cm??? --> so lassen??? ja, bin dafür
                 passform_hinweise.append(f"{label}: passt gut")
+            elif abs(diff) > 10:
+                analyse["empfohlen"] = False
+                analyse["bewertung"] = min(analyse.get("bewertung", 5), 4)
+                analyse["begruendung"] = (f"Maß '{key}' weicht zu stark ab ({masse[key]} vs {eigener_wert} cm). "
+                                          + analyse.get("begruendung", ""))
             elif diff > 0:
                 passform_hinweise.append(f"{label}: +{diff}cm größer")
             else:
@@ -236,72 +296,27 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
     """
     prompt = f"""You are a vintage fashion curator. Evaluate if this item fits the client.
 
-Client:
-- Max Price: {config['max_preis']}€
-- Category: {config.get("kategorie")}
-- Detailled Size: {config.get("habilleur_masse")}
+    Client:
+    - Max Price: {config['max_preis']}€
+    - Category: {config.get("kategorie")}
+    - Detailled Size: {config.get("habilleur_masse")}
 
-Item:
-- Title: {artikel['titel']}
-- Price: {artikel['preis']}
-- Description: {artikel['beschreibung']}
-- Material: {artikel['material']}
+    Item:
+    - Title: {artikel['titel']}
+    - Price: {artikel['preis']}
+    - Description: {artikel['beschreibung']}
+    - Material: {artikel['material']}
 
-CRITICAL RULES:
-SCORING RULES (be conservative and critical):
-- 9-10: ALL client properties match AND measurements explicitly found AND fit perfectly (±4cm)
-- 7-8:  MOST properties match AND size tag matches, NO measurements found → max 7
-- 5-6:  Some properties match but style/color/material deviates noticeably OR size uncertain
-- 3-4:  Price too high OR condition below minimum OR significant property mismatch
-- 1-2:  Multiple mismatches, wrong size, wrong category
-- NEVER give 8+ without at least 3 matching properties
-- NEVER give 7+ if price exceeds budget
-- NEVER give 6+ if condition is below minimum
-- Default to lower score when uncertain
+    CRITICAL RULES:
+    {SCORING_RULES}
 
-MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
-- schulterbreite      = jacket shoulder width from seam to seam (full width)
-- aermellange         = jacket sleeve length from shoulder seam to cuff (full length)
-- jackenlaenge        = jacket body length from shoulder to hem (full length)
-- achselbreite        = jacket chest width measured flat from underarm to underarm (full width)
-- jacke_taillenweite  = jacket waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
-- hose_taillenweite   = trouser waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
-- gabelhoehe          = trouser rise from crotch seam to waistband (full length)
-- beinoeffnung        = trouser leg opening as HALF width (flat measurement). If description states full opening, divide by 2.
-- hosenlaenge         = trouser total length from waistband to hem (full length)
-- mantel_schulterbreite = coat shoulder width from seam to seam (full width)
-- mantel_gesamtlaenge   = coat total length from shoulder to hem (full length), NOT jacket length
-- mantel_aermellange    = coat sleeve length from shoulder seam to cuff (full length)
-- mantel_achselbreite   = coat chest width measured flat from underarm to underarm (full width)
-- mantel_taillenweite   = coat waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
-- If a measurement is ambiguous, unclear or missing, use null
+    {UNIT_CONVERSION_RULES}
 
-Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
-{{
-  "masse": {{
-      "schulterbreite": <insert value as integer/null>,
-      "aermellange": <insert value as integer/null>,
-      "jackenlaenge": <insert value as integer/null>,
-      "achselbreite": <insert value as integer/null>,
-      "jacke_taillenweite": <insert value as integer/null>,
-      "hose_taillenweite": <insert value as integer/null>,
-      "gabelhoehe": <insert value as integer/null>,
-      "beinoeffnung": <insert value as integer/null>,
-      "hosenlaenge": <insert value as integer/null>,
-      "mantel_schulterbreite": <insert value as integer/null>,
-      "mantel_gesamtlaenge": <insert value as integer/null>,
-      "mantel_aermellange": <insert value as integer/null>,
-      "mantel_achselbreite": <insert value as integer/null>,
-      "mantel_taillenweite": <insert value as integer/null>}},
-  "zustand": "Neu mit Etikett/Neu ohne Etikett/Sehr gut/Gut/Befriedigend (only insert one as string)",
-  "passt_groesse": true/false,
-  "begruendung": "<insert max 2 Sätze auf Deutsch>",
-  "bewertung": 1-10 (rating out of ten),
-  "empfohlen": true/false,
-  "material": <insert value as string/null>
-}}"""
+    {MEASUREMENT_RULES_EBAY_HAB}
 
-    # SCORE WEIGHTING: relativ euphorisch angesetzt, um mehr reinzubringen und dann harter auszusortiren
+    Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
+    {JSON_MASSE_EBAY_HAB},
+    {JSON_FOOTER_STANDARD}"""
 
     # Nach Prompt kommt der Analyseteil
     print(f"    🤖 Analysiere: {artikel['titel'][:50]}...")
@@ -390,28 +405,33 @@ Respond ONLY with this JSON (No comments, no explanation, no markdown code block
             diff = masse[key] - eigener_wert
             if abs(diff) <= 4:  # Differenzwert liegt hardgecodet bei 4cm??? --> so lassen??? ja
                 passform_hinweise.append(f"{label}: passt gut")
+            elif abs(diff) > 10:
+                analyse["empfohlen"] = False
+                analyse["bewertung"] = min(analyse.get("bewertung", 5), 4)
+                analyse["begruendung"] = (f"Maß '{key}' weicht zu stark ab ({masse[key]} vs {eigener_wert} cm). "
+                                          + analyse.get("begruendung", ""))
             elif diff > 0:
                 passform_hinweise.append(f"{label}: +{diff}cm größer")
             else:
                 passform_hinweise.append(f"{label}: {diff}cm kleiner")
 
     """
-    5. RÜCKGABE: Alle Daten für MongoDB und das Dashboard zusammenführen --> an main.py geschickt 
+    5. RÜCKGABE: Alle Daten fsür MongoDB und das Dashboard zusammenführen --> an main.py geschickt 
     """
     return {
-        "url": artikel.get("url"),
-        "titel": artikel["titel"],
-        "preis": artikel["preis"],
-        "beschreibung": artikel["beschreibung"],
-        "masse": analyse.get("masse", {}),
-        "zustand": analyse.get("zustand"),
-        "passt_groesse": analyse.get("passt_groesse"),
-        "passt_stil": "Unbekannt, da Habilleur-Ergebnis",
+        "url":               artikel.get("url"),
+        "titel":             artikel["titel"],
+        "preis":             artikel["preis"],
+        "beschreibung":      artikel["beschreibung"],
+        "masse":             analyse.get("masse", {}),
+        "zustand":           analyse.get("zustand"),
+        "passt_groesse":     analyse.get("passt_groesse"),
+        "passt_stil":        "Unbekannt, da Habilleur-Ergebnis",
         "passform_hinweise": passform_hinweise or None,
-        "begruendung": analyse.get("begruendung"),
-        "bewertung": analyse.get("bewertung"),
-        "empfohlen": analyse.get("empfohlen", False),
-        "material": analyse.get("material", "Unbekannt")
+        "begruendung":       analyse.get("begruendung"),
+        "bewertung":         analyse.get("bewertung"),
+        "empfohlen":         analyse.get("empfohlen", False),
+        "material":          analyse.get("material", "Unbekannt")
     }
 
 
@@ -430,85 +450,46 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
     """
     prompt = f"""You are a vintage fashion curator. Evaluate if this item fits the client.
 
-Client:
-- Size: {config['groesse']}
-- Max Price: {config['max_preis']}€
-- Minimal Condition: {min_zustand}
-- Brand: {config["marke"]}
-- Color: {config["farbe"]}
-- Custom keywords: {config["suchbegriffe"]}
-- Category: {config.get("kategorie")}
-- Material: {config["material"]}
+    Client:
+    - Size: {config['groesse']}
+    - Max Price: {config['max_preis']}€
+    - Minimal Condition: {min_zustand}
+    - Brand: {config["marke"]}
+    - Color: {config["farbe"]}
+    - Custom keywords: {config["suchbegriffe"]}
+    - Category: {config.get("kategorie")}
+    - Material: {config["material"]}
 
-Item:
-- Title: {artikel['title']}
-- Price: {artikel['price']}
-- Description: {artikel['description']}
-- Condition: {artikel['condition']}
-- Condition ID: {artikel['conditionId']}
-- Brand: {artikel['brand']}
-- Color: {artikel['color']}
-- Size: {artikel['size']}
-- Material: {artikel['material']}
+    Item:
+    - Title: {artikel['title']}
+    - Price: {artikel['price']}
+    - Description: {artikel['description']}
+    - Condition: {artikel['condition']}
+    - Condition ID: {artikel['conditionId']}
+    - Brand: {artikel['brand']}
+    - Color: {artikel['color']}
+    - Size: {artikel['size']}
+    - Material: {artikel['material']}
 
-Dictionary for Condition IDs:
-{condition_ids_ebay}
+    Dictionary for Condition IDs:
+    {condition_ids_ebay}
 
-CRITICAL RULES:
-SCORING RULES (be conservative and critical):
-- 9-10: ALL client properties match AND measurements explicitly found AND fit perfectly (±4cm)
-- 7-8:  MOST properties match AND size tag matches, NO measurements found → max 7
-- 5-6:  Some properties match but style/color/material deviates noticeably OR size uncertain
-- 3-4:  Price too high OR condition below minimum OR significant property mismatch
-- 1-2:  Multiple mismatches, wrong size, wrong category
-- NEVER give 8+ without at least 3 matching properties
-- NEVER give 7+ if price exceeds budget
-- NEVER give 6+ if condition is below minimum
-- Default to lower score when uncertain
+    CRITICAL RULES:
+    {SCORING_RULES}
 
-MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
-- schulterbreite      = jacket shoulder width from seam to seam (full width)
-- aermellange         = jacket sleeve length from shoulder seam to cuff (full length)
-- jackenlaenge        = jacket body length from shoulder to hem (full length)
-- achselbreite        = jacket chest width measured flat from underarm to underarm (full width)
-- jacke_taillenweite  = jacket waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
-- hose_taillenweite   = trouser waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
-- gabelhoehe          = trouser rise from crotch seam to waistband (full length)
-- beinoeffnung        = trouser leg opening as HALF width (flat measurement). If description states full opening, divide by 2.
-- hosenlaenge         = trouser total length from waistband to hem (full length)
-- mantel_schulterbreite = coat shoulder width from seam to seam (full width)
-- mantel_gesamtlaenge   = coat total length from shoulder to hem (full length), NOT jacket length
-- mantel_aermellange    = coat sleeve length from shoulder seam to cuff (full length)
-- mantel_achselbreite   = coat chest width measured flat from underarm to underarm (full width)
-- mantel_taillenweite   = coat waist as HALF circumference (flat measurement). If description states full circumference, divide by 2.
-- If a measurement is ambiguous, unclear or missing, use null
+    {UNIT_CONVERSION_RULES}
 
-Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
-{{
-  "masse": {{
-      "schulterbreite": <insert value as integer/null>,
-      "aermellange": <insert value as integer/null>,
-      "jackenlaenge": <insert value as integer/null>,
-      "achselbreite": <insert value as integer/null>,
-      "jacke_taillenweite": <insert value as integer/null>,
-      "hose_taillenweite": <insert value as integer/null>,
-      "gabelhoehe": <insert value as integer/null>,
-      "beinoeffnung": <insert value as integer/null>,
-      "hosenlaenge": <insert value as integer/null>,
-      "mantel_schulterbreite": <insert value as integer/null>,
-      "mantel_gesamtlaenge": <insert value as integer/null>,
-      "mantel_aermellange": <insert value as integer/null>,
-      "mantel_achselbreite": <insert value as integer/null>,
-      "mantel_taillenweite": <insert value as integer/null>}},
-  "zustand": <insert first key from given dict (as string) whose value contains the given Condition ID>,
-  "passt_groesse": true/false,
-  "begruendung": "<insert max 2 Sätze auf Deutsch>",
-  "bewertung": 1-10 (rating out of ten),
-  "empfohlen": true/false,
-  "material": <insert value as string/null>
-}}"""
+    {MEASUREMENT_RULES_EBAY_HAB}
 
-    # SCORE WEIGHTING: relativ euphorisch angesetzt, um mehr reinzubringen und dann harter auszusortiren
+    Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
+    {JSON_MASSE_EBAY_HAB},
+      "zustand": <insert first key from given dict (as string) whose value contains the given Condition ID>,
+      "passt_groesse": true/false,
+      "begruendung": "<insert max 2 Sätze auf Deutsch>",
+      "bewertung": 1-10 (rating out of ten),
+      "empfohlen": true/false,
+      "material": <insert value as string/null>
+    }}"""
 
     # Nach Prompt kommt der Analyseteil
     print(f"    🤖 Analysiere: {artikel['title'][:50]}...")
@@ -603,6 +584,11 @@ Respond ONLY with this JSON (No comments, no explanation, no markdown code block
             diff = masse[key] - eigener_wert
             if abs(diff) <= 4:  # Differenzwert liegt hardgecodet bei 4cm??? --> so lassen??? ja
                 passform_hinweise.append(f"{label}: passt gut")
+            elif abs(diff) > 10:
+                analyse["empfohlen"] = False
+                analyse["bewertung"] = min(analyse.get("bewertung", 5), 4)
+                analyse["begruendung"] = (f"Maß '{key}' weicht zu stark ab ({masse[key]} vs {eigener_wert} cm). "
+                                          + analyse.get("begruendung", ""))
             elif diff > 0:
                 passform_hinweise.append(f"{label}: +{diff}cm größer")
             else:

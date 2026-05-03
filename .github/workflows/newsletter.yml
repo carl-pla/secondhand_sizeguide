@@ -1,30 +1,36 @@
 name: Automated Newsletter
 
 on:
-  workflow_dispatch:
+  # Wird automatisch getriggert sobald der "Nightly Vinted Scraper" Workflow fertig ist
   workflow_run:
-    workflows: ["Daily Vinted Scraper"] # Startet, wenn der Scraper fertig ist
-    types: 
-      - completed
+    workflows: ["Nightly Vinted Scraper"]  # Muss exakt so heißen wie der andere Workflow
+    types:
+      - completed   # Triggert bei Abschluss – egal ob success oder failure (gefiltert unten)
+
+  # Zusätzlich manuell über GitHub UI startbar (z.B. zum Testen)
+  workflow_dispatch:
 
 jobs:
   send-newsletter:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Läuft nur wenn:
+    # a) Manuell gestartet (workflow_dispatch), ODER
+    # b) Der Scraper erfolgreich durchgelaufen ist (conclusion == 'success')
+    # → Verhindert dass ein Newsletter bei fehlgeschlagenem Scraper rausgeht
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Python Setup
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - run: pip install -r requirements.txt
 
-      - name: Install Dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run Newsletter Script
+      - name: Newsletter versenden
         env:
-          MONGO_URL: ${{ secrets.MONGO_URL }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MONGO_URL: ${{ secrets.MONGO_URL }}       # MongoDB Atlas Verbindung
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}       # Absender-E-Mail (Gmail)
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }} # Gmail App-Passwort
         run: python newsletter/newsletter.py

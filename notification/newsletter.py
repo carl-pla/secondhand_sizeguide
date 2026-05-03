@@ -3,34 +3,37 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
-from pymongo import MongoClient # type: ignore
+from pymongo import MongoClient
 
-MONGO_URL      = os.getenv("MONGO_URL")
-MAIL_FROM      = os.getenv("MAIL_FROM")
-MAIL_PASSWORD  = os.getenv("MAIL_PASSWORD")
+
+MONGO_URL     = os.getenv("MONGO_URL")
+MAIL_FROM     = os.getenv("MAIL_FROM")
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+
+MAX_ARTIKEL = 10  # Zentrale Konstante – nur einmal ändern nötig
 
 def fetch_latest_empfehlungen():
-    MONGO_URL = os.getenv("MONGO_URL")
-
     if not MONGO_URL:
-    # Das wird im GitHub Log rot angezeigt und stoppt das Skript sofort
-        raise ValueError("❌ Kritischer Fehler: Die Umgebungsvariable MONGO_URL wurde nicht gefunden!")
-    print("✅ MONGO_URL erfolgreich geladen.")
-    print("Verbinde mit MongoDB...")
+        raise ValueError("❌ Kritischer Fehler: MONGO_URL nicht gesetzt!")
+    print("✅ MONGO_URL geladen. Verbinde mit MongoDB...")
     client = MongoClient(MONGO_URL)
     col = client["Secondhand_db"]["scraping_sessions"]
 
-    # Letzte 24h – als String-Vergleich passend zu deinem Schema
     gestern = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
     sessions = list(col.find({"gestartet_am": {"$gte": gestern}}).sort("gestartet_am", -1))
 
-    # Alle Empfehlungen aus allen Sessions sammeln
+    print(f"📦 {len(sessions)} Sessions in den letzten 24h gefunden.")  # DEBUG
+
     alle = []
     for s in sessions:
         user = s.get("user_email", "anonym")
-        for item in s.get("empfehlungen", []):
+        empfehlungen = s.get("empfehlungen", [])
+        print(f"  → Session von {user}: {len(empfehlungen)} Empfehlungen")  # DEBUG
+        for item in empfehlungen:
             item["_user"] = user
             alle.append(item)
+
+    print(f"📊 Gesamt gesammelte Artikel: {len(alle)}")  # DEBUG
     return alle
 
 def generiere_html(items):
@@ -38,22 +41,30 @@ def generiere_html(items):
         return "<p>Heute wurden keine neuen Empfehlungen gefunden.</p>"
 
     heute = datetime.now().strftime("%d.%m.%Y")
+    anzahl_gesamt   = len(items)
+    anzahl_angezeigt = min(anzahl_gesamt, MAX_ARTIKEL)  # ← Fix: echte Anzahl
+
     html = f"""
     <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
-    <h1 style="color:#1a1a2e">🛍️ Deine Vinted Deals – {heute}</h1>
-    <p>Heute wurden <b>{len(items)} Artikel</b> für dich gefunden:</p>
+    <p>Heute wurden <b>{anzahl_gesamt} Artikel</b> gefunden –
+       hier sind die besten <b>{anzahl_angezeigt}</b>:</p>
     <hr>
-    """
-    for item in items[:10]:  # max 10 Artikel
+    """  # ← Zeigt z.B. "25 gefunden – hier sind die besten 10"
+
+    for item in items[:MAX_ARTIKEL]:
         bewertung = item.get("bewertung", "?")
         sterne = "⭐" * int(bewertung) if isinstance(bewertung, int) else ""
         html += f"""
         <div style="border:1px solid #eee;border-radius:8px;padding:15px;margin:10px 0">
-            <h3 style="margin:0"><a href="{item.get('url','#')}">{item.get('titel','?')}</a></h3>
-            <p style="margin:5px 0">💶 <b>{item.get('preis','?')}</b> &nbsp;|&nbsp; {sterne} {bewertung}/10</p>
+            <h3 style="margin:0">
+                <a href="{item.get('url','#')}">{item.get('titel','?')}</a>
+            </h3>
+            <p style="margin:5px 0">💶 <b>{item.get('preis','?')}</b>
+               &nbsp;|&nbsp; {sterne} {bewertung}/10</p>
             <p style="margin:5px 0;color:#555">{item.get('begruendung','')}</p>
         </div>
         """
+
     html += "</body></html>"
     return html
 
@@ -62,25 +73,19 @@ def sende_email(html_content, empfaenger: str):
     msg = MIMEMultipart("alternative")
     heute = datetime.now().strftime("%d.%m.%Y")
     msg["Subject"] = f"🛍️ Deine Vinted Deals – {heute}"
-    msg["From"]    = MAIL_FROM
+    msg["From"]    = MAIL_FROM # type: ignore
     msg["To"]      = empfaenger
     msg.attach(MIMEText(html_content, "html"))
-
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.set_debuglevel(1) # <--- AKTIVIERT DEN VOLLEN LOG
-            server.ehlo() # 2. Identifizieren beim Server
-            server.starttls()  # 3. Verschlüsselung starten
-            server.ehlo()  # 4. Erneut identifizieren (jetzt über die verschlüsselte Leitung)
-            server.login(MAIL_FROM, MAIL_PASSWORD) # 5. Jetzt erst einloggen
-            
-            # 6. Senden
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(MAIL_FROM, MAIL_PASSWORD) # type: ignore
             server.send_message(msg)
-            server.quit()
-            
         print(f"✅ Newsletter gesendet an {empfaenger}")
     except Exception as e:
-        print(f"❌ Fehler: {e}")
+        print(f"❌ Fehler beim Senden: {e}")
 
 def lade_alle_empfaenger():
     client = MongoClient(MONGO_URL)
@@ -88,10 +93,9 @@ def lade_alle_empfaenger():
     return [u["email"] for u in users if "email" in u]
 
 if __name__ == "__main__":
-    items    = fetch_latest_empfehlungen()
-    html     = generiere_html(items)
+    items      = fetch_latest_empfehlungen()
+    html       = generiere_html(items)
     empfaenger = lade_alle_empfaenger()
-
     if not empfaenger:
         print("Keine aktiven Abonnenten gefunden.")
     else:

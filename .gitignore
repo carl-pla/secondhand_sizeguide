@@ -24,3 +24,6 @@ dashboard/secrets/results/*.json
 playground-2.mongodb.jsö
 
 src_ebay/ebay_ids.py
+
+.idea
+.pytest_cache

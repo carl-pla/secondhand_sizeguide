@@ -193,7 +193,7 @@ async def scrape_artikel_details(
     url: str, client: Optional[httpx.AsyncClient] = None
 ) -> Optional[Dict]:
     """
-    Scrappt alle Details eines Produkts.
+    Scrapt alle Details eines Produkts.
     
     Args:
         url: Produkt-URL

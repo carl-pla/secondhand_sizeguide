@@ -17,7 +17,8 @@ from src_ebay.get_request import get_summary_of_articles_json, get_detailed_item
 from src_ebay.get_new_token import get_new_token
 from ai.ollama import analysiere_artikel_vinted, analysiere_artikel_habilleur, analysiere_artikel_ebay
 from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
-from database.scrapping_sessions import speichere_in_mongo
+from database.scraping_sessions import speichere_in_mongo
+import concurrent.futures
 
 """
 === WORKFLOW GROB 
@@ -29,7 +30,7 @@ Unterstützt nun: Vinted (mit Browser) und Habilleur (ohne Browser)
 1. Setup & Validierung 
 """
 # Prüft, ob alle Werkzeuge bereit sind (LLM und Config.json)
-async def main(config: dict, user_email: str=None):
+async def main(config: dict, user_email: str=None): # type: ignore
     print(f"DEBUG: Lade Config von {config.get('_pfad', 'unbekannt')}")
 
     # Pflichtfelder prüfen
@@ -172,7 +173,7 @@ async def main(config: dict, user_email: str=None):
 
         print("    Gefundene Artikel:\n")
 
-        for product in product_details:
+        for product in product_details: # type: ignore
             alle_roh.append(product)
             print(f"    ✓ {product['title'][:50]} – {product['price']}")
 
@@ -229,7 +230,7 @@ async def main(config: dict, user_email: str=None):
 
     # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung
     try:
-        speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email"))
+        speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email")) # type: ignore
     except Exception as e:
         print(f"⚠️  MongoDB nicht erreichbar: {e}")
 

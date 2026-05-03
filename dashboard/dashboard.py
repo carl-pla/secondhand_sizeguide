@@ -25,7 +25,7 @@ from database.config_defaults import (
 # ─────────────────────────────────────────────
 st.set_page_config(
     page_title="MatchFit",
-    page_icon="dashboard/logo/logo_matchfit.png",
+    page_icon="docs/logo_matchfit.png", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -138,11 +138,9 @@ config = st.session_state.config
 #  SIDEBAR – NAVIGATION
 # ─────────────────────────────────────────────
 with st.sidebar:
-    # Pfad zur aktuellen Datei (dashboard.py)
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    # Verbinde den Ordner der Datei mit dem Logo-Pfad
-    logo_path = os.path.join(BASE_DIR, "logo", "logo_matchfit.png")
+    # Pfad zum Logo (sehr sauber lesbar)
+    logo_path ="docs/logo_matchfit.png"
 
     st.image(logo_path, width=180)
     st.markdown(
@@ -286,7 +284,6 @@ if "Vinted" in seite:
             )
             st.session_state.config["pause_zwischen_suchen"] = list(p_such)
 
-    st.markdown("---")
 
     if st.button("💾  Einstellungen speichern"):
         speichere_config(st.session_state.config)
@@ -435,7 +432,6 @@ elif "Habilleur" in seite:
         if user_email:
             st.session_state.config["user_email"] = user_email
 
-    st.markdown("---")
     
     col1, col2 = st.columns(2)
     with col1:

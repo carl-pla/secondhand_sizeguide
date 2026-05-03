@@ -1,6 +1,6 @@
 import base64
 import requests
-from ebay_ids import app_id, cert_id
+from src_ebay.ebay_ids import app_id, cert_id
 
 def get_new_token(client_id=app_id, client_secret=cert_id):
     """

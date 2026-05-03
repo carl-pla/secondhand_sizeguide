@@ -7,8 +7,8 @@ __pycache__/
 env
 venv
 dashboard/secrets/results/
-dashboard/secrets/results/vinted_empfehlungen.json
-dashboard/secrets/results/vinted_ergebnisse.json
+dashboard/secrets/results/empfehlungen.json
+dashboard/secrets/results/ergebnisse.json
 node_modules
 datascienceprojekt.egg-info
 

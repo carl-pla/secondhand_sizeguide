@@ -15,7 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
     VINTED_GROESSEN, VINTED_KATEGORIEN, HABILLEUR_GROESSEN, HABILLEUR_KATEGORIEN, HABILLEUR_MASSE_BEISPIEL,
-    ebay_groessen, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE_VINTED, ZUSTAND_OPTIONEN,
+    ebay_groessen, ebay_materials, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
     speichere_config, lade_config, category_ids_ebay, condition_ids_ebay, ebay_farben
 )
 
@@ -463,7 +463,7 @@ elif "eBay" in seite:
     st.markdown("Konfiguriere deine eBay-Sucheinstellungen.")
     st.markdown("---")
 
-    # Setze Quelle auf Vinted
+    # Setze Quelle auf eBay
     st.session_state.config["quelle"] = "ebay"
 
     aktuelle_groesse = st.session_state.config.get("groesse", "M")
@@ -481,8 +481,8 @@ elif "eBay" in seite:
         with col1:
             st.session_state.config["groesse"] = st.selectbox(
                 "Kleidungsgröße (eBay)",
-                list(ebay_groessen),
-                index=list(ebay_groessen).index(st.session_state.config["groesse"])
+                ebay_groessen,
+                index=ebay_groessen.index(st.session_state.config["groesse"])
             )
             st.session_state.config["kategorie"] = st.selectbox(
                 "Kategorie (eBay)",
@@ -499,7 +499,7 @@ elif "eBay" in seite:
                 ))
             st.session_state.config["farbe"] = st.selectbox(
                 "Gewünschte Farbe des Artikels",
-                list(ebay_farben),
+                ebay_farben,
                 index=ebay_farben.index(st.session_state.config["farbe"])
             )
 
@@ -517,6 +517,11 @@ elif "eBay" in seite:
                 "Gewünschte Marke des Artikels (Achtung: Eingabe ist case-sensitive)",
                 value=st.session_state.config.get("marke", ""),
                 placeholder="z.B. Adidas",
+            )
+            st.session_state.config["material"] = st.selectbox(
+                "Gewünschtes Material des Artikels",
+                ebay_materials,
+                index=ebay_materials.index(st.session_state.config["material"])
             )
 
     # ── TAB 2: Maße ──
@@ -774,10 +779,10 @@ elif "Suche" in seite:
 elif "Ergebnisse" in seite:
     st.markdown("# Ergebnisse")
 
-    if not ERGEBNISSE_FILE_VINTED.exists():
-        st.warning("Noch keine Ergebnisse für Vinted. Starte zuerst eine Suche.")
+    if not ERGEBNISSE_FILE.exists():
+        st.warning("Noch keine Ergebnisse. Starte zuerst eine Suche.")
     else:
-        with open(ERGEBNISSE_FILE_VINTED, "r", encoding="utf-8") as f:
+        with open(ERGEBNISSE_FILE, "r", encoding="utf-8") as f:
             ergebnisse = json.load(f)
 
         # Filter
@@ -785,14 +790,17 @@ elif "Ergebnisse" in seite:
         with col1:
             nur_empfohlen = st.checkbox("Nur empfohlene Artikel", value=True)
         with col2:
-            min_bewertung = st.slider("Mindest-Bewertung", 1, 10, 7)
+            min_bewertung = st.slider("Mindest-Bewertung (Ergebnisanzeige)", 1, 10, 6)
+            min_empfehlung = st.slider("Mindest-Bewertung (Empfehlung) ", 1, 10,
+                                       st.session_state.config.get("min_empfehlung", 6))
+            st.session_state.config["min_empfehlung"] = min_empfehlung
         with col3:
             sortierung = st.selectbox("Sortierung", ["Bewertung ↓", "Preis ↑", "Preis ↓"])
 
         gefiltert = [
-            a for a in ergebnisse
-            if (not nur_empfohlen or a.get("empfohlen"))
-            and ( (a.get("bewertung") or 0) >= min_bewertung )
+            item for item in ergebnisse
+            if (not nur_empfohlen or item.get("empfohlen"))
+            and ( (item.get("bewertung") or 0) >= min_bewertung )
         ]
 
         if sortierung == "Bewertung ↓":
@@ -805,11 +813,11 @@ elif "Ergebnisse" in seite:
         st.markdown(f"**{len(gefiltert)} Artikel** von {len(ergebnisse)} gesamt")
         st.markdown("---")
 
-        for a in gefiltert:
-            bewertung = a.get("bewertung", "?")
+        for filter_item in gefiltert:
+            bewertung = filter_item.get("bewertung", "?")
             sterne = "⭐" * int(bewertung // 2) if isinstance(bewertung, (int, float)) else ""
 
-            masse = a.get("masse", {})
+            masse = filter_item.get("masse", {})
             masse_html = ""
             masse_felder = [
                 ("brust_cm", "Brust"), ("taille_cm", "Taille"), ("huefte_cm", "Hüfte"),
@@ -828,26 +836,26 @@ elif "Ergebnisse" in seite:
                 masse_html = f'<div class="masse-grid">{items_html}</div>'
 
             passform = ""
-            if a.get("passform_hinweise"):
-                passform = " · ".join(a["passform_hinweise"])
+            if filter_item.get("passform_hinweise"):
+                passform = " · ".join(filter_item["passform_hinweise"])
 
             badges = ""
-            if a.get("zustand"):
-                badges += f'<span class="badge">{a["zustand"]}</span>'
-            if a.get("material"):
-                badges += f'<span class="badge">{a["material"]}</span>'
-            if a.get("passt_stil"):
+            if filter_item.get("zustand"):
+                badges += f'<span class="badge">{filter_item["zustand"]}</span>'
+            if filter_item.get("material"):
+                badges += f'<span class="badge">{filter_item["material"]}</span>'
+            if filter_item.get("passt_stil"):
                 badges += '<span class="badge">✓ Stil passt</span>'
 
             st.markdown(f"""
 <div class="artikel-card">
-  <div class="artikel-titel">{a.get('titel','–')}</div>
-  <div class="artikel-preis">{a.get('preis','–')} &nbsp;·&nbsp; {sterne} {bewertung}/10</div>
+  <div class="artikel-titel">{filter_item.get('titel','–')}</div>
+  <div class="artikel-preis">{filter_item.get('preis','–')} &nbsp;·&nbsp; {sterne} {bewertung}/10</div>
   <div style="margin: 0.5rem 0">{badges}</div>
   {masse_html}
-  <div style="margin-top:0.8rem; color:#8a8478; font-size:0.8rem">{a.get('begruendung','')}</div>
+  <div style="margin-top:0.8rem; color:#8a8478; font-size:0.8rem">{filter_item.get('begruendung','')}</div>
   {f'<div style="color:#e8c97e; font-size:0.75rem; margin-top:0.4rem">📐 {passform}</div>' if passform else ''}
-  <div style="margin-top:0.6rem"><a href="{a.get('url','#')}" target="_blank" style="color:#e8c97e; font-size:0.75rem; text-decoration:none">→ Auf Vinted ansehen</a></div>
+  <div style="margin-top:0.6rem"><a href="{filter_item.get('url','#')}" target="_blank" style="color:#e8c97e; font-size:0.75rem; text-decoration:none">→ Auf Vinted ansehen</a></div>
 </div>
 """, unsafe_allow_html=True)
 

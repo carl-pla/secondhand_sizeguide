@@ -29,16 +29,14 @@ def get_mongo_url():
 
 MONGO_URL = get_mongo_url()
 
-BASE_DIR = Path(__file__).parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 SECRETS_DIR = BASE_DIR / "dashboard" / "secrets"
 RESULTS = BASE_DIR / "dashboard" / "secrets" / "results"
 SECRETS_DIR.mkdir(exist_ok=True)
 
 CONFIG_FILE = SECRETS_DIR / "config.json"
-ERGEBNISSE_FILE_VINTED = RESULTS / "vinted_ergebnisse.json"
-ERGEBNISSE_FILE_EBAY = RESULTS / "ebay_ergebnisse.json"
-EMPFEHLUNGEN_FILE_VINTED = RESULTS / "vinted_empfehlungen.json"
-EMPFEHLUNGEN_FILE_EBAY = RESULTS / "ebay_empfehlungen.json"
+ERGEBNISSE_FILE = RESULTS / "ergebnisse.json"
+EMPFEHLUNGEN_FILE = RESULTS / "empfehlungen.json"
 
 # ─────────────────────────────────────────────
 #  LOOKUP-TABELLEN
@@ -108,13 +106,18 @@ condition_ids_ebay = {
 }
 
 ebay_groessen = ["XS", "S", "M", "L", "XL", "XXL"]
-# Suche nach Größen ist sowieso nicht möglich bei eBay, nur für Auswertung mit Ollama und Dashboard gebraucht
+# Suche nach Größen ist nur per Suchbegriffe bei eBay möglich
 
 ebay_farben = ["Schwarz", "Weiß", "Grau", "Blau", "Rot",
                "Beige", "Braun", "Khaki", "Olivgrün", "Marineblau (Navy Blue)",
                "Creme", "Grün", "Gelb", "Orange", "Rosa", "Lila",
                "Türkis", "Gold", "Silber", "Mehrfarbig"]
 # ausgewählte Farben für selector-Menü im Dashboard
+
+ebay_materials = ["Baumwolle", "Leinen", "Wolle", "Seide", "Kaschmir", "Alpaka", "Hanf",
+                  "Polyester", "Nylon", "Acryl", "Elasthan", "Viskose", "Modal", "Polyamid",
+                  "Baumwolle-Polyester", "Wolle-Acryl", "Baumwolle-Elasthan",
+                  "Leder", "Kunstleder", "Denim", "Fleece", "Gore-Tex", "Mikrofaser"]
 
 VINTED_GROESSEN = {
     "XS / 34": "206", "S / 36": "207", "M / 38": "208",

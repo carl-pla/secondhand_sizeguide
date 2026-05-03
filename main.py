@@ -5,7 +5,6 @@ import argparse
 import sys
 import io
 import httpx # type: ignore
-from pathlib import Path
 from playwright.async_api import async_playwright # type: ignore
 from playwright_stealth import Stealth # type: ignore
 
@@ -14,9 +13,9 @@ if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 from scraper.vinted_scraper import scrape_artikel_details as vinted_scrape_details, scrape_suchergebnisse as vinted_scrape_suchergebnisse
 from scraper.habilleur_scraper import scrape_artikel_details as habilleur_scrape_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
-from src_ebay.get_request import get_summary_of_articles_json, starter_get_detailed_items
+from src_ebay.get_request import get_summary_of_articles_json, get_detailed_items_async
 from ai.ollama import analysiere_artikel
-from database.config_defaults import lade_config, ERGEBNISSE_FILE_VINTED, EMPFEHLUNGEN_FILE_VINTED
+from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
 from database.scrapping_sessions import speichere_in_mongo
 import concurrent.futures
 
@@ -160,8 +159,7 @@ async def main(config: dict, user_email: str=None):
             item_amount=config.get("max_artikel_pro_suche", 10)
         )
 
-        product_details = starter_get_detailed_items(item_ids)
-
+        product_details = await get_detailed_items_async(item_ids)
         print("    Gefundene Artikel:\n")
 
         for product in product_details:
@@ -189,27 +187,36 @@ async def main(config: dict, user_email: str=None):
     """
     print(f"\n✨ {len(unique)} Artikel → Ollama (parallel, 3 gleichzeitig)...\n")
 
-    def analysiere_wrapper(artikel):
-        return analysiere_artikel(artikel, config)
+    if ( quelle == "habilleur" ) or ( quelle == "vinted" ):
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        # hier wird "analyse_artikel"-Funktion aus ollama.py aufgerufen, um die fertig gescannten Artikel zu analysieren
-        # WICHTIGES ZUSAMMENSPIEL!
-        ergebnisse = list(executor.map(analysiere_wrapper, unique))
+        def analysiere_wrapper(artikel):
+            return analysiere_artikel(artikel, config)
 
-    # sortieren: Beste Empfehlungen nach oben
-    ergebnisse.sort(key=lambda x: x.get("bewertung") or 0, reverse=True)
-    empfohlen = [a for a in ergebnisse if a.get("empfohlen")]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            # hier wird "analyse_artikel"-Funktion aus ollama.py aufgerufen, um die fertig gescannten Artikel zu analysieren
+            # WICHTIGES ZUSAMMENSPIEL!
+            ergebnisse = list(executor.map(analysiere_wrapper, unique))
+
+        # sortieren: Beste Empfehlungen nach oben
+        ergebnisse.sort(key=lambda x: x.get("bewertung") or 0, reverse=True)
+        empfohlen = [a for a in ergebnisse if a.get("empfohlen")]
+
+    elif quelle == "ebay":
+        # hier neu in ollama.py implementierte Funktionen nutzen
+
+    # sollte eigentlich nie anschlagen
+    else:
+        print("Error bei der Marketplace-Wahl.")
 
 
     """
     5. SPEICHERUNG UND EXPORT: 
     """
     # Speicherung A: lokale JSON-Dateien für das streamlit-dashboard erstellen
-    ERGEBNISSE_FILE_VINTED.parent.mkdir(exist_ok=True)
-    with open(ERGEBNISSE_FILE_VINTED, "w", encoding="utf-8") as f:
+    ERGEBNISSE_FILE.parent.mkdir(exist_ok=True)
+    with open(ERGEBNISSE_FILE, "w", encoding="utf-8") as f:
         json.dump(ergebnisse, f, ensure_ascii=False, indent=2)
-    with open(EMPFEHLUNGEN_FILE_VINTED, "w", encoding="utf-8") as f:
+    with open(EMPFEHLUNGEN_FILE, "w", encoding="utf-8") as f:
         json.dump(empfohlen, f, ensure_ascii=False, indent=2)
 
     # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung
@@ -228,8 +235,8 @@ async def main(config: dict, user_email: str=None):
         print(f"   Stufe 1 (Grob):  {config.get('kategorie')} / {config.get('groesse')}")
     print(f"   Stufe 2 (Detail): {len(unique)} Artikel gescrapt")
     print(f"   Stufe 3 (Ollama): {len(ergebnisse)} analysiert")
-    print(f"💾 {ERGEBNISSE_FILE_VINTED}")
-    print(f"💾 {EMPFEHLUNGEN_FILE_VINTED}")
+    print(f"💾 {ERGEBNISSE_FILE}")
+    print(f"💾 {EMPFEHLUNGEN_FILE}")
     print("="*60)
 
     return ergebnisse

@@ -3,9 +3,9 @@ import asyncio
 import httpx
 import requests
 
-import ebay_helper as helper
+import src_ebay.ebay_helper as helper
 from database.config_defaults import category_ids_ebay, condition_ids_ebay
-from get_new_token import get_new_token
+from src_ebay.get_new_token import get_new_token
 
 
 def get_summary_of_articles_json(
@@ -163,19 +163,5 @@ async def get_detailed_items_async(item_ids):
         results = await asyncio.gather(*tasks)
 
     return [res for res in results if res is not None]
-
-
-def starter_get_detailed_items(item_ids):
-    """
-    Startet den parallelen Abruf von Artikeldetails für die übergebenen IDs.
-
-    Nutzt asyncio.run, um die asynchrone Ereignisschleife für den parallelen
-    Netzwerkzugriff zu starten.
-
-    :param item_ids: Set mit allen gefundenen Item-IDs
-    :return: Liste von dicts mit genauen Produktdaten (Größe, Beschreibung, Material usw.)
-    """
-    # Startet die asynchrone Welt aus der synchronen Streamlit-Welt
-    return asyncio.run(get_detailed_items_async(item_ids))
 
 print(get_summary_of_articles_json(keywords="shirt"))

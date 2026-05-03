@@ -12,9 +12,9 @@ from playwright_stealth import Stealth # type: ignore
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 from scraper.vinted_scraper import scrape_artikel_details as vinted_scrape_details, scrape_suchergebnisse as vinted_scrape_suchergebnisse
-from scraper.habilleur_scraper import scrape_artikel_details as habilleur_scrape_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
+from scraper.habilleur_scraper import scrape_artikel_details as scrape_artikel_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
 from src_ebay.get_request import get_summary_of_articles_json, get_detailed_items_async
-from ai.ollama import analysiere_artikel
+from ai.ollama import ## hier neue ollama funktionen importieren
 from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
 from database.scrapping_sessions import speichere_in_mongo
 import concurrent.futures
@@ -129,7 +129,7 @@ async def main(config: dict, user_email: str=None):
 
                 # ── STUFE 2: Detail-Scraping ──
                 for link in grob_links:
-                    details = await habilleur_scrape_details(link["url"], client)
+                    details = await scrape_artikel_details(link["url"], client)
                     if details:
                         alle_roh.append(details)
                         print(f"    ✓ {details['titel'][:50]} – {details['preis']}")
@@ -174,10 +174,10 @@ async def main(config: dict, user_email: str=None):
     3. DEDUPLIZIERUNG --> verhindert, dass Artikel mehrfach gescannt werden
     """
     seen, unique = set(), []
-    for a in alle_roh:
-        if a["url"] not in seen:
-            seen.add(a["url"])
-            unique.append(a)
+    for artikel in alle_roh:
+        if artikel["url"] not in seen:
+            seen.add(artikel["url"])
+            unique.append(artikel)
 
 
     """
@@ -187,7 +187,7 @@ async def main(config: dict, user_email: str=None):
     """
     print(f"\n✨ {len(unique)} Artikel → Ollama (parallel, 3 gleichzeitig)...\n")
 
-    if ( quelle == "habilleur" ) or ( quelle == "vinted" ):
+    if ( quelle == "habilleur" ) or ( quelle == "vinted" ): # noch auftrennen
 
         def analysiere_wrapper(artikel):
             return analysiere_artikel(artikel, config)

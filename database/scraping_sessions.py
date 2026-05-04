@@ -5,7 +5,7 @@ from database.config_defaults import MONGO_URL
 
 def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = None, quelle: str = None): # type: ignore
     if not ergebnisse:
-        print("MongoDB: Keine Empfehlungen zum Speichern gefunden.")
+        print("MongoDB: Keine Ergebnisse zum Speichern gefunden.")
         return None
 
     empfehlungen = [e for e in ergebnisse if isinstance(e, dict) and e.get("empfohlen") is True]

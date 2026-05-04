@@ -16,13 +16,10 @@ datascienceprojekt.egg-info
 debug.png
 debug_vinted.html
 
-
 .DS_Store
 dashboard/secrets/*.json
 dashboard/secrets/results/*.json
 playground-2.mongodb.jsö
-
-src_ebay/ebay_ids.py
 
 .idea
 .pytest_cache

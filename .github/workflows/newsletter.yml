@@ -33,4 +33,4 @@ jobs:
           MONGO_URL: ${{ secrets.MONGO_URL }}       # MongoDB Atlas Verbindung
           MAIL_FROM: ${{ secrets.MAIL_FROM }}       # Absender-E-Mail (Gmail)
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }} # Gmail App-Passwort
-        run: python newsletter/newsletter.py
+        run: python notification/newsletter.py

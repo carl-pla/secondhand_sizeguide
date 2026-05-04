@@ -157,7 +157,8 @@ with st.sidebar:
 
     # Ollama Status
     try:
-        httpx.get(config["ollama_url"].replace("/api/generate", ""), timeout=2)
+        ollama_base_url = config["ollama_url"].rstrip("/").rsplit("/api", 1)[0]
+        httpx.get(ollama_base_url, timeout=2)
         st.markdown('<span class="status-ok">● Ollama online</span>', unsafe_allow_html=True)
     except:
         st.markdown('<span class="status-err">● Ollama offline</span>', unsafe_allow_html=True)
@@ -331,15 +332,8 @@ elif "Habilleur" in seite:
             )
         with col2:
             st.session_state.config["max_preis"] = st.slider(
-                "Maximaler Preis (€)", 50, 200,
-                st.session_state.config.get("max_preis", 50), step=10
-            )
-            max_artikel = st.session_state.config.get("max_artikel_pro_suche", 20)
-            if max_artikel > 100:
-                max_artikel = 100
-            st.session_state.config["max_artikel_pro_suche"] = st.slider(
-                "Max. Artikel pro Kategorie", 5, 100,
-                max_artikel, step=5
+                "Maximaler Preis (€)", 50, 350,
+                st.session_state.config.get("max_preis", 200), step=10
             )
 
     # ── TAB 2: Maße ──
@@ -426,31 +420,27 @@ elif "Habilleur" in seite:
 
     # ── TAB 3: Suche ──
     with tab3:
-        st.markdown("**Suchoptionen**")
-        user_email = st.text_input("E-Mail (optional)", value=st.session_state.config.get("user_email", ""))
-        
-        if user_email:
-            st.session_state.config["user_email"] = user_email
-
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Suchoptionen**")
+            user_email = st.text_input("E-Mail (optional)", value=st.session_state.config.get("user_email", ""))
+            
+            if user_email:
+                st.session_state.config["user_email"] = user_email
+        with col2:
+            max_artikel = st.session_state.config.get("max_artikel_pro_suche", 20)
+            if max_artikel > 100:
+                max_artikel = 100
+            st.session_state.config["max_artikel_pro_suche"] = st.slider(
+                "Max. Artikel pro Kategorie", 5, 100,
+                max_artikel, step=5
+            )
     
     col1, col2 = st.columns(2)
     with col1:
         if st.button("💾  Habilleur Einstellungen speichern"):
             speichere_config(st.session_state.config)
             st.success("✓ Habilleur Konfiguration gespeichert")
-    
-    with col2:
-        if st.button("🚀  Habilleur Scraper starten", key="hab_scrape_btn"):
-            st.info(f"""
-✓ Habilleur-Konfiguration:
-- Größe: **{st.session_state.config['groesse']}**
-- Kategorie: **{st.session_state.config['kategorie']}**
-- Max. Preis: **{st.session_state.config['max_preis']}€**
-- Max. Artikel: **{st.session_state.config.get('max_artikel_pro_suche', 20)}**
-
-Der Scraper wird mit Habilleur Jean konfiguriert...
-            """)
-
 # ═══════════════════════════════════════════════
 #  SEITE: eBay
 # ═══════════════════════════════════════════════
@@ -750,7 +740,7 @@ elif "Suche" in seite:
 
         with st.spinner("Vorgang läuft... (kann einige Minuten dauern)"):
             result = subprocess.run(
-                ["python", "main.py", "--config", str(CONFIG_FILE)],  # achtung: mit python3 hardgecoded!!
+                [sys.executable, "main.py", "--config", str(CONFIG_FILE)],  # Nutzt Python aus dem venv
                 capture_output=True,
                 text=True,
                 encoding='utf-8',

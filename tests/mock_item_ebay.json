@@ -1,0 +1,216 @@
+{
+    "itemId": "v1|388630721336|0",
+    "sellerItemRevision": "2",
+    "title": "Bermuda Gr. 48",
+    "shortDescription": "Schöne Freizeithose. Nichtraucherhaushalt.",
+    "price": {
+        "value": "3.00",
+        "currency": "EUR"
+    },
+    "categoryPath": "Kleidung & Accessoires|Herren|Herrenmode|Shorts & Bermudas",
+    "categoryIdPath": "11450|260012|1059|15689",
+    "condition": "Gebraucht - Gut",
+    "conditionId": "3000",
+    "itemLocation": {
+        "city": "Berlin",
+        "postalCode": "12***",
+        "country": "DE"
+    },
+    "image": {
+        "imageUrl": "https://i.ebayimg.com/images/g/TIMAAeSwD1FoW77t/s-l1600.jpg",
+        "width": 1523,
+        "height": 1600
+    },
+    "additionalImages": [
+        {
+            "imageUrl": "https://i.ebayimg.com/images/g/4eoAAeSwM5VoW77t/s-l1600.jpg",
+            "width": 1465,
+            "height": 1600
+        },
+        {
+            "imageUrl": "https://i.ebayimg.com/images/g/iRQAAeSwXg1oW77y/s-l1600.jpg",
+            "width": 1506,
+            "height": 1600
+        }
+    ],
+    "color": "Blau",
+    "size": "48",
+    "material": "Baumwolle",
+    "pattern": "Ohne Muster",
+    "sizeType": "Normalgröße",
+    "brand": "markenlos",
+    "itemCreationDate": "2025-06-25T09:22:44.000Z",
+    "seller": {
+        "username": "xanzessa",
+        "feedbackPercentage": "100.0",
+        "feedbackScore": 722,
+        "sellerAccountType": "INDIVIDUAL"
+    },
+    "estimatedAvailabilities": [
+        {
+            "deliveryOptions": [
+                "SHIP_TO_HOME",
+                "SELLER_ARRANGED_LOCAL_PICKUP"
+            ],
+            "estimatedAvailabilityStatus": "IN_STOCK",
+            "estimatedAvailableQuantity": 1,
+            "estimatedSoldQuantity": 0,
+            "estimatedRemainingQuantity": 1
+        }
+    ],
+    "shippingOptions": [
+        {
+            "shippingServiceCode": "Deutsche Post Warensendung",
+            "shippingCarrierCode": "Deutsche Post",
+            "type": "Sparversand",
+            "shippingCost": {
+                "value": "0.00",
+                "currency": "EUR"
+            },
+            "quantityUsedForEstimate": 1,
+            "minEstimatedDeliveryDate": "2026-04-13T10:00:00.000Z",
+            "maxEstimatedDeliveryDate": "2026-04-16T10:00:00.000Z",
+            "additionalShippingCostPerUnit": {
+                "value": "0.00",
+                "currency": "EUR"
+            },
+            "shippingCostType": "FIXED"
+        }
+    ],
+    "shipToLocations": {
+        "regionIncluded": [
+            {
+                "regionName": "Deutschland",
+                "regionType": "COUNTRY",
+                "regionId": "DE"
+            }
+        ],
+        "regionExcluded": [
+            {
+                "regionName": "Russische Föderation",
+                "regionType": "COUNTRY",
+                "regionId": "RU"
+            }
+        ]
+    },
+    "returnTerms": {
+        "returnsAccepted": false
+    },
+    "localizedAspects": [
+        {
+            "type": "STRING",
+            "name": "Abteilung",
+            "value": "Herren"
+        },
+        {
+            "type": "STRING",
+            "name": "Stil",
+            "value": "Chino"
+        },
+        {
+            "type": "STRING",
+            "name": "Größenkategorie",
+            "value": "Normalgröße"
+        },
+        {
+            "type": "STRING",
+            "name": "Besonderheiten",
+            "value": "Taschen"
+        },
+        {
+            "type": "STRING",
+            "name": "Passform",
+            "value": "Regular"
+        },
+        {
+            "type": "STRING",
+            "name": "Anlass",
+            "value": "Freizeit"
+        },
+        {
+            "type": "STRING",
+            "name": "Material",
+            "value": "Baumwolle"
+        },
+        {
+            "type": "STRING",
+            "name": "Gewebeart",
+            "value": "Tweed"
+        },
+        {
+            "type": "STRING",
+            "name": "Größe",
+            "value": "48"
+        },
+        {
+            "type": "STRING",
+            "name": "Marke",
+            "value": "markenlos"
+        },
+        {
+            "type": "STRING",
+            "name": "Farbe",
+            "value": "Blau"
+        },
+        {
+            "type": "STRING",
+            "name": "Bundfalte",
+            "value": "Ohne Bundfalte"
+        },
+        {
+            "type": "STRING",
+            "name": "Thema",
+            "value": "Urlaub"
+        },
+        {
+            "type": "STRING",
+            "name": "Muster",
+            "value": "Ohne Muster"
+        }
+    ],
+    "topRatedBuyingExperience": false,
+    "buyingOptions": [
+        "FIXED_PRICE"
+    ],
+    "itemWebUrl": "https://www.ebay.de/itm/388630721336",
+    "description": "<p dir=\"ltr\" style=\"margin-top:0; margin-bottom:0;\">Sch&#246;ne Freizeithose.</p>\n<br>\n<p dir=\"ltr\" style=\"margin-top:0; margin-bottom:0;\">Nichtraucherhaushalt.</p>",
+    "paymentMethods": [
+        {
+            "paymentMethodType": "OTHER"
+        },
+        {
+            "paymentMethodType": "WALLET",
+            "paymentMethodBrands": [
+                {
+                    "paymentMethodBrandType": "PAYPAL"
+                },
+                {
+                    "paymentMethodBrandType": "APPLE_PAY"
+                }
+            ]
+        },
+        {
+            "paymentMethodType": "CREDIT_CARD",
+            "paymentMethodBrands": [
+                {
+                    "paymentMethodBrandType": "VISA"
+                },
+                {
+                    "paymentMethodBrandType": "MASTERCARD"
+                },
+                {
+                    "paymentMethodBrandType": "DINERS_CLUB"
+                }
+            ]
+        }
+    ],
+    "immediatePay": false,
+    "enabledForGuestCheckout": true,
+    "eligibleForInlineCheckout": true,
+    "lotSize": 0,
+    "legacyItemId": "388630721336",
+    "priorityListing": false,
+    "adultOnly": false,
+    "categoryId": "15689",
+    "listingMarketplaceId": "EBAY_DE"
+}

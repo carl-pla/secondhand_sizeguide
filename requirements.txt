@@ -11,5 +11,4 @@ pytest-cov
 requests
 python-dotenv
 beautifulsoup4
-requests
 html2text

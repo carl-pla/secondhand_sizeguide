@@ -47,7 +47,7 @@ def extract_important_data(single_json):
         "brand": raw_aspects.get("Marke", "Unbekannt"),
         "color": raw_aspects.get("Farbe", "Unbekannt"),
         "size": raw_aspects.get("Größe", "Unbekannt"),
-        "material": raw_aspects.get("material"),
+        "material": raw_aspects.get("Material"),
         "description": clean_description(single_json.get("description", ""))
         # description wird als HTML zurückgegeben, muss noch für LLM zu Markdown konvertiert werden
     }

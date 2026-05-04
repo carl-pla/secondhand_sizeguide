@@ -154,7 +154,7 @@ async def get_detailed_items_async(item_ids, user_token):
 
     if not item_ids:
         print("❌ Keine Artikel gefunden")
-        return
+        return None
 
     headers = {
         "Authorization": f"Bearer {user_token}",

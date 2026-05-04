@@ -476,3 +476,7 @@ eventuell mehr Parameter oder Training eines supervised-models, das optisch Lern
 5. **Herausforderungen & Design-Entscheidungen** (~2 Seiten)
 6. **Projektplanung & Teamaufteilung** (~1,5 Seiten)
 7. **Fazit & Ausblick** (~1,5 Seiten)
+
+## Ausarbeitungsnotizen:
+
+Design-Entscheidung: Modellwechsel zu llama3.1:8b unbedingt nötig, weil alte Modelle (llama3.2:3b, llama3) den Prompt-Instructions nicht vernünftig folgen konnten. Spezifisch wurde versucht, je nach Artikelart (Mantel, Jacke, Hose) alle Maßarten auf null im auszugebenden JSON zu stellen, die für den Artikel keine Rolle spielen, d. h. bei Hosen alle Mantel- und Jackenmaße auf null (nicht int(0), sondern JSON-null/None in Python) stellen. Analog bei Jacken und Mänteln. Außerdem hat die Extraktion der Größen allgemein sehr schlecht funktioniert, z. B. Rückenlänge als Schulterbreite interpretiert oder ähnliches. Alle weiteren Informationen wie Material wurden auch wesentlich seltener extrahiert, selbst wenn sie in den Artikelbeschreibungen zu finden waren. Zustände wurden nicht in den im Prompt vorgegebenen Kategorien Sehr gut mit/ohne Etikett, Sehr gut, Gut, Befriedigend angegeben (für uniforme Antworten bei den drei verschiedenen Marktplätzen im Ergebnis-Tab des Dashboards).

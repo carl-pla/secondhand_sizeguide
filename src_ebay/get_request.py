@@ -144,7 +144,7 @@ async def get_detailed_items_async(item_ids, user_token):
     """
     Führt nicht-blockierende HTTP-GET-Requests für eine Menge von Item-IDs aus.
 
-    Nutzt Multiplexing via httpx, um die Latenz durch gleichzeitige Anfragen zu
+    Stellt Anfragen via httpx, um die Latenz durch gleichzeitige Anfragen zu
     minimieren. Resultate werden durch helper.extract_important_data gesäubert.
 
     :param item_ids: Set mit allen gefundenen Item-IDs

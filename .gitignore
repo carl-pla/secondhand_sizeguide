@@ -16,7 +16,6 @@ datascienceprojekt.egg-info
 debug.png
 debug_vinted.html
 
-database/
 
 .DS_Store
 dashboard/secrets/*.json

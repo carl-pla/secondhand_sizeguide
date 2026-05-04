@@ -49,7 +49,7 @@ async def scrape_suchergebnisse(
     groesse_slug = HABILLEUR_GROESSEN.get(groesse, groesse.lower())
     
     # Habilleur nutzt URL-Filter: /collections/{kategorie}-{groesse}
-    url = f"{BASE_URL}/{kategorie_slug}-{groesse_slug}"
+    url = f"{BASE_URL}/{kategorie_slug}-{groesse_slug}?filter.v.availability=1"
     
     max_artikel = config.get("max_artikel_pro_suche", 50)
     max_preis = config.get("max_preis", 200)
@@ -254,7 +254,7 @@ async def scrape_artikel_details(
             if el:
                 text = el.get_text(strip=True)
                 if len(text) > 10:
-                    beschreibung = text[:800]
+                    beschreibung = text[:8000]
                     break
         
         # Zusätzliche Felder: Material, Zustand, Brand

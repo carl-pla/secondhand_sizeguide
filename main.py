@@ -14,7 +14,7 @@ if sys.platform == "win32":
 from scraper.vinted_scraper import scrape_artikel_details as vinted_scrape_details, scrape_suchergebnisse as vinted_scrape_suchergebnisse
 from scraper.habilleur_scraper import scrape_artikel_details as scrape_artikel_details, scrape_suchergebnisse as habilleur_scrape_suchergebnisse
 from src_ebay.get_request import get_summary_of_articles_json, get_detailed_items_async
-from src_ebay.get_new_token import get_new_token
+#from src_ebay.get_new_token import get_new_token
 from ai.ollama import analysiere_artikel_vinted, analysiere_artikel_habilleur, analysiere_artikel_ebay
 from database.config_defaults import lade_config, ERGEBNISSE_FILE, EMPFEHLUNGEN_FILE
 from database.scraping_sessions import speichere_in_mongo

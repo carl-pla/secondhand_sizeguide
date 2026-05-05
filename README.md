@@ -444,20 +444,22 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 
 ### Tests
 **conftest.py**
---> dient als Datei für Testdaten 
+- dient als Datei für Testdaten 
 
-**hier clemens und nils eintragen**
-
-
-Gedanken zu Tests bei eBay:
-Ein Teil eines beispielhaften Produkt-Dicts (von echtem Artikel entnommen), wie es von fetch_one_item() returnt wird, wird als Fixture in conftest.py definiert -> Basis für Tests in test_ebay. Ich habe in der Regel einen negativen und einen positiven Test pro Funktion aufgebaut. Beim positiven Test wird die Fixture genutzt, um die Funktionsresultate bei einem gültigen Input zu testen. Beim negativen Test wird immer die leere Eingabe getestet. (korrektes Dict - positiv, leeres Dict - negativ). Es wird sich auch die Struktur von Rückgabewerten zunutze gemacht, um die Antworten zu validieren, z. B. Testung des ersten Buchstaben eines strings oder ob eine Zeichenkette enthalten ist.
+eBay:
+- conftest.py enthält beispielhaftes Teil-Produkt-Dict (von echtem eBay-Artikel entnommen), wie es von fetch_one_item() returnt wird, als Fixture
+- diese Fixture ist Basis für viele Tests in test_ebay.py
+- Aufbau in negativen und positiven Test pro Funktion#
+- positiver Test: Funktionsresultate bei einem gültigen Input testen
+- negativer Test: Funktionsresultate bei leerem Input (z. B. leeres Dictionary) testen
+- Ausnutzen der Struktur der Rückgabewerte, um Antworten zu validieren (z. B. Testung des ersten Buchstaben eines strings)
 
 
 ### Geplant
 - [x] Pytests schreiben, keine dummys meshr
 - [x] Deploy-Schritt in CI/CD aktivieren
 - [x] LLM-Analyse kritischer gestalten
-- [ ] Ebay Integration?
+- [x] Ebay Integration?
 
 ### Zusätzliche Ideen in Zukunft
 - [ ] die Vorschläge sind teilweise brauchbar, weil nicht oft direkt die Präferenz unseres Erachten gefunden wird, 

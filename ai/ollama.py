@@ -73,7 +73,7 @@ MEASUREMENT_RULES_EBAY_HAB = """MEASUREMENT RULES (all values in cm, convert if 
 JACKET:
 If article is a jacket, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
 - schulterbreite     = shoulder width seam to seam (full width)
-- aermellange        = sleeve length shoulder seam to cuff (full length)
+- aermelleange        = sleeve length shoulder seam to cuff (full length)
 - jackenlaenge       = jacket length shoulder to hem (full length)
 - achselbreite       = chest width underarm to underarm laid flat (full width, NOT half)
 - jacke_taillenweite = jacket waist laid flat (HALF circumference). Divide by 2 if full circumference given.
@@ -89,13 +89,46 @@ COAT:
 If article is a coat, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
 - mantel_schulterbreite = shoulder width seam to seam (full width)
 - mantel_gesamtlaenge   = coat length shoulder to hem (full length). NOT jacket length.
-- mantel_aermellange    = sleeve length shoulder seam to cuff (full length)
+- mantel_aermellaenge    = sleeve length shoulder seam to cuff (full length)
 - mantel_achselbreite   = chest width underarm to underarm laid flat (full width, NOT half)
 - mantel_taillenweite   = coat waist laid flat (HALF circumference). Divide by 2 if full circumference given.
 
 - For each measurement, determine whether the given value in the article description is a full or half measurement before inserting. 
   Convert to the format specified above (some require half, some full).
 
+When uncertain which measurement is meant, use null"""
+
+MEASUREMENT_RULES_HAB = """MEASUREMENT RULES (all values in cm, convert if necessary, add extra seam allowance to size if given (+ cm), null if not found):
+JACKET:
+If article is a jacket, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
+- schulterbreite     = shoulder width seam to seam (full width)
+- aermellaenge        = sleeve length shoulder seam to cuff (full length)
+- jackenlaenge       = jacket length shoulder to hem (full length)
+- achselbreite       = chest width underarm to underarm laid flat (full width, NOT half)
+- jacke_taillenweite = jacket waist laid flat (HALF circumference).
+
+SUIT:
+If article is a suit, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
+- schulterbreite     = shoulder width seam to seam (full width)
+- aermellaenge        = sleeve length shoulder seam to cuff (full length)
+- jackenlaenge       = jacket length shoulder to hem (full length)
+- achselbreite       = chest width underarm to underarm laid flat (full width, NOT half)
+- jacke_taillenweite = jacket waist laid flat (HALF circumference).
+- hose_taillenweite  = trouser waist laid flat (HALF circumference). 
+- gabelhoehe         = rise from crotch seam to waistband (full length)
+- beinoeffnung       = leg opening laid flat (HALF width). 
+- hosenlaenge        = total trouser length waistband to hem (full length)
+
+COAT:
+If article is a coat, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
+- mantel_schulterbreite = shoulder width seam to seam (full width)
+- mantel_gesamtlaenge   = coat length shoulder to hem (full length). NOT jacket length.
+- mantel_aermellaenge    = sleeve length shoulder seam to cuff (full length)
+- mantel_achselbreite   = chest width underarm to underarm laid flat (full width, NOT half)
+- mantel_taillenweite   = coat waist laid flat (HALF circumference). 
+
+- For each measurement, determine whether there is extra seam allowance added to the size (e.g. "100cm + 5cm ") and add this to the measurement if so.
+- Pay attention to the Language used, as Habilleur is in French and sometimes the language varies between French, English and German in the description.
 When uncertain which measurement is meant, use null"""
 
 JSON_MASSE_VINTED = """{
@@ -111,7 +144,7 @@ JSON_MASSE_VINTED = """{
 JSON_MASSE_EBAY_HAB = """{
   "masse": {
       "schulterbreite": <insert value as integer/null>,
-      "aermellange": <insert value as integer/null>,
+      "aermellaenge": <insert value as integer/null>,
       "jackenlaenge": <insert value as integer/null>,
       "achselbreite": <insert value as integer/null>,
       "jacke_taillenweite": <insert value as integer/null>,
@@ -121,7 +154,7 @@ JSON_MASSE_EBAY_HAB = """{
       "hosenlaenge": <insert value as integer/null>,
       "mantel_schulterbreite": <insert value as integer/null>,
       "mantel_gesamtlaenge": <insert value as integer/null>,
-      "mantel_aermellange": <insert value as integer/null>,
+      "mantel_aermellaenge": <insert value as integer/null>,
       "mantel_achselbreite": <insert value as integer/null>,
       "mantel_taillenweite": <insert value as integer/null>}"""
 
@@ -323,7 +356,7 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
 
     {UNIT_CONVERSION_RULES}
 
-    {MEASUREMENT_RULES_EBAY_HAB}
+    {MEASUREMENT_RULES_HAB}
 
     Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
     {JSON_MASSE_EBAY_HAB},
@@ -398,7 +431,7 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
     masse = analyse.get("masse", {}) or {}
     for key, label, eigener_wert in [
         ("schulterbreite", "Schulterbreite", habilleur_masse.get("schulterbreite")),
-        ("aermellange", "Ärmellänge", habilleur_masse.get("aermellange")),
+        ("aermellaenge", "Ärmellänge", habilleur_masse.get("aermellaenge")),
         ("jackenlaenge", "Jackenlänge", habilleur_masse.get("jackenlaenge")),
         ("achselbreite", "Achselbreite", habilleur_masse.get("achselbreite")),
         ("jacke_taillenweite", "Jacke Taillenweite", habilleur_masse.get("jacke_taillenweite")),
@@ -408,7 +441,7 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
         ("hosenlaenge", "Hosenlänge", habilleur_masse.get("hosenlaenge")),
         ("mantel_schulterbreite", "Mantel Schulterbreite", habilleur_masse.get("mantel_schulterbreite")),
         ("mantel_gesamtlaenge", "Mantel Gesamtlänge", habilleur_masse.get("mantel_gesamtlaenge")),
-        ("mantel_aermellange", "Mantel Ärmellänge", habilleur_masse.get("mantel_aermellange")),
+        ("mantel_aermellaenge", "Mantel Ärmellänge", habilleur_masse.get("mantel_aermellaenge")),
         ("mantel_achselbreite", "Mantel Achselbreite", habilleur_masse.get("mantel_achselbreite")),
         ("mantel_taillenweite", "Mantel Taillenweite", habilleur_masse.get("mantel_taillenweite")),
     ]:
@@ -577,7 +610,7 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
     masse = analyse.get("masse", {}) or {}
     for key, label, eigener_wert in [
         ("schulterbreite", "Schulterbreite", ebay_masse.get("schulterbreite")),
-        ("aermellange", "Ärmellänge", ebay_masse.get("aermellange")),
+        ("aermellaenge", "Ärmellänge", ebay_masse.get("aermellaenge")),
         ("jackenlaenge", "Jackenlänge", ebay_masse.get("jackenlaenge")),
         ("achselbreite", "Achselbreite", ebay_masse.get("achselbreite")),
         ("jacke_taillenweite", "Jacke Taillenweite", ebay_masse.get("jacke_taillenweite")),
@@ -587,7 +620,7 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
         ("hosenlaenge", "Hosenlänge", ebay_masse.get("hosenlaenge")),
         ("mantel_schulterbreite", "Mantel Schulterbreite", ebay_masse.get("mantel_schulterbreite")),
         ("mantel_gesamtlaenge", "Mantel Gesamtlänge", ebay_masse.get("mantel_gesamtlaenge")),
-        ("mantel_aermellange", "Mantel Ärmellänge", ebay_masse.get("mantel_aermellange")),
+        ("mantel_aermellaenge", "Mantel Ärmellänge", ebay_masse.get("mantel_aermellaenge")),
         ("mantel_achselbreite", "Mantel Achselbreite", ebay_masse.get("mantel_achselbreite")),
         ("mantel_taillenweite", "Mantel Taillenweite", ebay_masse.get("mantel_taillenweite")),
     ]:

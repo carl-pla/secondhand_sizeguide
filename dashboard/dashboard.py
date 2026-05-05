@@ -15,8 +15,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database.config_defaults import (
     VINTED_GROESSEN, VINTED_KATEGORIEN, HABILLEUR_GROESSEN, HABILLEUR_KATEGORIEN, HABILLEUR_MASSE_BEISPIEL,
-    ebay_groessen, ebay_materials, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
-    speichere_config, lade_config, category_ids_ebay, condition_ids_ebay, ebay_farben
+    EBAY_GROESSEN, EBAY_MATERIALS, OLLAMA_MODELLE, STIL_OPTIONEN, ZUSTAND_RANG, CONFIG_FILE, ERGEBNISSE_FILE, ZUSTAND_OPTIONEN,
+    speichere_config, lade_config, CATEGORY_IDS_EBAY, CONDITION_IDS_EBAY, EBAY_FARBEN
 )
 
 
@@ -455,7 +455,7 @@ elif "eBay" in seite:
     aktuelle_groesse = st.session_state.config.get("groesse", "M")
     if " / " in str(aktuelle_groesse):  # Vinted-Format "M / 38" → "M"
         aktuelle_groesse = aktuelle_groesse.split(" / ")[0].strip()
-    if aktuelle_groesse not in ebay_groessen:  # Fallback auf Default
+    if aktuelle_groesse not in EBAY_GROESSEN:  # Fallback auf Default
         aktuelle_groesse = "M"
     st.session_state.config["groesse"] = aktuelle_groesse
 
@@ -467,26 +467,26 @@ elif "eBay" in seite:
         with col1:
             st.session_state.config["groesse"] = st.selectbox(
                 "Kleidungsgröße (leer lassen für beste Ergebnisse bei Schuhen)",
-                ebay_groessen,
-                index=ebay_groessen.index(st.session_state.config["groesse"])
+                EBAY_GROESSEN,
+                index=EBAY_GROESSEN.index(st.session_state.config["groesse"])
             )
             st.session_state.config["kategorie"] = st.selectbox(
                 "Kategorie (eBay)",
-                list(category_ids_ebay.keys()),
-                index=list(category_ids_ebay.keys()).index(
+                list(CATEGORY_IDS_EBAY.keys()),
+                index=list(CATEGORY_IDS_EBAY.keys()).index(
                     st.session_state.config.get("kategorie", "Herren Jacken, Mäntel und Westen") if st.session_state.config.get(
-                        "kategorie") in category_ids_ebay.keys() else "Herren Jacken, Mäntel und Westen"
+                        "kategorie") in CATEGORY_IDS_EBAY.keys() else "Herren Jacken, Mäntel und Westen"
                 ))
             st.session_state.config["min_zustand"] = st.selectbox(
                 "Mindest-Zustand",
-                condition_ids_ebay,
-                index=list(condition_ids_ebay.keys()).index(
+                CONDITION_IDS_EBAY,
+                index=list(CONDITION_IDS_EBAY.keys()).index(
                     st.session_state.config.get("min_zustand", "Gut")
                 ))
             st.session_state.config["farbe"] = st.selectbox(
                 "Gewünschte Farbe des Artikels (leer lassen für keine Präferenz)",
-                ebay_farben,
-                index=ebay_farben.index(st.session_state.config["farbe"])
+                EBAY_FARBEN,
+                index=EBAY_FARBEN.index(st.session_state.config["farbe"])
             )
 
         with col2:
@@ -506,8 +506,8 @@ elif "eBay" in seite:
             )
             st.session_state.config["material"] = st.selectbox(
                 "Gewünschtes Material des Artikels (leer lassen für keine Präferenz)",
-                ebay_materials,
-                index=ebay_materials.index(st.session_state.config["material"])
+                EBAY_MATERIALS,
+                index=EBAY_MATERIALS.index(st.session_state.config["material"])
             )
 
     # ── TAB 2: Maße ──

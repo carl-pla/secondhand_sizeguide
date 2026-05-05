@@ -117,7 +117,7 @@ async def scrape_suchergebnisse(
                     produkt.find("a"),
                     produkt.find("a", href=True),
                 ]
-                
+               
                 href = None
                 for link in link_candidates:
                     if link and link.get("href"):

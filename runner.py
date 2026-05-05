@@ -37,7 +37,7 @@ async def run_fuer_einen_user():
         "max_suchen":              1,
         "pause_zwischen_artikeln": [2, 4],
         "pause_zwischen_suchen":   [3, 6],
-        "_user_email":             user["email"],
+        "user_email":             user["email"],
     }
 
     tmp = Path(f"/tmp/config_{user['email'].replace('@','_')}.json")

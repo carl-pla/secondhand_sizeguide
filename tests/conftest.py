@@ -107,7 +107,35 @@ def beispiel_empfehlungen():
     ]
 
 
-
-
-
-
+@pytest.fixture
+def basis_artikel_ebay():
+    """Ein typischer eBay-Artikel als rohe API-Antwort. Enthält nur relevante Felder."""
+    return {
+        "itemId": "v1|388630721336|0",
+        "title": "Bermuda Gr. 48",
+        "shortDescription": "Schöne Freizeithose. Nichtraucherhaushalt.",
+        "price": {
+            "value": "3.00",
+            "currency": "EUR"
+        },
+        "condition": "Gebraucht - Gut",
+        "conditionId": "3000",
+        "localizedAspects": [
+            {"type": "STRING", "name": "Abteilung",      "value": "Herren"},
+            {"type": "STRING", "name": "Stil",            "value": "Chino"},
+            {"type": "STRING", "name": "Größenkategorie", "value": "Normalgröße"},
+            {"type": "STRING", "name": "Besonderheiten",  "value": "Taschen"},
+            {"type": "STRING", "name": "Passform",        "value": "Regular"},
+            {"type": "STRING", "name": "Anlass",          "value": "Freizeit"},
+            {"type": "STRING", "name": "Material",        "value": "Baumwolle"},
+            {"type": "STRING", "name": "Gewebeart",       "value": "Tweed"},
+            {"type": "STRING", "name": "Größe",           "value": "48"},
+            {"type": "STRING", "name": "Marke",           "value": "markenlos"},
+            {"type": "STRING", "name": "Farbe",           "value": "Blau"},
+            {"type": "STRING", "name": "Bundfalte",       "value": "Ohne Bundfalte"},
+            {"type": "STRING", "name": "Thema",           "value": "Urlaub"},
+            {"type": "STRING", "name": "Muster",          "value": "Ohne Muster"},
+        ],
+        "itemWebUrl": "https://www.ebay.de/itm/388630721336",
+        "description": "<p dir=\"ltr\">Schöne Freizeithose.</p><br><p dir=\"ltr\">Nichtraucherhaushalt.</p>",
+    }

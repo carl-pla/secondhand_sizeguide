@@ -133,7 +133,15 @@ $env:OLLAMA_HOST="0.0.0.0:11434"; ollama serve
 # 8. KI-Modell laden (einmalig)
 ollama pull llama3.2:3b
 
-# 9. Dashboard starten
+# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0)
+Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
+--> Klicke oben links auf das Project-Feld (neben dem MongoDB-Logo) und wähle Project Settings.
+--> Gehe im linken Menü auf Project Access Manager > Project Access.
+--> Klicke auf den Button Invite.
+--> Gib die E-Mail-Adresse der Person ein.
+--> Rollen-Wahl:Project Read Only: Kann nur gucken, Project Member: Kann fast alles, Project Owner: Hat volle Kontrolle 
+
+# 10. Dashboard starten
 streamlit run dashboard/dashboard.py
 ```
 

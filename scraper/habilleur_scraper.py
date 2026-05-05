@@ -190,7 +190,7 @@ async def scrape_suchergebnisse(
 #  STUFE 2: FEIN-DETAILS — Artikel-Details scrapen
 # ─────────────────────────────────────────────
 async def scrape_artikel_details(
-    url: str, client: Optional[httpx.AsyncClient] = None
+    url: str, client: Optional[httpx.AsyncClient] = None, kategorie: Optional[str] = None
 ) -> Optional[Dict]:
     """
     Scrapt alle Details eines Produkts.
@@ -198,9 +198,11 @@ async def scrape_artikel_details(
     Args:
         url: Produkt-URL
         client: Optional httpx.AsyncClient
+        kategorie: Optional Kategorie (z.B. "Anzug", "Jacke", "Mantel") 
+                  Falls nicht angegeben, wird versucht, sie aus der URL/dem Titel zu extrahieren
     
     Returns:
-        Dict mit: titel, preis, beschreibung, material, zustand, etc.
+        Dict mit: titel, preis, beschreibung, material, zustand, kategorie, etc.
         oder None bei Fehler
     """
     
@@ -282,6 +284,31 @@ async def scrape_artikel_details(
                         material = line.split("Material:")[-1].strip()
                         break
         
+        # ─────────────────────────────────────────────
+        #  KATEGORIE-EXTRAKTION
+        # ─────────────────────────────────────────────
+        # Falls nicht übergeben, versuche aus URL oder Titel zu extrahieren
+        if not kategorie:
+            # Versuche aus URL zu extrahieren
+            for kat in ["anzug", "jacke", "jacket", "mantel", "coat"]:
+                if kat in url.lower():
+                    kategorie = "Anzug" if kat == "anzug" else \
+                               "Jacke" if kat in ["jacke", "jacket"] else \
+                               "Mantel" if kat in ["mantel", "coat"] else "Unbekannt"
+                    break
+            
+            # Falls nicht in URL: versuche aus Titel zu extrahieren
+            if not kategorie:
+                titel_lower = titel.lower()
+                if any(w in titel_lower for w in ["anzug", "suit", "costumes"]):
+                    kategorie = "Anzug"
+                elif any(w in titel_lower for w in ["jacke", "jacket", "blazer", "sakko"]):
+                    kategorie = "Jacke"
+                elif any(w in titel_lower for w in ["mantel", "coat", "parka", "overcoat"]):
+                    kategorie = "Mantel"
+                else:
+                    kategorie = "Unbekannt"
+        
         return {
             "url": url,
             "titel": titel,
@@ -290,6 +317,7 @@ async def scrape_artikel_details(
             "material": material,
             "zustand": zustand,
             "brand": brand,
+            "kategorie": kategorie,  # ← NEU: Kategorie hinzugefügt
         }
     
     except Exception as e:
@@ -362,7 +390,7 @@ async def scrape_komplett(config: dict) -> dict:
         # Stufe 2: Scrape Details
         artikel_details = []
         for i, link_info in enumerate(links, 1):
-            details = await scrape_artikel_details(link_info["url"], client)
+            details = await scrape_artikel_details(link_info["url"], client, kategorie)
             if details:
                 artikel_details.append(details)
                 print(f"  [{i}/{len(links)}] ✓ {details['titel'][:40]}...")

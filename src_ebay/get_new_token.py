@@ -1,8 +1,8 @@
 import base64
 import requests
-from src_ebay.ebay_ids import app_id, cert_id
+from src_ebay.ebay_ids import APP_ID, CERT_ID
 
-def get_new_token(client_id=app_id, client_secret=cert_id):
+def get_new_token(client_id=APP_ID, client_secret=CERT_ID):
     """
     Holt mithilfe von Client-ID und -Secret einen neuen User-Token für die Artikelsuche.
 

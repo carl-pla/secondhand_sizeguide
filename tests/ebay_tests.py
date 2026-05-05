@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from src_ebay.ebay_helper import clean_description, extract_important_data
 from src_ebay.get_new_token import get_new_token
-from src_ebay.ebay_ids import old_token
+from src_ebay.ebay_ids import OLD_TOKEN
 from src_ebay.get_request import get_summary_of_articles_json, fetch_one_item, get_detailed_items_async
 
 
@@ -28,14 +28,14 @@ from src_ebay.get_request import get_summary_of_articles_json, fetch_one_item, g
 path_to_mock_json = os.path.join(os.path.dirname(__file__), "mock_item_ebay.json")
 
 with open(path_to_mock_json, "r", encoding="utf-8") as mock_json:
-    base_item = json.load(mock_json)
+    BASE_ITEM = json.load(mock_json)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # Tests: clean_description (ebay_helper.py)
 # ═════════════════════════════════════════════════════════════════════════════
 
 def test_clean_description_example():
-    result = clean_description(base_item["description"])
+    result = clean_description(BASE_ITEM["description"])
 
     assert "Schone Freizeithose." in result
     assert "Nichtraucherhaushalt." in result
@@ -52,7 +52,7 @@ def test_clean_description_empty():
 # ═════════════════════════════════════════════════════════════════════════════
 
 def test_extract_important_data_example():
-    result = extract_important_data(base_item)
+    result = extract_important_data(BASE_ITEM)
 
     assert result["marketplace"]        == "ebay"
     assert result["itemId"]             == "v1|388630721336|0"
@@ -61,8 +61,8 @@ def test_extract_important_data_example():
     assert result["price"]              == "3.00 €"
     assert result["condition"]          == "Gebraucht - Gut"
     assert result["conditionId"]        == "3000"
-    assert result["localizedAspects"]   == base_item["localizedAspects"]
-    assert result["shortDescription"]   == base_item["shortDescription"]
+    assert result["localizedAspects"]   == BASE_ITEM["localizedAspects"]
+    assert result["shortDescription"]   == BASE_ITEM["shortDescription"]
     assert result["brand"]              == "markenlos"
     assert result["color"]              == "Blau"
     assert result["size"]               == "48"
@@ -96,7 +96,7 @@ def test_get_new_token():
 # ═════════════════════════════════════════════════════════════════════════════
 
 def test_get_summary_of_articles_json_invalid_token():
-    result = get_summary_of_articles_json(user_token=old_token)
+    result = get_summary_of_articles_json(user_token=OLD_TOKEN)
     
     assert result == None
 
@@ -115,7 +115,7 @@ def test_get_summary_of_articles_json_valid_token():
 
 def test_fetch_one_item_valid():
     mock_response = MagicMock()
-    mock_response.json.return_value = base_item
+    mock_response.json.return_value = BASE_ITEM
 
     mock_client = AsyncMock()
     mock_client.get.return_value = mock_response

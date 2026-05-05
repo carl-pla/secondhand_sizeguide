@@ -1,56 +1,20 @@
 name: Nightly Vinted Scraper
-
 on:
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
-
-  # ─────────────────────────────────────────────
-  # JOB 0: Tests laufen lassen – Pipeline stoppt
-  # bei Fehler, bevor etwas gescrapt wird.
-  # ─────────────────────────────────────────────
-  run-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Abhängigkeiten installieren
-        run: pip install -r requirements.txt
-#      - name: Tests ausführen
-#        env:
-#          MONGO_URL: ${{ secrets.MONGO_URL }}
-#        run: pytest test_pipeline.py test_scraper.py -v --tb=short
-#          --cov=ai \
-#          --cov=database \
-#          --cov=scraper \
-#          --cov=newsletter \
-#          --cov-report=term-missing \
-#         --cov-report=xml:coverage.xml
-
-  # ─────────────────────────────────────────────
-  # JOB 1: User-Matrix laden
-  # Läuft nur, wenn run-tests erfolgreich war.
-  # ─────────────────────────────────────────────
   load-users:
-#    needs: run-tests  
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.get-users.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
       - run: pip install -r requirements.txt
-
       - name: User-IDs aus MongoDB laden
         id: get-users
         env:
@@ -68,9 +32,6 @@ jobs:
           print(f"✅ {len(emails)} User gefunden: {emails}")
           EOF
 
-  # ─────────────────────────────────────────────
-  # JOB 2: Pro User ein paralleler Scrape-Job
-  # ─────────────────────────────────────────────
   scrape-per-user:
     needs: load-users
     runs-on: ubuntu-latest
@@ -81,23 +42,22 @@ jobs:
       max-parallel: 10
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
       - run: pip install -r requirements.txt
-
       - name: Playwright Browser installieren
         run: playwright install chromium --with-deps
-
       - name: Ollama Setup
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
           ollama serve &
-          sleep 10
+          for i in $(seq 1 30); do
+            ollama list 2>/dev/null && break
+            echo "Warte auf Ollama... ($i)"
+            sleep 2
+          done
           ollama pull llama3.2:3b
-
       - name: Scrape für ${{ matrix.email }}
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}

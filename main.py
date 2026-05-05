@@ -37,6 +37,8 @@ Unterstützt nun: Vinted (mit Browser) und Habilleur (ohne Browser)
 # Prüft, ob alle Werkzeuge bereit sind (LLM und Config.json)
 async def main(config: dict, user_email: str=None): # type: ignore
     print(f"DEBUG: Lade Config von {config.get('_pfad', 'unbekannt')}")
+    print(f"DEBUG _user_email: {config.get('_user_email')}")  # ← neu
+    print(f"DEBUG alle keys: {list(config.keys())}") 
 
     # Pflichtfelder prüfen
     if not config.get("ollama_modell"):

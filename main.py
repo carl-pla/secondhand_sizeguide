@@ -2,11 +2,16 @@ import json
 import asyncio
 import random
 import argparse
+import datetime
 import sys
-import io
+import os
 import httpx # type: ignore
 from playwright.async_api import async_playwright # type: ignore
 from playwright_stealth import Stealth # type: ignore
+from pymongo import MongoClient
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Erzwinge UTF-8 Encoding für Windows-Konsole
 if sys.platform == "win32":
@@ -230,7 +235,7 @@ async def main(config: dict, user_email: str=None): # type: ignore
 
     # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung
     try:
-        speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email")) # type: ignore
+        speichere_in_mongo(ergebnisse, config, user_email=config.get("_user_email")) 
     except Exception as e:
         print(f"⚠️  MongoDB nicht erreichbar: {e}")
 

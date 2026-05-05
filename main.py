@@ -37,7 +37,7 @@ Unterstützt nun: Vinted (mit Browser) und Habilleur (ohne Browser)
 # Prüft, ob alle Werkzeuge bereit sind (LLM und Config.json)
 async def main(config: dict, user_email: str=None): # type: ignore
     print(f"DEBUG: Lade Config von {config.get('_pfad', 'unbekannt')}")
-    print(f"DEBUG _user_email: {config.get('_user_email')}")  # ← neu
+    print(f"DEBUG user_email: {config.get('user_email')}")  # ← neu
     print(f"DEBUG alle keys: {list(config.keys())}") 
 
     # Pflichtfelder prüfen
@@ -237,7 +237,7 @@ async def main(config: dict, user_email: str=None): # type: ignore
 
     # Speicherung B: MongoDB (Docker) für Langezeit-Speicherung oder andersweitige Validierung
     try:
-        speichere_in_mongo(ergebnisse, config, user_email=config.get("_user_email")) 
+        speichere_in_mongo(ergebnisse, config, user_email=config.get("user_email")) 
     except Exception as e:
         print(f"⚠️  MongoDB nicht erreichbar: {e}")
 
@@ -266,7 +266,10 @@ STARTPUNKT DER DATEI --> ermöglicht via Terminal zu starten
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="dashboard/secrets/config.json")
+    parser.add_argument("--user_email", default=None)  #
     args = parser.parse_args()
     cfg = lade_config(args.config)
     cfg["_pfad"] = args.config
+    if args.user_email:
+        cfg["user_email"] = args.user_email
     asyncio.run(main(cfg))

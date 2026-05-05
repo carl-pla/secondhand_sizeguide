@@ -1,13 +1,14 @@
 import os
+import re
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 
-MONGO_URL     = os.getenv("MONGO_URL")
-MAIL_FROM     = os.getenv("MAIL_FROM")
-MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+MONGO_URL     = os.getenv("MONGO_URL") or ""
+MAIL_FROM     = os.getenv("MAIL_FROM") or ""
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD") or ""
 
 MAX_ARTIKEL = 10
 
@@ -18,14 +19,33 @@ if not MAIL_FROM:
 if not MAIL_PASSWORD:
     raise ValueError("❌ Kritischer Fehler: MAIL_PASSWORD nicht gesetzt!")
 
+def parse_gestartet_am(value):
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return None
+    return None
+
+
 def fetch_latest_empfehlungen():
     print("✅ MONGO_URL geladen. Verbinde mit MongoDB...")
     client = MongoClient(MONGO_URL)
     col = client["Secondhand_db"]["scraping_sessions"]
 
-    # ✅ Fix #1: datetime-Objekt statt String
     gestern = datetime.now() - timedelta(days=1)
     sessions = list(col.find({"gestartet_am": {"$gte": gestern}}).sort("gestartet_am", -1))
+
+    if not sessions:
+        print("⚠️ Keine Sessions per Datetime-Query gefunden. Fallback auf String-Daten.")
+        all_sessions = list(col.find().sort("gestartet_am", -1))
+        sessions = [
+            s for s in all_sessions
+            if (parsed := parse_gestartet_am(s.get("gestartet_am"))) and parsed >= gestern
+        ]
+
     print(f"📦 {len(sessions)} Sessions in den letzten 24h gefunden.")
 
     alle = []
@@ -78,6 +98,10 @@ def sende_email(html_content, empfaenger: str):
     msg["Subject"] = f"🛍️ Deine Vinted Deals – {heute}"
     msg["From"]    = MAIL_FROM
     msg["To"]      = empfaenger
+    msg["Reply-To"] = MAIL_FROM
+
+    plain_text = re.sub(r"<[^>]+>", "", html_content)
+    msg.attach(MIMEText(plain_text, "plain"))
     msg.attach(MIMEText(html_content, "html"))
 
     try:

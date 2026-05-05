@@ -818,7 +818,7 @@ elif "Ergebnisse" in seite:
             elif ( quelle == "habilleur" ) or ( quelle == "ebay"):
                 masse_felder = [
                     ("schulterbreite", "Schulterbreite"),
-                    ("aermellange", "Ärmellänge"),
+                    ("aermellaenge", "Ärmellänge"),
                     ("jackenlaenge", "Jackenlänge"),
                     ("achselbreite", "Achselbreite"),
                     ("jacke_taillenweite", "Jacke Taillenweite"),
@@ -828,7 +828,7 @@ elif "Ergebnisse" in seite:
                     ("hosenlaenge", "Hosenlänge"),
                     ("mantel_schulterbreite", "Mantel Schulterbreite"),
                     ("mantel_gesamtlaenge", "Mantel Gesamtlänge"),
-                    ("mantel_aermellange", "Mantel Ärmellänge"),
+                    ("mantel_aermellaenge", "Mantel Ärmellänge"),
                     ("mantel_achselbreite", "Mantel Achselbreite"),
                     ("mantel_taillenweite", "Mantel Taillenweite"),
                 ]

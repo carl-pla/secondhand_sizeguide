@@ -1,6 +1,7 @@
 import json
 import httpx # type: ignore
 from database.config_defaults import ZUSTAND_RANG
+from ai.habilleur_regex import extract_measurements_habilleur
 
 """
 === WORKFLOW GROB ===
@@ -98,38 +99,78 @@ If article is a coat, ONLY fill the following 5 fields. ALL other masse fields M
 
 When uncertain which measurement is meant, use null"""
 
-MEASUREMENT_RULES_HAB = """MEASUREMENT RULES (all values in cm, convert if necessary, add extra seam allowance to size if given (+ cm), null if not found):
-JACKET:
-If article is a jacket, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
-- schulterbreite     = shoulder width seam to seam (full width)
-- aermellaenge        = sleeve length shoulder seam to cuff (full length)
-- jackenlaenge       = jacket length shoulder to hem (full length)
-- achselbreite       = chest width underarm to underarm laid flat (full width, NOT half)
-- jacke_taillenweite = jacket waist laid flat (HALF circumference).
+MEASUREMENT_RULES_HAB = """MEASUREMENT RULES - CRITICAL READING INSTRUCTIONS:
+ALWAYS read the description word-by-word and extract EXACT numbers. NEVER estimate or round.
+If you cannot find a measurement, use null. NEVER guess or make up numbers.
 
-SUIT:
-If article is a suit, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
-- schulterbreite     = shoulder width seam to seam (full width)
-- aermellaenge        = sleeve length shoulder seam to cuff (full length)
-- jackenlaenge       = jacket length shoulder to hem (full length)
-- achselbreite       = chest width underarm to underarm laid flat (full width, NOT half)
-- jacke_taillenweite = jacket waist laid flat (HALF circumference).
-- hose_taillenweite  = trouser waist laid flat (HALF circumference). 
-- gabelhoehe         = rise from crotch seam to waistband (full length)
-- beinoeffnung       = leg opening laid flat (HALF width). 
-- hosenlaenge        = total trouser length waistband to hem (full length)
+CATEGORY DETECTION (READ TITLE & DESCRIPTION FIRST):
+- If title/description contains "Anzug", "Suit", "3-piece", "costume" = SUIT category
+- If contains "Jacke", "Jacket", "Blazer" (but NOT "Anzug") = JACKET category  
+- If contains "Mantel", "Coat", "Parka" (but NOT "Anzug") = COAT category
 
-COAT:
-If article is a coat, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
-- mantel_schulterbreite = shoulder width seam to seam (full width)
-- mantel_gesamtlaenge   = coat length shoulder to hem (full length). NOT jacket length.
-- mantel_aermellaenge    = sleeve length shoulder seam to cuff (full length)
-- mantel_achselbreite   = chest width underarm to underarm laid flat (full width, NOT half)
-- mantel_taillenweite   = coat waist laid flat (HALF circumference). 
+SUIT EXTRACTION (Anzug / 3-piece suit / costume):
+This is the MOST COMMON category. For a SUIT, MUST fill ALL of these 9 fields:
+1. schulterbreite      = shoulder width seam to seam (full width). Search "Schulterbreite"
+2. aermellaenge        = sleeve length shoulder to cuff. Search "Ärmellänge" or "Armlaenge". ADD any "+ X cm" values.
+3. jackenlaenge        = jacket length shoulder to hem. Search "Jackenlänge"
+4. achselbreite        = chest width underarm to underarm. Search "Achselbreite"
+5. jacke_taillenweite  = jacket waist (HALF if measured flat). Search "Taillenweite" (jacket section). Divide by 2 ONLY if context indicates full circumference.
+6. hose_taillenweite   = trouser waist (HALF if measured flat). Search "Taillenweite" (trouser section). Divide by 2 ONLY if context indicates full circumference. ADD any "+ X cm".
+7. gabelhoehe          = rise from crotch to waistband. Search "Gabelhöhe" or "Schritthoehe"
+8. beinoeffnung        = leg opening width (HALF if measured flat). Search "Beinöffnung" or "Hosenbein-Öffnung". Divide by 2 ONLY if context indicates full circumference.
+9. hosenlaenge         = total trouser length waistband to hem. Search "Hosenlänge". ADD any "+ X cm".
 
-- For each measurement, determine whether there is extra seam allowance added to the size (e.g. "100cm + 5cm ") and add this to the measurement if so.
-- Pay attention to the Language used, as Habilleur is in French and sometimes the language varies between French, English and German in the description.
-When uncertain which measurement is meant, use null"""
+SET ALL mantel_* fields to null for suits.
+
+SUIT EXAMPLE FROM DESCRIPTION:
+"Schulterbreite: 44 cm, Ärmellänge: 58 cm + 3 cm, Jackenlänge: 72 cm, Achselbreite: 52 cm, Taillenweite: 52 cm, Gabelhöhe: 29 cm, Beinöffnung: 24 cm, Hosenlänge: 98 cm + 10 cm"
+EXTRACTION:
+- schulterbreite: 44
+- aermellaenge: 61 (= 58 + 3)
+- jackenlaenge: 72
+- achselbreite: 52
+- jacke_taillenweite: 52
+- hose_taillenweite: 47 (= 44 + 3) [Note: if separate trouser section says "44 cm + 3 cm"]
+- gabelhoehe: 29
+- beinoeffnung: 24
+- hosenlaenge: 108 (= 98 + 10)
+
+JACKET ONLY:
+ONLY fill these 5 fields. SET ALL others to null:
+- schulterbreite
+- aermellaenge (ADD any "+ X cm")
+- jackenlaenge
+- achselbreite
+- jacke_taillenweite
+
+COAT ONLY:
+ONLY fill these 5 fields. SET ALL others to null:
+- mantel_schulterbreite
+- mantel_gesamtlaenge
+- mantel_aermellaenge (ADD any "+ X cm")
+- mantel_achselbreite
+- mantel_taillenweite
+
+ADDITION RULE (CRITICAL):
+When you see "X cm + Y cm" in the description, you MUST ADD them.
+Examples:
+- "58 cm + 3 cm zur Erweiterung" = 58 + 3 = 61 cm
+- "44 cm + 3 cm" = 44 + 3 = 47 cm
+- "98 cm + 10 cm" = 98 + 10 = 108 cm
+NEVER ignore the addition instruction.
+
+LANGUAGE NOTE:
+Description may mix German, French, English. Common terms:
+- "Schulterbreite" = shoulder width
+- "Ärmellänge" / "Armlaenge" = sleeve length
+- "Jackenlänge" = jacket length
+- "Achselbreite" = chest/armpit width
+- "Taillenweite" = waist width
+- "Gabelhöhe" / "Schritthoehe" = rise/inseam
+- "Beinöffnung" = leg opening
+- "Hosenlänge" = trouser length
+
+CRITICAL: If you find any measurement in the description, you MUST extract it. If you cannot find a measurement despite seeing the correct field name, use null."""
 
 JSON_MASSE_VINTED = """{
   "masse": {
@@ -158,30 +199,34 @@ JSON_MASSE_EBAY_HAB = """{
       "mantel_achselbreite": <insert value as integer/null>,
       "mantel_taillenweite": <insert value as integer/null>}"""
 
-JSON_MASSE_HAB = """{
+JSON_MASSE_HAB = """Respond with ONLY this JSON structure (fill values, keep null if not found):
+{
   "masse": {
-      "schulterbreite": <insert value as integer/null>,
-      "aermellaenge": <insert value as integer/null>,
-      "jackenlaenge": <insert value as integer/null>,
-      "achselbreite": <insert value as integer/null>,
-      "jacke_taillenweite": <insert value as integer/null>,
-      "hose_taillenweite": <insert value as integer/null>,
-      "gabelhoehe": <insert value as integer/null>,
-      "beinoeffnung": <insert value as integer/null>,
-      "hosenlaenge": <insert value as integer/null>,
-      "mantel_schulterbreite": <insert value as integer/null>,
-      "mantel_gesamtlaenge": <insert value as integer/null>,
-      "mantel_aermellaenge": <insert value as integer/null>,
-      "mantel_achselbreite": <insert value as integer/null>,
-      "mantel_taillenweite": <insert value as integer/null>}"""
-
-JSON_FOOTER_STANDARD = """  "zustand": <insert either "Neu mit Etikett", "Neu ohne Etikett", "Sehr gut", "Gut" or "Befriedigend" depending on what matches best>,
-  "passt_groesse": true/false,
-  "begruendung": "<insert max 2 Sätze auf Deutsch>",
-  "bewertung": 1-10 (rating out of ten),
-  "empfohlen": true/false,
-  "material": <insert value as string/null>
+    "schulterbreite": <fill with number or null>,
+    "aermellaenge": <fill with number or null>,
+    "jackenlaenge": <fill with number or null>,
+    "achselbreite": <fill with number or null>,
+    "jacke_taillenweite": <fill with number or null>,
+    "hose_taillenweite": <fill with number or null>,
+    "gabelhoehe": <fill with number or null>,
+    "beinoeffnung": <fill with number or null>,
+    "hosenlaenge": <fill with number or null>,
+    "mantel_schulterbreite": <fill with number or null>,
+    "mantel_gesamtlaenge": <fill with number or null>,
+    "mantel_aermellaenge": <fill with number or null>,
+    "mantel_achselbreite": <fill with number or null>,
+    "mantel_taillenweite": <fill with number or null>
+  },
+  "zustand": "Sehr gut" or "Gut" or "Befriedigend" or null,
+  "passt_groesse": true or false or null,
+  "passt_stil": true or false or null,
+  "begruendung": "<2-3 sentences max>",
+  "bewertung": <integer 1-10>,
+  "empfohlen": true or false,
+  "material": "<text or null>"
 }"""
+
+JSON_FOOTER_STANDARD = ""
 
 
 """
@@ -353,6 +398,18 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
     
     # WICHTIG: Nutze die Kategorie aus dem Artikel oder aus der Config
     artikel_kategorie = artikel.get("kategorie", config.get("kategorie", "Unbekannt"))
+    
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # PRE-EXTRACTION: Nutze Regex um kritische Maße zu extrahieren
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    pre_extracted = extract_measurements_habilleur(artikel['beschreibung'])
+    
+    # Formatiere die pre-extracted Maße für den Prompt
+    pre_extract_text = ""
+    if pre_extracted:
+        pre_extract_text = "\n\nIMPORTANT: I pre-extracted these measurements from the description. Verify they are correct:\n"
+        for key, value in pre_extracted.items():
+            pre_extract_text += f"- {key}: {value} cm\n"
 
     """
     1.Prompt: Was soll das LLM machen, wie soll sie bewerten, 
@@ -378,10 +435,10 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
     {UNIT_CONVERSION_RULES}
 
     {MEASUREMENT_RULES_HAB}
+    {pre_extract_text}
 
     Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
-    {JSON_MASSE_HAB},
-    {JSON_FOOTER_STANDARD}"""
+    {JSON_MASSE_HAB}"""
 
     # Nach Prompt kommt der Analyseteil
     print(f"    🤖 Analysiere: {artikel['titel'][:50]}...")
@@ -405,11 +462,48 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
             return {**artikel, "analyse_fehler": True, "raw": antwort[:200]}
 
     """
-    3. Harte Python-Checks mit eigenen Maßen (), verhindert auch Hallzunationen 
+    2.1 STRUKTUR-FIX: Falls die Massfelder auf TOP-LEVEL sind statt in "masse", packe sie rein
+    Das LLM hat manchmal Schwierigkeiten mit Verschachtelung und packt die Felder auf TOP-LEVEL.
+    """
+    masse_felder = [
+        "schulterbreite", "aermellaenge", "jackenlaenge", "achselbreite",
+        "jacke_taillenweite", "hose_taillenweite", "gabelhoehe", "beinoeffnung", "hosenlaenge",
+        "mantel_schulterbreite", "mantel_gesamtlaenge", "mantel_aermellaenge", "mantel_achselbreite", "mantel_taillenweite"
+    ]
+    
+    # Prüfe, ob diese Felder auf TOP-LEVEL sind (falsch)
+    top_level_masse = {k: analyse.pop(k, None) for k in masse_felder if k in analyse}
+    
+    # Falls Felder auf TOP-LEVEL waren: packe sie in "masse"
+    if top_level_masse:
+        if "masse" not in analyse or not isinstance(analyse["masse"], dict):
+            analyse["masse"] = {}
+        # Merge die top-level Felder ins masse-Objekt
+        for key, val in top_level_masse.items():
+            if val is not None:  # Überschreibe nicht mit None
+                analyse["masse"][key] = val
+        # Debug-Output: Zeige was fixiert wurde
+        fixed_count = sum(1 for v in top_level_masse.values() if v is not None)
+        print(f"    [STRUKTUR-FIX] {fixed_count} Maße von TOP-LEVEL ins 'masse'-Objekt gepackt")
+
+    """
+    3. POST-PROCESSING: Nutze Pre-Extracted Measurements als Fallback
+    Falls das LLM ein Feld nicht extrahiert hat (null), nutze den Regex-Wert
+    """
+    if pre_extracted:
+        for key, regex_value in pre_extracted.items():
+            if analyse.get("masse", {}).get(key) is None:
+                if "masse" not in analyse:
+                    analyse["masse"] = {}
+                analyse["masse"][key] = regex_value
+                print(f"    [REGEX FALLBACK] {key}: {regex_value}cm (LLM konnte es nicht finden)")
+
+    """
+    4. Harte Python-Checks mit eigenen Maßen (), verhindert auch Hallzunationen 
     """
     try:
         """
-        3.1 Preis-Parsing und harter Check, ob ollama nicht falsche Preise ausgegeben hat oder formatiert hat
+        4.1 Preis-Parsing und harter Check, ob ollama nicht falsche Preise ausgegeben hat oder formatiert hat
         """
         # Ersetze Komma durch Punkt, falls vorhanden
         preis_roh = artikel["preis"].replace(',', '.')
@@ -433,11 +527,11 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
         print(f"DEBUG: Preis-Parsing fehlgeschlagen für '{artikel['preis']}': {e}")
 
     """
-    3.2 Zustandsprüfung entfällt
+    4.2 Zustandsprüfung entfällt
     """
 
     """
-    3.3 Mindestbewertung kann mit Schieberegler in "Ergebnissen" angepasst werden
+    4.3 Mindestbewertung kann mit Schieberegler in "Ergebnissen" angepasst werden
     """
     mindest_bewertung = config.get("min_empfehlung", 6)
     if analyse.get("bewertung", 0) < mindest_bewertung:
@@ -446,7 +540,7 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
         analyse["empfohlen"] = True  # ← Überschreibt Ollamas zu strenges Urteil
 
     """
-    4. PASSFORM-VERGLEICH: Mathematische Berechnung der Differenz von Maßen, was gefunden wurde und was angegeben wurde
+    5. PASSFORM-VERGLEICH: Mathematische Berechnung der Differenz von Maßen, was gefunden wurde und was angegeben wurde
     """
     passform_hinweise = []
     masse = analyse.get("masse", {}) or {}
@@ -481,7 +575,7 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
                 passform_hinweise.append(f"{label}: {diff}cm kleiner")
 
     """
-    5. RÜCKGABE: Alle Daten fsür MongoDB und das Dashboard zusammenführen --> an main.py geschickt 
+    6. RÜCKGABE: Alle Daten für MongoDB und das Dashboard zusammenführen --> an main.py geschickt 
     """
     return {
         "url":               artikel.get("url"),

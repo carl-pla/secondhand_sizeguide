@@ -5,6 +5,7 @@ import argparse
 import datetime
 import sys
 import os
+import io
 import httpx # type: ignore
 from playwright.async_api import async_playwright # type: ignore
 from playwright_stealth import Stealth # type: ignore

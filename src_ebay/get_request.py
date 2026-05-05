@@ -4,7 +4,7 @@ import httpx
 import requests
 
 import src_ebay.ebay_helper as helper
-from database.config_defaults import category_ids_ebay, condition_ids_ebay
+from database.config_defaults import CATEGORY_IDS_EBAY, CONDITION_IDS_EBAY
 
 
 def get_summary_of_articles_json(
@@ -52,14 +52,14 @@ def get_summary_of_articles_json(
     keywords = f"{keywords} {color} {size} {material}"
 
     try:
-        cat_id = category_ids_ebay[category]
+        cat_id = CATEGORY_IDS_EBAY[category]
     except KeyError:
-        cat_id = category_ids_ebay["Kleidung & Accessoires"]  # Kleidung & Accessoires als Default
+        cat_id = CATEGORY_IDS_EBAY["Kleidung & Accessoires"]  # Kleidung & Accessoires als Default
 
     try:
-        min_condition = condition_ids_ebay[min_condition]
+        min_condition = CONDITION_IDS_EBAY[min_condition]
     except KeyError:
-        min_condition = condition_ids_ebay["Gut"]  # Gut als Default
+        min_condition = CONDITION_IDS_EBAY["Gut"]  # Gut als Default
 
     filter_options = [
         f"priceCurrency:EUR",

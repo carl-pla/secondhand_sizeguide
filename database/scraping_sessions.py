@@ -16,6 +16,8 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = 
 
     try:
         client = pymongo.MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
+        client.admin.command("ping")
+        print(f"🔌 MongoDB verbunden: {client.address}")
         db = client["Secondhand_db"]
 
         jetzt = datetime.datetime.now()

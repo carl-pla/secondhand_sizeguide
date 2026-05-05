@@ -1,7 +1,6 @@
 from pathlib import Path
 import json
 import os
-import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,6 +17,7 @@ def get_mongo_url():
 
     # 2. Priorität: Streamlit Secrets (nur wenn wir wirklich in Streamlit sind)
     try:
+        import streamlit as st
         # st.secrets.load() erzwingt keinen Absturz, wenn Datei fehlt
         if "MONGO_URL" in st.secrets:
             return st.secrets["MONGO_URL"]

@@ -51,10 +51,12 @@ def fetch_latest_empfehlungen():
     alle = []
     for s in sessions:
         user = s.get("user_email", "anonym")
+        quelle = s.get("quelle") or s.get("config", {}).get("quelle", "vinted")
         empfehlungen = s.get("empfehlungen", [])
         print(f"  → Session von {user}: {len(empfehlungen)} Empfehlungen")
         for item in empfehlungen:
             item["_user"] = user
+            item["_quelle"] = quelle
             alle.append(item)
     print(f"📊 Gesamt gesammelte Artikel: {len(alle)}")
     return alle
@@ -84,7 +86,7 @@ def generiere_html(items):
             <p style="margin:5px 0">💶 <b>{item.get('preis','?')}</b>
                &nbsp;|&nbsp; {sterne} {bewertung}/10</p>
             <p style="margin:5px 0;color:#555">{item.get('begruendung','')}</p>
-            <p style="margin:3px 0;color:#555">{item.get('quelle','')}</p>
+            <p style="margin:5px 0;color:#555"; font-size: 5px>Quelle: {item.get('_quelle','')}</p>
         </div>
         """  # ✅ Fix #2: 'quelle' statt 'Quelle: '
 

@@ -25,7 +25,7 @@ async def frage_ollama(prompt: str, ollama_url: str, modell: str) -> str:
                 json={"model": modell, "prompt": prompt, "stream": False,
                       "options": {"temperature": 0.1}
                       },
-                timeout=180.0
+                timeout=600.0  # 10 Minuten - LLM braucht Zeit für komplexe Prompts
             )
         # Fehlerbehandlung, falls Ollama nicht erreichbar ist
         if response.status_code != 200:
@@ -142,6 +142,23 @@ JSON_MASSE_VINTED = """{
   }"""
 
 JSON_MASSE_EBAY_HAB = """{
+  "masse": {
+      "schulterbreite": <insert value as integer/null>,
+      "aermellaenge": <insert value as integer/null>,
+      "jackenlaenge": <insert value as integer/null>,
+      "achselbreite": <insert value as integer/null>,
+      "jacke_taillenweite": <insert value as integer/null>,
+      "hose_taillenweite": <insert value as integer/null>,
+      "gabelhoehe": <insert value as integer/null>,
+      "beinoeffnung": <insert value as integer/null>,
+      "hosenlaenge": <insert value as integer/null>,
+      "mantel_schulterbreite": <insert value as integer/null>,
+      "mantel_gesamtlaenge": <insert value as integer/null>,
+      "mantel_aermellaenge": <insert value as integer/null>,
+      "mantel_achselbreite": <insert value as integer/null>,
+      "mantel_taillenweite": <insert value as integer/null>}"""
+
+JSON_MASSE_HAB = """{
   "masse": {
       "schulterbreite": <insert value as integer/null>,
       "aermellaenge": <insert value as integer/null>,
@@ -333,6 +350,9 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
     # da zustand und brand bisher gehardcoded sind bei habilleur, werden diese keys erstmal ignoriert
     habilleur_masse = config.get("habilleur_masse", {})
     # keine Zustandsprüfung nötig
+    
+    # WICHTIG: Nutze die Kategorie aus dem Artikel oder aus der Config
+    artikel_kategorie = artikel.get("kategorie", config.get("kategorie", "Unbekannt"))
 
     """
     1.Prompt: Was soll das LLM machen, wie soll sie bewerten, 
@@ -348,6 +368,7 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
     Item:
     - Title: {artikel['titel']}
     - Price: {artikel['preis']}
+    - Category: {artikel_kategorie}
     - Description: {artikel['beschreibung']}
     - Material: {artikel['material']}
 
@@ -359,7 +380,7 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
     {MEASUREMENT_RULES_HAB}
 
     Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
-    {JSON_MASSE_EBAY_HAB},
+    {JSON_MASSE_HAB},
     {JSON_FOOTER_STANDARD}"""
 
     # Nach Prompt kommt der Analyseteil

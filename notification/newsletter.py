@@ -11,9 +11,14 @@ MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
 
 MAX_ARTIKEL = 10
 
+if not MONGO_URL:
+    raise ValueError("❌ Kritischer Fehler: MONGO_URL nicht gesetzt!")
+if not MAIL_FROM:
+    raise ValueError("❌ Kritischer Fehler: MAIL_FROM nicht gesetzt!")
+if not MAIL_PASSWORD:
+    raise ValueError("❌ Kritischer Fehler: MAIL_PASSWORD nicht gesetzt!")
+
 def fetch_latest_empfehlungen():
-    if not MONGO_URL:
-        raise ValueError("❌ Kritischer Fehler: MONGO_URL nicht gesetzt!")
     print("✅ MONGO_URL geladen. Verbinde mit MongoDB...")
     client = MongoClient(MONGO_URL)
     col = client["Secondhand_db"]["scraping_sessions"]
@@ -85,6 +90,7 @@ def sende_email(html_content, empfaenger: str):
             print(f"✅ Newsletter gesendet an {empfaenger}")
     except Exception as e:
         print(f"❌ Fehler beim Senden: {e}")
+        raise
 
 def lade_alle_empfaenger():
     client = MongoClient(MONGO_URL)

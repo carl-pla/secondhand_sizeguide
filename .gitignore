@@ -9,6 +9,7 @@ venv
 dashboard/secrets/results/
 dashboard/secrets/results/empfehlungen.json
 dashboard/secrets/results/ergebnisse.json
+dashboard/secrets/config.json
 node_modules
 datascienceprojekt.egg-info
 

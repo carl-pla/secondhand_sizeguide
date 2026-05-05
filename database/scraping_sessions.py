@@ -18,7 +18,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = 
         client = pymongo.MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
         db = client["Secondhand_db"]
 
-        jetzt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        jetzt = datetime.datetime.now()
 
         # Session-Dokument erstellen
         session = {

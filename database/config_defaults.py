@@ -2,7 +2,9 @@ from pathlib import Path
 import json
 import os
 import streamlit as st
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # 1. Versuche die URL aus den Streamlit Secrets zu laden (Cloud-Modus)
 # 2. Falls nicht da, schaue in Umgebungsvariablen

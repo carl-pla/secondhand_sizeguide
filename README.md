@@ -493,3 +493,6 @@ Modellwechsel zu llama3.1:8b unbedingt nötig, weil alte Modelle (llama3.2:3b, l
 
 Dann zu get_requests.py:
 Da sich die Farbe nicht direkt als Suchfilter in die URL einbauen ließ (obwohl wie auf eBay-Dokumentationsseite implementiert), wird sie einfach bei den keywords (entspricht der Suchleiste auf eBay-Webseite) mit eingebaut. Gleiches gilt für size & material, obwohl diese nicht auf der Doku-Seite als zusatzfilter zu finden sind. Weil also nicht streng nach den Suchpräferenzen gefiltert wird, müssen die Einzelartikel nochmal durch Ollama laufen, um die richtige Farbe, Größe usw. zu versichern oder zumindest einen Hinweis zu geben, ob der Artikel denn den Suchkriterien entspricht.
+
+Warum Nutzung von requests/httpx statt Python-SDK (ebaysdk)? 
+ebaysdk in Python (Modul) ist zu einem legacy-Modul geworden (letzter Commit im November 2021, siehe GitHub Repo https://github.com/eBay/ebaysdk-python). In Python liefern Requests über ebaysdk den Error "Service call has exceeded the number of times the operation is allowed to be called", was laut Gemini Flash 3 daran liegt, dass eBay für neu registrierte Developer-Accounts ein Limit von 0 Calls pro Tag festgelegt hat. Weiterhin nutzt ebaysdk SOAP/XML, was die Datenextraktion verlangsamen würde.

@@ -5,12 +5,11 @@ from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 
-
 MONGO_URL     = os.getenv("MONGO_URL")
 MAIL_FROM     = os.getenv("MAIL_FROM")
 MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
 
-MAX_ARTIKEL = 10  # Zentrale Konstante – nur einmal ändern nötig
+MAX_ARTIKEL = 10
 
 def fetch_latest_empfehlungen():
     if not MONGO_URL:
@@ -19,37 +18,35 @@ def fetch_latest_empfehlungen():
     client = MongoClient(MONGO_URL)
     col = client["Secondhand_db"]["scraping_sessions"]
 
-    gestern = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    # ✅ Fix #1: datetime-Objekt statt String
+    gestern = datetime.now() - timedelta(days=1)
     sessions = list(col.find({"gestartet_am": {"$gte": gestern}}).sort("gestartet_am", -1))
-
-    print(f"📦 {len(sessions)} Sessions in den letzten 24h gefunden.")  # DEBUG
+    print(f"📦 {len(sessions)} Sessions in den letzten 24h gefunden.")
 
     alle = []
     for s in sessions:
         user = s.get("user_email", "anonym")
         empfehlungen = s.get("empfehlungen", [])
-        print(f"  → Session von {user}: {len(empfehlungen)} Empfehlungen")  # DEBUG
+        print(f"  → Session von {user}: {len(empfehlungen)} Empfehlungen")
         for item in empfehlungen:
             item["_user"] = user
             alle.append(item)
-
-    print(f"📊 Gesamt gesammelte Artikel: {len(alle)}")  # DEBUG
+    print(f"📊 Gesamt gesammelte Artikel: {len(alle)}")
     return alle
 
 def generiere_html(items):
     if not items:
         return "<p>Heute wurden keine neuen Empfehlungen gefunden.</p>"
-
     heute = datetime.now().strftime("%d.%m.%Y")
-    anzahl_gesamt   = len(items)
-    anzahl_angezeigt = min(anzahl_gesamt, MAX_ARTIKEL)  # ← Fix: echte Anzahl
+    anzahl_gesamt    = len(items)
+    anzahl_angezeigt = min(anzahl_gesamt, MAX_ARTIKEL)
 
     html = f"""
     <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
     <p>Heute wurden <b>{anzahl_gesamt} Artikel</b> gefunden –
        hier sind die besten <b>{anzahl_angezeigt}</b>:</p>
     <hr>
-    """  # ← Zeigt z.B. "25 gefunden – hier sind die besten 10"
+    """
 
     for item in items[:MAX_ARTIKEL]:
         bewertung = item.get("bewertung", "?")
@@ -62,9 +59,9 @@ def generiere_html(items):
             <p style="margin:5px 0">💶 <b>{item.get('preis','?')}</b>
                &nbsp;|&nbsp; {sterne} {bewertung}/10</p>
             <p style="margin:5px 0;color:#555">{item.get('begruendung','')}</p>
-            <p style="margin:3px 0;color:#555">{item.get('Quelle: ','')}</p>
+            <p style="margin:3px 0;color:#555">{item.get('quelle','')}</p>
         </div>
-        """
+        """  # ✅ Fix #2: 'quelle' statt 'Quelle: '
 
     html += "</body></html>"
     return html
@@ -74,17 +71,18 @@ def sende_email(html_content, empfaenger: str):
     msg = MIMEMultipart("alternative")
     heute = datetime.now().strftime("%d.%m.%Y")
     msg["Subject"] = f"🛍️ Deine Vinted Deals – {heute}"
-    msg["From"]    = MAIL_FROM # type: ignore
+    msg["From"]    = MAIL_FROM
     msg["To"]      = empfaenger
     msg.attach(MIMEText(html_content, "html"))
+
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(MAIL_FROM, MAIL_PASSWORD) # type: ignore
+            server.login(MAIL_FROM, MAIL_PASSWORD)
             server.send_message(msg)
-        print(f"✅ Newsletter gesendet an {empfaenger}")
+            print(f"✅ Newsletter gesendet an {empfaenger}")
     except Exception as e:
         print(f"❌ Fehler beim Senden: {e}")
 
@@ -97,6 +95,7 @@ if __name__ == "__main__":
     items      = fetch_latest_empfehlungen()
     html       = generiere_html(items)
     empfaenger = lade_alle_empfaenger()
+
     if not empfaenger:
         print("Keine aktiven Abonnenten gefunden.")
     else:

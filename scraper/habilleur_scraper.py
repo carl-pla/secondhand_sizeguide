@@ -290,21 +290,21 @@ async def scrape_artikel_details(
         # Falls nicht übergeben, versuche aus URL oder Titel zu extrahieren
         if not kategorie:
             # Versuche aus URL zu extrahieren
-            for kat in ["anzug", "jacke", "jacket", "mantel", "coat"]:
+            for kat in ["anzug", "costume", "jacke", "jacket", "veste", "mantel", "coat", "manteau"]:
                 if kat in url.lower():
-                    kategorie = "Anzug" if kat == "anzug" else \
-                               "Jacke" if kat in ["jacke", "jacket"] else \
-                               "Mantel" if kat in ["mantel", "coat"] else "Unbekannt"
+                    kategorie = "Anzug" if kat in ["anzug", "costume"] else \
+                               "Jacke" if kat in ["jacke", "jacket", "veste"] else \
+                               "Mantel" if kat in ["mantel", "coat", "manteau"] else "Unbekannt"
                     break
             
             # Falls nicht in URL: versuche aus Titel zu extrahieren
             if not kategorie:
                 titel_lower = titel.lower()
-                if any(w in titel_lower for w in ["anzug", "suit", "costumes"]):
+                if any(w in titel_lower for w in ["anzug", "suit", "costumes", "costume"]):
                     kategorie = "Anzug"
-                elif any(w in titel_lower for w in ["jacke", "jacket", "blazer", "sakko"]):
+                elif any(w in titel_lower for w in ["jacke", "jacket", "blazer", "sakko", "veste"]):
                     kategorie = "Jacke"
-                elif any(w in titel_lower for w in ["mantel", "coat", "parka", "overcoat"]):
+                elif any(w in titel_lower for w in ["mantel", "coat", "parka", "overcoat", "manteau"]):
                     kategorie = "Mantel"
                 else:
                     kategorie = "Unbekannt"

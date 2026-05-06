@@ -150,7 +150,7 @@ with st.sidebar:
     st.divider()
     seite = st.radio(
         "",
-        ["⚙️  Vinted", "🛍️  Habilleur", "🛒  eBay", "🦿 Ollama", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
+        ["🛍️  Vinted", "👔  Habilleur", "🛒  eBay", "🦿 Ollama", "🔍  Suche starten", "📋  Ergebnisse", "📧  Newsletter"],
         label_visibility="collapsed"
     )
     st.markdown("---")
@@ -191,7 +191,7 @@ if "Vinted" in seite:
         aktuelle_groesse = "M / 38"
     st.session_state.config["groesse"] = aktuelle_groesse
 
-    tab1, tab2, tab3 = st.tabs(["👗  Stil & Größe", "📐  Maße", "🔍  Sucheinstellungen"])
+    tab1, tab2, tab3 = st.tabs(["👗  Größe, Kategorie & Stil", "📐  Maße", "🔍  Suche"])
 
     # ── TAB 1: Stil & Größe ──
     with tab1:
@@ -227,12 +227,6 @@ if "Vinted" in seite:
                     st.session_state.config.get("min_zustand", "Gut")
                 )
             )
-            email_input = st.text_input(
-                "Deine Email-Adresse",
-            )
-            if email_input:
-                st.session_state.config["user_email"] = email_input
-                st.session_state["user_email"] = email_input
 
     # ── TAB 2: Maße ──
     with tab2:
@@ -240,19 +234,28 @@ if "Vinted" in seite:
         masse = st.session_state.config.get("eigene_masse", {})
         col1, col2 = st.columns(2)
         with col1:
-            masse["brust"]   = st.number_input("Brustumfang (cm)",   60, 130, masse.get("brust", 88))
-            masse["taille"]  = st.number_input("Taillenumfang (cm)", 50, 120, masse.get("taille", 70))
-            masse["huefte"]  = st.number_input("Hüftumfang (cm)",    70, 140, masse.get("huefte", 96))
+            masse["brust"]            = st.number_input("Brustumfang (cm)",             60, 130, masse.get("brust", 88))
+            masse["taille"]           = st.number_input("Taillenumfang (cm)",          50, 120, masse.get("taille", 70))
+            masse["huefte"]           = st.number_input("Hüftumfang (cm)",             70, 140, masse.get("huefte", 96))
+            masse["schulter"]         = st.number_input("Schulterbreite (cm)",         30, 60,  masse.get("schulter", 38))
+            masse["gabelhoehe"]       = st.number_input("Gabelhöhe/Rise (cm)",         20, 40,  masse.get("gabelhoehe", 28))
         with col2:
-            masse["schulter"]       = st.number_input("Schulterbreite (cm)",           30, 60,  masse.get("schulter", 38))
-            masse["laenge_oberteil"]= st.number_input("Bevorzugte Länge Oberteil (cm)",40, 100, masse.get("laenge_oberteil", 60))
-            masse["innennaht"]      = st.number_input("Innennaht / Schrittlänge (cm)", 60, 100, masse.get("innennaht", 78))
+            masse["laenge_oberteil"]  = st.number_input("Bevorzugte Länge Top/Jacke (cm)", 40, 100, masse.get("laenge_oberteil", 60))
+            masse["laenge_hosen"]     = st.number_input("Bevorzugte Länge Hose (cm)",      80, 120, masse.get("laenge_hosen", 100))
+            masse["innennaht"]        = st.number_input("Innennaht / Schrittlänge (cm)",   60, 100, masse.get("innennaht", 78))
+            masse["aermellaenge"]     = st.number_input("Ärmellänge (cm)",                 50, 75,  masse.get("aermellaenge", 62))
+            masse["beinoeffnung"]     = st.number_input("Beinöffnung/Hosenbein (cm)", 18, 32,  masse.get("beinoeffnung", 24))
+        
         st.session_state.config["eigene_masse"] = masse
 
-    # ── TAB 3: Sucheinstelluungen ──
+    # ── TAB 3: Suche ──
     with tab3:
         col1, col2 = st.columns(2)
         with col1:
+            user_email = st.text_input("E-Mail (optional)", value=st.session_state.config.get("user_email", ""))
+            if user_email:
+                st.session_state.config["user_email"] = user_email
+        with col2:
             max_artikel = st.session_state.config.get("max_artikel_pro_suche", 20)
             # wir wollen nicht sehr hohe Suchanzahlen erlauben, weil das sehr lange dauert (bei eBay durch get-request schneller)
             if max_artikel > 60:
@@ -261,14 +264,6 @@ if "Vinted" in seite:
                 "Artikel pro Suchbegriff", 1, 60,
                 st.session_state.config.get("max_artikel_pro_suche", 5)
             )
-        with col2:
-            stile = st.session_state.config["stile"]
-            anzahl = max(2, len(stile))  # minimum 2 damit Slider nicht crasht
-            st.session_state.config["max_suchen"] = st.slider(
-                "Maximale Anzahl Suchbegriffe", 1, anzahl,
-                min(st.session_state.config.get("max_suchen", 1), anzahl)
-            )
-            
             
         st.markdown("**Anti-Ban Pausen (Sekunden)**")
         col1, col2 = st.columns(2)
@@ -422,7 +417,6 @@ elif "Habilleur" in seite:
     with tab3:
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**Suchoptionen**")
             user_email = st.text_input("E-Mail (optional)", value=st.session_state.config.get("user_email", ""))
             
             if user_email:
@@ -459,14 +453,14 @@ elif "eBay" in seite:
         aktuelle_groesse = "M"
     st.session_state.config["groesse"] = aktuelle_groesse
 
-    tab1, tab2, tab3 = st.tabs(["👗  Sucheinstellungen & Größe", "📐  Maße", "🔍  Suche"])
+    tab1, tab2, tab3 = st.tabs(["👗  Größe & Kategorie", "📐  Maße", "🔍  Suche"])
 
     # ── TAB 1: Stil & Größe ──
     with tab1:
         col1, col2 = st.columns(2)
         with col1:
             st.session_state.config["groesse"] = st.selectbox(
-                "Kleidungsgröße (leer lassen für beste Ergebnisse bei Schuhen)",
+                "Kleidungsgröße (eBay)",
                 EBAY_GROESSEN,
                 index=EBAY_GROESSEN.index(st.session_state.config["groesse"])
             )
@@ -486,7 +480,7 @@ elif "eBay" in seite:
             st.session_state.config["farbe"] = st.selectbox(
                 "Gewünschte Farbe des Artikels (leer lassen für keine Präferenz)",
                 EBAY_FARBEN,
-                index=EBAY_FARBEN.index(st.session_state.config["farbe"])
+                index=EBAY_FARBEN.index(st.session_state.config.get("farbe", ""))
             )
 
         with col2:
@@ -507,7 +501,7 @@ elif "eBay" in seite:
             st.session_state.config["material"] = st.selectbox(
                 "Gewünschtes Material des Artikels (leer lassen für keine Präferenz)",
                 EBAY_MATERIALS,
-                index=EBAY_MATERIALS.index(st.session_state.config["material"])
+                index=EBAY_MATERIALS.index(st.session_state.config.get("material", ""))
             )
 
     # ── TAB 2: Maße ──
@@ -812,7 +806,8 @@ elif "Ergebnisse" in seite:
             if quelle == "vinted":
                 masse_felder = [
                     ("brust_cm", "Brust"), ("taille_cm", "Taille"), ("huefte_cm", "Hüfte"),
-                    ("schulter_cm", "Schulter"), ("laenge_cm", "Länge"), ("innennaht_cm", "Ärmel")
+                    ("schulter_cm", "Schulter"), ("laenge_oberteil_cm", "Länge Top"), ("laenge_hosen_cm", "Länge Hose"),
+                    ("innennaht_cm", "Innennaht"), ("aermellaenge_cm", "Ärmellänge"), ("gabelhoehe_cm", "Gabelhöhe"), ("beinoeffnung_cm", "Beinöffnung")
                 ]
 
             elif ( quelle == "habilleur" ) or ( quelle == "ebay"):

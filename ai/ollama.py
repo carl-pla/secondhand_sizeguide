@@ -62,12 +62,16 @@ UNIT_CONVERSION_RULES = """UNIT CONVERSION RULES:
 - NEVER copy the raw number without converting"""
 
 MEASUREMENT_RULES_VINTED = """MEASUREMENT RULES (all values in cm, convert if necessary, null if uncertain):
-- brust_cm     = chest circumference at the widest point
-- taille_cm    = waist circumference at the narrowest point
-- huefte_cm    = hip circumference at the widest point
-- schulter_cm  = shoulder width from seam to seam
-- laenge_cm    = body length from shoulder to hem (tops/jackets) OR total length from waistband to ankle (pants). NOT coat length, NOT total body height
-- innennaht_cm = inseam length from crotch to ankle ONLY, NOT outseam, NOT total leg length
+- brust_cm           = chest circumference at the widest point
+- taille_cm          = waist circumference at the narrowest point
+- huefte_cm          = hip circumference at the widest point
+- schulter_cm        = shoulder width from seam to seam
+- laenge_oberteil_cm = body length from shoulder to hem for tops/jackets. NOT coat length, NOT total body height
+- laenge_hosen_cm    = total length from waistband to ankle for pants/trousers
+- innennaht_cm       = inseam length from crotch to ankle ONLY, NOT outseam, NOT total leg length
+- aermellaenge_cm    = sleeve length from shoulder seam to cuff (full length), ONLY for tops/jackets
+- gabelhoehe_cm      = rise from crotch seam to waistband (full length), ONLY for pants
+- beinoeffnung_cm    = leg opening laid flat (HALF width), ONLY for pants
 - If a measurement is ambiguous, unclear or missing, use null"""
 
 MEASUREMENT_RULES_EBAY_HAB = """MEASUREMENT RULES (all values in cm, convert if necessary, null if not found):
@@ -174,12 +178,16 @@ CRITICAL: If you find any measurement in the description, you MUST extract it. I
 
 JSON_MASSE_VINTED = """{
   "masse": {
-        "brust_cm":<insert value as integer/null>,
-        "taille_cm":<insert value as integer/null>,
-        "laenge_cm":<insert value as integer/null>,
+        "brust_cm": <insert value as integer/null>,
+        "taille_cm": <insert value as integer/null>,
         "huefte_cm": <insert value as integer/null>,
         "schulter_cm": <insert value as integer/null>,
-        "innennaht_cm": <insert value as integer/null>
+        "laenge_oberteil_cm": <insert value as integer/null>,
+        "laenge_hosen_cm": <insert value as integer/null>,
+        "innennaht_cm": <insert value as integer/null>,
+        "aermellaenge_cm": <insert value as integer/null>,
+        "gabelhoehe_cm": <insert value as integer/null>,
+        "beinoeffnung_cm": <insert value as integer/null>
   }"""
 
 JSON_MASSE_EBAY_HAB = """{
@@ -347,12 +355,16 @@ async def analysiere_artikel_vinted(artikel: dict, config: dict) -> dict:
     passform_hinweise = []
     masse = analyse.get("masse", {}) or {}
     for key, label, eigener_wert in [
-        ("brust_cm",     "Brust",     eigene.get("brust")),
-        ("taille_cm",    "Taille",    eigene.get("taille")),
-        ("huefte_cm",    "Hüfte",     eigene.get("huefte")),
-        ("schulter_cm",  "Schulter",  eigene.get("schulter")),
-        ("laenge_cm",    "Länge",     eigene.get("laenge_oberteil")),
-        ("innennaht_cm", "Innennaht", eigene.get("innennaht")),
+        ("brust_cm",           "Brust",       eigene.get("brust")),
+        ("taille_cm",          "Taille",      eigene.get("taille")),
+        ("huefte_cm",          "Hüfte",       eigene.get("huefte")),
+        ("schulter_cm",        "Schulter",    eigene.get("schulter")),
+        ("laenge_oberteil_cm", "Länge Top",   eigene.get("laenge_oberteil")),
+        ("laenge_hosen_cm",    "Länge Hose",  eigene.get("laenge_hosen")),
+        ("innennaht_cm",       "Innennaht",   eigene.get("innennaht")),
+        ("aermellaenge_cm",    "Ärmellänge",  eigene.get("aermellaenge")),
+        ("gabelhoehe_cm",      "Gabelhöhe",   eigene.get("gabelhoehe")),
+        ("beinoeffnung_cm",    "Beinöffnung", eigene.get("beinoeffnung")),
     ]:
         if masse.get(key) and eigener_wert:
             diff = masse[key] - eigener_wert

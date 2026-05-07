@@ -72,9 +72,12 @@ MEASUREMENT_RULES_VINTED = """MEASUREMENT RULES (all values in cm, convert if ne
 - aermellaenge_cm    = sleeve length from shoulder seam to cuff (full length), ONLY for tops/jackets
 - gabelhoehe_cm      = rise from crotch seam to waistband (full length), ONLY for pants
 - beinoeffnung_cm    = leg opening laid flat (HALF width), ONLY for pants
-- If a measurement is ambiguous, unclear or missing, use null"""
+- If a measurement is ambiguous, unclear or missing, use null
 
-MEASUREMENT_RULES_EBAY_HAB = """MEASUREMENT RULES (all values in cm, convert if necessary, null if not found):
+- There may be descriptions that contain content in multiple languages. Make sure to check and possibly translate the given measurements 
+  correctly into German / the predetermined keys in the given JSON structure."""
+
+MEASUREMENT_RULES_EBAY = """MEASUREMENT RULES (all values in cm, convert if necessary, null if not found):
 JACKET:
 If article is a jacket, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
 - schulterbreite     = shoulder width seam to seam (full width)
@@ -100,6 +103,8 @@ If article is a coat, ONLY fill the following 5 fields. ALL other masse fields M
 
 - For each measurement, determine whether the given value in the article description is a full or half measurement before inserting. 
   Convert to the format specified above (some require half, some full).
+- There may be descriptions that contain content in multiple languages. Make sure to check and possibly translate the given measurements 
+  correctly into German / the predetermined keys in the given JSON structure.
 
 When uncertain which measurement is meant, use null"""
 
@@ -223,8 +228,7 @@ RETURN_JSON_EBAY = """{
   "material": <insert value as string/null>
 }"""
 
-RETURN_JSON_HAB = """Respond with ONLY this JSON structure (fill values, keep null if not found):
-{
+RETURN_JSON_HAB = """{
   "masse": {
     "schulterbreite": <fill with number or null>,
     "aermellaenge": <fill with number or null>,
@@ -247,14 +251,6 @@ RETURN_JSON_HAB = """Respond with ONLY this JSON structure (fill values, keep nu
   "bewertung": <integer 1-10>,
   "empfohlen": true or false,
   "material": "<text or null>"
-}"""
-
-JSON_FOOTER_STANDARD = """  "zustand": <insert either "Neu mit Etikett", "Neu ohne Etikett", "Sehr gut", "Gut" or "Befriedigend" depending on what matches best>,
-  "passt_groesse": true/false,
-  "begruendung": "<insert max 2 Sätze auf Deutsch>",
-  "bewertung": 1-10 (rating out of ten),
-  "empfohlen": true/false,
-  "material": <insert value as string/null>
 }"""
 
 
@@ -295,8 +291,7 @@ async def analysiere_artikel_vinted(artikel: dict, config: dict) -> dict:
     {MEASUREMENT_RULES_VINTED}
 
     Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
-    {RETURN_JSON_VINTED},
-    {JSON_FOOTER_STANDARD}"""
+    {RETURN_JSON_VINTED}"""
     
     # Nach Prompt kommt der Analyseteil 
     print(f"    🤖 Analysiere: {artikel['titel'][:50]}...")
@@ -671,7 +666,7 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
 
     {UNIT_CONVERSION_RULES}
 
-    {MEASUREMENT_RULES_EBAY_HAB}
+    {MEASUREMENT_RULES_EBAY}
 
     Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
     {RETURN_JSON_EBAY}"""

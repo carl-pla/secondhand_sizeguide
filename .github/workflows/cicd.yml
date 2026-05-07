@@ -56,13 +56,13 @@ jobs:
               ollama list 2>/dev/null && break
               sleep 2
             done
-            ollama pull llama3.2:3b
+            ollama pull llama3.1:8b
             
             # NEU: Teste den echten Endpoint
             echo "=== API Test ==="
             curl -s http://localhost:11434/api/tags
             curl -s -X POST http://localhost:11434/api/generate \
-              -d '{"model":"llama3.2:3b","prompt":"hi","stream":false}' | head -c 200
+              -d '{"model":"llama3.1:8b","prompt":"hi","stream":false}' | head -c 200
       - name: Ollama Health Check
         run: |
           curl -s http://localhost:11434/api/tags | python3 -m json.tool

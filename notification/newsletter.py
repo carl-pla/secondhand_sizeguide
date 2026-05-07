@@ -123,12 +123,19 @@ def lade_alle_empfaenger():
     return [u["email"] for u in users if "email" in u]
 
 if __name__ == "__main__":
-    items      = fetch_latest_empfehlungen()
-    html       = generiere_html(items)
+    alle_items = fetch_latest_empfehlungen()
     empfaenger = lade_alle_empfaenger()
 
     if not empfaenger:
         print("Keine aktiven Abonnenten gefunden.")
     else:
         for email in empfaenger:
+            # Nur Artikel dieses Users
+            user_items = [i for i in alle_items if i.get("_user") == email]
+            
+            if not user_items:
+                print(f"⚠️  Keine Empfehlungen für {email} – kein Mail gesendet")
+                continue
+            
+            html = generiere_html(user_items)
             sende_email(html, email)

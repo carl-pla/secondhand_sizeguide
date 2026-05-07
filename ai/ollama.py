@@ -1,7 +1,8 @@
 import json
 import httpx # type: ignore
-from database.config_defaults import ZUSTAND_RANG
+from database.config_defaults import ZUSTAND_RANG, CONDITION_IDS_EBAY
 from ai.habilleur_regex import extract_measurements_habilleur
+
 
 """
 === WORKFLOW GROB ===
@@ -74,6 +75,7 @@ MEASUREMENT_RULES_VINTED = """MEASUREMENT RULES (all values in cm, convert if ne
 - beinoeffnung_cm    = leg opening laid flat (HALF width), ONLY for pants
 - If a measurement is ambiguous, unclear or missing, use null
 
+- Important: do NOT confuse brust_cm with schulter_cm. Brust must be a circumference measurement, while schulter is a seam-to-seam shoulder width.
 - There may be descriptions that contain content in multiple languages. Make sure to check and possibly translate the given measurements 
   correctly into German / the predetermined keys in the given JSON structure."""
 
@@ -81,7 +83,7 @@ MEASUREMENT_RULES_EBAY = """MEASUREMENT RULES (all values in cm, convert if nece
 JACKET:
 If article is a jacket, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
 - schulterbreite     = shoulder width seam to seam (full width)
-- aermelleange        = sleeve length shoulder seam to cuff (full length)
+- aermellaenge        = sleeve length shoulder seam to cuff (full length)
 - jackenlaenge       = jacket length shoulder to hem (full length)
 - achselbreite       = chest width underarm to underarm laid flat (full width, NOT half)
 - jacke_taillenweite = jacket waist laid flat (HALF circumference). Divide by 2 if full circumference given.
@@ -103,9 +105,8 @@ If article is a coat, ONLY fill the following 5 fields. ALL other masse fields M
 
 - For each measurement, determine whether the given value in the article description is a full or half measurement before inserting. 
   Convert to the format specified above (some require half, some full).
-- There may be descriptions that contain content in multiple languages. Make sure to check and possibly translate the given measurements 
-  correctly into German / the predetermined keys in the given JSON structure.
-
+- There may be descriptions that contain content in multiple languages. Make sure to check and possibly translate the given measurements and the material
+  into German and fill the predetermined keys in the given JSON structure.- Important: do NOT confuse achselbreite (chest width) with schulterbreite (shoulder width).
 When uncertain which measurement is meant, use null"""
 
 MEASUREMENT_RULES_HAB = """MEASUREMENT RULES - CRITICAL READING INSTRUCTIONS:
@@ -218,9 +219,8 @@ RETURN_JSON_EBAY = """{
       "mantel_gesamtlaenge": <insert value as integer/null>,
       "mantel_aermellaenge": <insert value as integer/null>,
       "mantel_achselbreite": <insert value as integer/null>,
-      "mantel_taillenweite": <insert value as integer/null>},
-    },
-  "zustand": <insert either "Neu mit Etikett", "Neu ohne Etikett", "Sehr gut", "Gut" or "Befriedigend" depending on what matches best>,
+      "mantel_taillenweite": <insert value as integer/null>
+  },
   "passt_groesse": true/false,
   "begruendung": "<insert max 2 Sätze auf Deutsch>",
   "bewertung": 1-10 (rating out of ten),
@@ -282,6 +282,8 @@ async def analysiere_artikel_vinted(artikel: dict, config: dict) -> dict:
     - Title: {artikel['titel']}
     - Price: {artikel['preis']}
     - Description: {artikel['beschreibung']}
+    - Material: {artikel.get('material', 'Unbekannt')}
+    - Use the item material field if present and translate material terms into German when necessary.
 
     CRITICAL RULES:
     {SCORING_RULES}
@@ -316,7 +318,9 @@ async def analysiere_artikel_vinted(artikel: dict, config: dict) -> dict:
         except:
             return {**artikel, "analyse_fehler": True, "raw": antwort[:200]}
 
-    
+    if artikel.get("material") and analyse.get("material") in (None, "", "Unbekannt"):
+        analyse["material"] = artikel["material"]
+
     """
     3. Harte Python-Checks mit eigenen Maßen (), verhindert auch Hallzunationen 
     """
@@ -646,7 +650,6 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
     - Custom keywords: {config.get("suchbegriffe") or "No Preference"}
     - Category: {config.get("kategorie")}
     - Material: {config.get("material") or "No Preference"}
-    - URL: {config.get("url")}
 
     Item:
     - Title: {artikel['title']}
@@ -692,6 +695,7 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
         except:
             return {**artikel, "analyse_fehler": True, "raw": antwort[:200]}
 
+
     """
     3. Harte Python-Checks mit eigenen Maßen (), verhindert auch Hallzunationen 
     """
@@ -723,7 +727,14 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
     """
     3.2 Zustand überprüfen (hier Nutzung von Vinted-Zuständen, da für eBay gleiche Namen gewählt wurden)
     """
-    zustand = analyse.get("zustand", "")
+    zustand = "Unbekannt"
+    cond_id = artikel.get("conditionId")
+
+    for condition, ids in CONDITION_IDS_EBAY.items():
+        if cond_id in ids:
+            zustand = condition
+            break
+
     if zustand in ZUSTAND_RANG:
         if ZUSTAND_RANG[zustand] < min_rang:
             analyse["empfohlen"] = False

@@ -1,7 +1,7 @@
-# 🛍️ Vinted Smart Finder — Matchfit
+# 🛍️ Secondhand Smart Finder — Matchfit
 
 Ein automatisierter Secondhand-Artikel-Finder mit KI-gestützter Passform-Analyse.  
-Der Scraper durchsucht Vinted nach Kleidung, analysiert Passform und Stil mit einem lokalen LLM (Ollama) und verschickt täglich einen personalisierten Newsletter.
+Der Finder durchsucht basierend auf der Auswahl des Users Vinted, Ebay und Habilleur Jean nach Kleidung, analysiert Passform und Stil mit einem lokalen LLM (Ollama) und verschickt täglich einen personalisierten Newsletter.
 
 ---
 
@@ -24,10 +24,10 @@ Der Scraper durchsucht Vinted nach Kleidung, analysiert Passform und Stil mit ei
 ## Systemarchitektur
 
 ```
-Vinted (Web)
+Vinted (Web) / Ebay / Habilleur
     │
     ▼
-Playwright Scraper (integriert in streamlit)
+Playwright Scraper / BeautifulSoup / API-Call (integriert in streamlit)
     │                    
     ▼                
 Streamlit (Docker Container) ──► Ollama (lokal via Host-IP) ──► MongoDB Atlas
@@ -43,8 +43,10 @@ Newsletter (Google SMTP)
 
 | Komponente | Technologie | Zweck |
 |---|---|---|
-| Scraping | Playwright + Stealth | Vinted durchsuchen, Anti-Ban |
-| KI-Analyse | Ollama / llama3.2:3b | Passform, Stil, Bewertung |
+| Scraping Vinted | Playwright + Stealth | Vinted durchsuchen, Anti-Ban |
+| Scraping Habilleur | BeautifulSoup | Angebotsextraktion mit einfacher HTML Auslese |
+| Ebay API | Ebay Developer Programm API | Automatische Extraktion basierend auf Suchfiltern |
+| KI-Analyse | Ollama / llama3.2:3b / llama3.1:8b | Passform, Stil, Bewertung |
 | Datenbank | MongoDB Atlas | Cloud-Persistenz, Team-Sharing |
 | Dashboard | Streamlit | Konfiguration, Ergebnisse |
 | Newsletter | GitHub Actions + Google SMTP | Wöchentliche Empfehlungen |
@@ -73,8 +75,8 @@ Empfohlen für Entwicklung und schnelles Testen.
 
 ```bash
 # 1. Repository klonen
-git clone https://github.com/dein-user/vinted-finder.git
-cd vinted-finder
+git clone https://github.com/[dein-user]/secondhand_sizeguide.git
+cd secondhand_sizeguide
 
 # 2. Virtuelles Environment erstellen und aktivieren
 python3 -m venv .venv
@@ -97,7 +99,9 @@ cp .env.example .env
 OLLAMA_HOST=0.0.0.0:11434 ollama serve 
 
 # 8. KI-Modell laden (einmalig)
-ollama pull llama3.2:3b
+ollama pull llama3.2:3b [ODER] llama3.1:8b
+
+(Ersteres leichter und schneller, letzteres genauer und langsamer)
 
 (# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
 Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
@@ -115,7 +119,7 @@ streamlit run dashboard/dashboard.py
 
 ```powershell
 # 1. Repository klonen
-git clone https://github.com/carl-pla/secondhand_sizeguide.git
+git clone https://github.com/[dein-user]/secondhand_sizeguide.git
 cd secondhand_sizeguide
 
 # 2. Virtuelles Environment erstellen und aktivieren
@@ -139,7 +143,9 @@ copy .env.example .env
 $env:OLLAMA_HOST="0.0.0.0:11434"; ollama serve
 
 # 8. KI-Modell laden (einmalig)
-ollama pull llama3.2:3b
+ollama pull llama3.2:3b [ODER] llama3.1:8b
+
+(Ersteres leichter und schneller, letzteres genauer und langsamer)
 
 (# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
 Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
@@ -171,8 +177,8 @@ Windows: Setze die Umgebungsvariable OLLAMA_HOST auf 0.0.0.0 in den Systemeigens
 
 ```bash
 # 1. Repository klonen
-git clone https://github.com/dein-user/vinted-finder.git
-cd vinted-finder
+git clone https://github.com/[dein-user]/secondhand_sizeguide.git
+cd secondhand_sizeguide
 
 # 2. Umgebungsvariablen setzen
 cp .env.example .env
@@ -226,6 +232,7 @@ Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `secrets/
 | `ollama_modell` | Lokales LLM | `"llama3.2:3b"` |
 | `max_artikel_pro_suche` | Artikel pro Suchbegriff | `5` |
 | `pause_zwischen_artikeln` | Anti-Ban Pause (Sek.) | `[4, 7]` |
+| Weitere Parameter für Ebay und Habilleur hier nicht aufgelistet |
 
 **Für CI/CD:** Den Inhalt von `secrets/config.json` als GitHub Secret `VINTED_CONFIG` hinterlegen.
 
@@ -240,10 +247,11 @@ Um maximale Performance mit Flexibilität zu vereinen, nutzt das Projekt einen h
 - Ollama (Local Host): Läuft nativ auf dem Host-System, um direkt auf die GPU-Ressourcen zuzugreifen, was innerhalb von Docker-Containern oft unnötig komplex ist.
 - MongoDB Atlas (Cloud): Als persistenter Datenspeicher. Durch die Cloud-Anbindung ist der Datenstand unabhängig vom lokalen Container-Status.
 
-### 2. Asynchrones Scraping (Playwright Stealth)
+### 2. Scraping (Playwright Stealth / BeautifulSoup) und API-Calls
 
-- Stealth-Modus: Modifikation von navigator.webdriver und Fingerprinting, um Dienste wie Cloudflare zu passieren.
+- Playwright Stealth-Modus: Modifikation von navigator.webdriver und Fingerprinting, um Dienste wie Cloudflare zu passieren.
 - Session-Persistenz: Die main.py verwaltet den Browser-Kontext zentral. Einmal eingeloggt, bleibt die Session über verschiedene Suchbegriffe hinweg bestehen.
+- BeautifulSoup: Extrahiert den HTML-Quellcode von Habilleur Jean schnell und effizient dank Abwesenheit von JavaScript und Scraping-Blockaden
 - Deduplizierung: Bevor die rechenintensive KI-Analyse startet, wird geprüft, ob die Artikel-ID bereits in der MongoDB existiert.
 
 ### 3. KI-Analyse (Ollama / llama3.2:3b)
@@ -420,15 +428,13 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 - [x] Deduplizierung
 
 
-### KI-Analyse (llama3.2:3b)
+### KI-Analyse (llama3.2:3b / llama3.1:8b)
 - [x] Maße extrahieren (Brust, Taille, Hüfte, Schulter, Länge, Ärmel, Innennaht)
 - [x] Zustand & Material erkennen
 - [x] Stil-Matching (Vintage, Retro, Y2K)
 - [x] Passform-Vergleich mit eigenen Maßen
 - [x] Bewertung 1–10 + Empfehlung
 - [x] Strukturierte JSON-Ausgabe → MongoDB
-
-> ⚠️ LLM-Analyse noch zu wenig kritisch — Prompt-Optimierung geplant.
 
 ### Konfiguration & UI
 - [x] Zentrale `config_defaults.py`
@@ -444,17 +450,22 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 
 ### Tests
 **conftest.py**
---> dient als Datei für Testdaten 
+- dient als Datei für Testdaten 
 
-**hier clemens und nils eintragen**
-
+eBay:
+- conftest.py enthält beispielhaftes Teil-Produkt-Dict (von echtem eBay-Artikel entnommen), wie es von fetch_one_item() returnt wird, als Fixture
+- diese Fixture ist Basis für viele Tests in test_ebay.py
+- Aufbau in negativen und positiven Test pro Funktion#
+- positiver Test: Funktionsresultate bei einem gültigen Input testen
+- negativer Test: Funktionsresultate bei leerem Input (z. B. leeres Dictionary) testen
+- Ausnutzen der Struktur der Rückgabewerte, um Antworten zu validieren (z. B. Testung des ersten Buchstaben eines strings)
 
 
 ### Geplant
-- [x] Pytests schreiben, keine dummys mehr
+- [x] Pytests schreiben, keine dummys meshr
 - [x] Deploy-Schritt in CI/CD aktivieren
 - [x] LLM-Analyse kritischer gestalten
-- [ ] Ebay Integration?
+- [x] Ebay Integration?
 
 ### Zusätzliche Ideen in Zukunft
 - [ ] die Vorschläge sind teilweise brauchbar, weil nicht oft direkt die Präferenz unseres Erachten gefunden wird, 
@@ -488,3 +499,9 @@ Modellwechsel zu llama3.1:8b unbedingt nötig, weil alte Modelle (llama3.2:3b, l
 
 Dann zu get_requests.py:
 Da sich die Farbe nicht direkt als Suchfilter in die URL einbauen ließ (obwohl wie auf eBay-Dokumentationsseite implementiert), wird sie einfach bei den keywords (entspricht der Suchleiste auf eBay-Webseite) mit eingebaut. Gleiches gilt für size & material, obwohl diese nicht auf der Doku-Seite als zusatzfilter zu finden sind. Weil also nicht streng nach den Suchpräferenzen gefiltert wird, müssen die Einzelartikel nochmal durch Ollama laufen, um die richtige Farbe, Größe usw. zu versichern oder zumindest einen Hinweis zu geben, ob der Artikel denn den Suchkriterien entspricht.
+
+Warum Nutzung von requests/httpx statt Python-SDK (ebaysdk)? 
+ebaysdk in Python (Modul) ist zu einem legacy-Modul geworden (letzter Commit im November 2021, siehe GitHub Repo https://github.com/eBay/ebaysdk-python). In Python liefern Requests über ebaysdk den Error "Service call has exceeded the number of times the operation is allowed to be called", was laut Gemini Flash 3 daran liegt, dass eBay für neu registrierte Developer-Accounts ein Limit von 0 Calls pro Tag festgelegt hat. Weiterhin nutzt ebaysdk SOAP/XML, was die Datenextraktion verlangsamen würde.
+
+Warum zusätzliche Regex Prüfung für Habilleur?:
+Das LLM hat manchmal Probleme bei der Extraktion von Maßen, besonders wenn sie auf der Website falsch formatiert sind oder mit Zusatzinfos vorliegen (Bspw. +3cm zum rauslassen, Messung ist flach liegend erfolgt etc.). In einem solchen Fall kann es passieren, dass die vorhandenen Maße nicht erkannt und als "Null" gekennzeichnet werden. Falls das passieren sollte, folgt eine harte Regex Prüfung, welche mit Regex probiert, die fehlenden Maße zu extrahieren. Diese ist nicht perfekt, auch weil die Namen für die Maße manchmal variieren (Sowohl aufgrund von Sprache als auch wegen Synonymie), sie hilft jedoch gelegentlich die Maße im Ergebnis zu vervollständigen.

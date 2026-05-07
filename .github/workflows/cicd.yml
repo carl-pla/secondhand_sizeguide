@@ -57,7 +57,7 @@ jobs:
             echo "Warte auf Ollama... ($i)"
             sleep 2
           done
-          ollama pull llama3.2:3b
+          ollama pull llama3.1:8b
       - name: Scrape für ${{ matrix.email }}
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}

@@ -64,7 +64,6 @@ def fetch_latest_empfehlungen():
 def generiere_html(items):
     if not items:
         return "<p>Heute wurden keine neuen Empfehlungen gefunden.</p>"
-    heute = datetime.now().strftime("%d.%m.%Y")
     anzahl_gesamt    = len(items)
     anzahl_angezeigt = min(anzahl_gesamt, MAX_ARTIKEL)
 
@@ -86,7 +85,7 @@ def generiere_html(items):
             <p style="margin:5px 0">💶 <b>{item.get('preis','?')}</b>
                &nbsp;|&nbsp; {sterne} {bewertung}/10</p>
             <p style="margin:5px 0;color:#555">{item.get('begruendung','')}</p>
-            <p style="margin:5px 0;color:#555"; font-size: 5px>Quelle: {item.get('_quelle','')}</p>
+            <p style="margin:5px 0;color:#555;font-size: 5px">Quelle: {item.get('_quelle','')}</p>
         </div>
         """  # ✅ Fix #2: 'quelle' statt 'Quelle: '
 

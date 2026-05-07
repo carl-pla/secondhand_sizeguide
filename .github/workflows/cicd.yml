@@ -50,19 +50,19 @@ jobs:
         run: playwright install chromium --with-deps
       - name: Ollama Setup
         run: |
-          curl -fsSL https://ollama.com/install.sh | sh
-          ollama serve &
-          for i in $(seq 1 30); do
-            ollama list 2>/dev/null && break
-            echo "Warte auf Ollama... ($i)"
-            sleep 2
-          done
-          # Mit Retry
-          for attempt in 1 2 3; do
-            ollama pull llama3.2:3b && break
-            echo "Pull fehlgeschlagen, Versuch $attempt/3..."
-            sleep 10
-          done
+           curl -fsSL https://ollama.com/install.sh | sh
+           ollama serve &
+           for i in $(seq 1 30); do
+              ollama list 2>/dev/null && break
+              sleep 2
+            done
+            ollama pull llama3.1:8b
+            
+            # NEU: Teste den echten Endpoint
+            echo "=== API Test ==="
+            curl -s http://localhost:11434/api/tags
+            curl -s -X POST http://localhost:11434/api/generate \
+              -d '{"model":"llama3.1:8b","prompt":"hi","stream":false}' | head -c 200
       - name: Ollama Health Check
         run: |
           curl -s http://localhost:11434/api/tags | python3 -m json.tool

@@ -14,6 +14,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = 
         print("MongoDB: Liste enthielt keine Artikel mit Status 'empfohlen'.")
         return None
 
+    client = None
     try:
         client = pymongo.MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000)
         client.admin.command("ping")
@@ -48,3 +49,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None, user_email: str = 
     except Exception as e:
         print(f"❌ Fehler beim Speichern in MongoDB: {e}")
         return None
+    finally:
+        if client:
+            client.close()
+            print("🔌 MongoDB-Verbindung geschlossen")

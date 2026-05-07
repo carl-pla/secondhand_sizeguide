@@ -426,8 +426,8 @@ elif "Habilleur" in seite:
             if max_artikel > 100:
                 max_artikel = 100
             st.session_state.config["max_artikel_pro_suche"] = st.slider(
-                "Max. Artikel pro Kategorie", 5, 100,
-                max_artikel, step=5
+                "Max. Artikel pro Kategorie", 1, 100,
+                max_artikel, step=1
             )
     
     col1, col2 = st.columns(2)

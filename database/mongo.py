@@ -25,6 +25,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None):
         print("MongoDB: Liste enthielt keine Artikel mit Status 'empfohlen'.")
         return None
 
+    client = None
     try:
         # Verbindung aufbauen (mit Timeout, falls DB nicht läuft)
         load_dotenv()
@@ -49,3 +50,7 @@ def speichere_in_mongo(ergebnisse: list, config: dict = None):
     except Exception as e:
         print(f"❌ Fehler beim Speichern in MongoDB: {e}")
         return None
+    finally:
+        if my_client:
+            my_client.close()
+            print("🔌 MongoDB-Verbindung geschlossen")

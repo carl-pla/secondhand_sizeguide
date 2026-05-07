@@ -72,9 +72,12 @@ MEASUREMENT_RULES_VINTED = """MEASUREMENT RULES (all values in cm, convert if ne
 - aermellaenge_cm    = sleeve length from shoulder seam to cuff (full length), ONLY for tops/jackets
 - gabelhoehe_cm      = rise from crotch seam to waistband (full length), ONLY for pants
 - beinoeffnung_cm    = leg opening laid flat (HALF width), ONLY for pants
-- If a measurement is ambiguous, unclear or missing, use null"""
+- If a measurement is ambiguous, unclear or missing, use null
 
-MEASUREMENT_RULES_EBAY_HAB = """MEASUREMENT RULES (all values in cm, convert if necessary, null if not found):
+- There may be descriptions that contain content in multiple languages. Make sure to check and possibly translate the given measurements 
+  correctly into German / the predetermined keys in the given JSON structure."""
+
+MEASUREMENT_RULES_EBAY = """MEASUREMENT RULES (all values in cm, convert if necessary, null if not found):
 JACKET:
 If article is a jacket, ONLY fill the following 5 fields. ALL other masse fields MUST be null.
 - schulterbreite     = shoulder width seam to seam (full width)
@@ -100,6 +103,8 @@ If article is a coat, ONLY fill the following 5 fields. ALL other masse fields M
 
 - For each measurement, determine whether the given value in the article description is a full or half measurement before inserting. 
   Convert to the format specified above (some require half, some full).
+- There may be descriptions that contain content in multiple languages. Make sure to check and possibly translate the given measurements 
+  correctly into German / the predetermined keys in the given JSON structure.
 
 When uncertain which measurement is meant, use null"""
 
@@ -176,7 +181,7 @@ Description may mix German, French, English. Common terms:
 
 CRITICAL: If you find any measurement in the description, you MUST extract it. If you cannot find a measurement despite seeing the correct field name, use null."""
 
-JSON_MASSE_VINTED = """{
+RETURN_JSON_VINTED = """{
   "masse": {
         "brust_cm": <insert value as integer/null>,
         "taille_cm": <insert value as integer/null>,
@@ -188,9 +193,17 @@ JSON_MASSE_VINTED = """{
         "aermellaenge_cm": <insert value as integer/null>,
         "gabelhoehe_cm": <insert value as integer/null>,
         "beinoeffnung_cm": <insert value as integer/null>
-  }"""
+  },
+  "zustand": <insert either "Neu mit Etikett", "Neu ohne Etikett", "Sehr gut", "Gut" or "Befriedigend" depending on what matches best>,
+  "passt_groesse": true/false,
+  "passt_stil": true/false,
+  "begruendung": "<insert max 2 Sätze auf Deutsch>",
+  "bewertung": 1-10 (rating out of ten),
+  "empfohlen": true/false,
+  "material": <insert value as string/null>
+}"""
 
-JSON_MASSE_EBAY_HAB = """{
+RETURN_JSON_EBAY = """{
   "masse": {
       "schulterbreite": <insert value as integer/null>,
       "aermellaenge": <insert value as integer/null>,
@@ -205,10 +218,17 @@ JSON_MASSE_EBAY_HAB = """{
       "mantel_gesamtlaenge": <insert value as integer/null>,
       "mantel_aermellaenge": <insert value as integer/null>,
       "mantel_achselbreite": <insert value as integer/null>,
-      "mantel_taillenweite": <insert value as integer/null>}"""
+      "mantel_taillenweite": <insert value as integer/null>},
+    },
+  "zustand": <insert either "Neu mit Etikett", "Neu ohne Etikett", "Sehr gut", "Gut" or "Befriedigend" depending on what matches best>,
+  "passt_groesse": true/false,
+  "begruendung": "<insert max 2 Sätze auf Deutsch>",
+  "bewertung": 1-10 (rating out of ten),
+  "empfohlen": true/false,
+  "material": <insert value as string/null>
+}"""
 
-JSON_MASSE_HAB = """Respond with ONLY this JSON structure (fill values, keep null if not found):
-{
+RETURN_JSON_HAB = """{
   "masse": {
     "schulterbreite": <fill with number or null>,
     "aermellaenge": <fill with number or null>,
@@ -227,14 +247,11 @@ JSON_MASSE_HAB = """Respond with ONLY this JSON structure (fill values, keep nul
   },
   "zustand": "Sehr gut" or "Gut" or "Befriedigend" or null,
   "passt_groesse": true or false or null,
-  "passt_stil": true or false or null,
   "begruendung": "<2-3 sentences max>",
   "bewertung": <integer 1-10>,
   "empfohlen": true or false,
   "material": "<text or null>"
 }"""
-
-JSON_FOOTER_STANDARD = ""
 
 
 """
@@ -274,8 +291,7 @@ async def analysiere_artikel_vinted(artikel: dict, config: dict) -> dict:
     {MEASUREMENT_RULES_VINTED}
 
     Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
-    {JSON_MASSE_VINTED},
-    {JSON_FOOTER_STANDARD}"""
+    {RETURN_JSON_VINTED}"""
     
     # Nach Prompt kommt der Analyseteil 
     print(f"    🤖 Analysiere: {artikel['titel'][:50]}...")
@@ -450,7 +466,7 @@ async def analysiere_artikel_habilleur(artikel: dict, config: dict) -> dict:
     {pre_extract_text}
 
     Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
-    {JSON_MASSE_HAB}"""
+    {RETURN_JSON_HAB}"""
 
     # Nach Prompt kommt der Analyseteil
     print(f"    🤖 Analysiere: {artikel['titel'][:50]}...")
@@ -650,17 +666,10 @@ async def analysiere_artikel_ebay(artikel: dict, config: dict) -> dict:
 
     {UNIT_CONVERSION_RULES}
 
-    {MEASUREMENT_RULES_EBAY_HAB}
+    {MEASUREMENT_RULES_EBAY}
 
     Respond ONLY with this JSON (No comments, no explanation, no markdown code blocks.):
-    {JSON_MASSE_EBAY_HAB},
-      "zustand": <insert either "Neu mit Etikett", "Neu ohne Etikett", "Sehr gut", "Gut" or "Befriedigend" depending on what matches best>,
-      "passt_groesse": true/false,
-      "begruendung": "<insert max 2 Sätze auf Deutsch>",
-      "bewertung": 1-10 (rating out of ten),
-      "empfohlen": true/false,
-      "material": <insert value as string/null>
-    }}"""
+    {RETURN_JSON_EBAY}"""
 
     # Nach Prompt kommt der Analyseteil
     print(f"    🤖 Analysiere: {artikel['title'][:50]}...")

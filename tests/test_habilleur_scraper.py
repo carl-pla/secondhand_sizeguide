@@ -455,3 +455,6 @@ class TestScrapeSucchergebnisseClientHandling:
             # Client sollte erstellt und geschlossen worden sein
             assert mock_client_class.called
             assert mock_client.aclose.called
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

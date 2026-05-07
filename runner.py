@@ -23,7 +23,6 @@ async def run_fuer_einen_user():
 
     print(f"👤 Starte Scrape für: {user['email']}")
 
-    # Ab hier: exakt deine bestehende Logik aus runner.py, nur für einen User
     config = {
         "groesse":                 user["groesse"],
         "kategorie":               user.get("kategorie", "Herren Jacken & Mäntel"),

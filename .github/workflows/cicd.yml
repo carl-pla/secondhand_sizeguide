@@ -57,10 +57,20 @@ jobs:
             echo "Warte auf Ollama... ($i)"
             sleep 2
           done
-          ollama pull llama3.1:8b
+          # Mit Retry
+          for attempt in 1 2 3; do
+            ollama pull llama3.2:3b && break
+            echo "Pull fehlgeschlagen, Versuch $attempt/3..."
+            sleep 10
+          done
+      - name: Ollama Health Check
+        run: |
+          curl -s http://localhost:11434/api/tags | python3 -m json.tool
+          echo "Modelle verfügbar:"
+          ollama list
       - name: Scrape für ${{ matrix.email }}
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
           TARGET_USER_EMAIL: ${{ matrix.email }}
         run: python runner.py
-        timeout-minutes: 15
+        timeout-minutes: 30

@@ -30,7 +30,7 @@ async def run_fuer_einen_user():
         "stile":                   user["stile"],
         "eigene_masse":            user.get("eigene_masse", {}),
         "min_zustand":             user.get("min_zustand", "Gut"),
-        "ollama_url":              "http://localhost:11434/api/generate",  
+        "ollama_url":              os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate"),  
         "ollama_modell":           "llama3.1:8b",
         "max_artikel_pro_suche":   10,
         "max_suchen":              1,

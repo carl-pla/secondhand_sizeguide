@@ -87,7 +87,7 @@ def generiere_html(items):
             <p style="margin:5px 0;color:#555">{item.get('begruendung','')}</p>
             <p style="margin:5px 0;color:#555;font-size: 8px">Quelle: {item.get('_quelle','')}</p>
         </div>
-        """  # ✅ Fix #2: 'quelle' statt 'Quelle: '
+        """  
 
     html += "</body></html>"
     return html

@@ -491,12 +491,12 @@ elif "eBay" in seite:
             st.session_state.config["suchbegriffe"] = st.text_input(
                 "Suchbegriffe eingeben",
                 value=st.session_state.config.get("suchbegriffe", ""),
-                placeholder="z.B. Stile"
+                placeholder="z. B. Stile"
             )
             st.session_state.config["marke"] = st.text_input(
                 "Gewünschte Marke des Artikels (Achtung: Eingabe ist case-sensitive)",
                 value=st.session_state.config.get("marke", ""),
-                placeholder="z.B. Adidas",
+                placeholder="z. B. Adidas",
             )
             st.session_state.config["material"] = st.selectbox(
                 "Gewünschtes Material des Artikels (leer lassen für keine Präferenz)",

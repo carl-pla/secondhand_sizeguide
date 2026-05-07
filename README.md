@@ -416,6 +416,14 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 **Lösung:** load-users liest alle User-IDs aus MongoDB, JSON-Array, für jeden User einen eigenen parallelen Job über runner_single.py
 **Learning:** Unabhängige Aufgaben über N Datensätze (Scraping, API-Calls, DB-Writes) sollten nie sequentiell laufen 
 
+**Problem:** `llama3.1:8b` benötigt ~6 GB RAM. GitHub Actions Runner hat nur 7 GB gesamt —
+zu wenig für Modell + Python + Playwright gleichzeitig.
+Symptom: `ReadTimeout` / `HTTP 404` bei allen Ollama-Requests → 0 Empfehlungen → keine Email.
+**Lösung:**
+1. **Kleineres Modell in CI**: `llama3.2:3b` (2 GB) via `OLLAMA_MODELL` Umgebungsvariable.
+   Lokal läuft weiterhin `llama3.1:8b`.
+2. **Semaphore**: `asyncio.Semaphore(2)` in `main.py` — max. 2 parallele Ollama-Requests.
+
 ---
 
 ## Stand der Dinge

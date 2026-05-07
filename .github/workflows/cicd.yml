@@ -50,17 +50,27 @@ jobs:
         run: playwright install chromium --with-deps
       - name: Ollama Setup
         run: |
-          curl -fsSL https://ollama.com/install.sh | sh
-          ollama serve &
-          for i in $(seq 1 30); do
-            ollama list 2>/dev/null && break
-            echo "Warte auf Ollama... ($i)"
-            sleep 2
-          done
-          ollama pull llama3.1:8b
+           curl -fsSL https://ollama.com/install.sh | sh
+           ollama serve &
+           for i in $(seq 1 30); do
+              ollama list 2>/dev/null && break
+              sleep 2
+            done
+            ollama pull llama3.2:3b
+            
+            # NEU: Teste den echten Endpoint
+            echo "=== API Test ==="
+            curl -s http://localhost:11434/api/tags
+            curl -s -X POST http://localhost:11434/api/generate \
+              -d '{"model":"llama3.2:3b","prompt":"hi","stream":false}' | head -c 200
+      - name: Ollama Health Check
+        run: |
+          curl -s http://localhost:11434/api/tags | python3 -m json.tool
+          echo "Modelle verfügbar:"
+          ollama list
       - name: Scrape für ${{ matrix.email }}
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
           TARGET_USER_EMAIL: ${{ matrix.email }}
         run: python runner.py
-        timeout-minutes: 15
+        timeout-minutes: 30

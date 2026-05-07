@@ -85,7 +85,7 @@ def generiere_html(items):
             <p style="margin:5px 0">💶 <b>{item.get('preis','?')}</b>
                &nbsp;|&nbsp; {sterne} {bewertung}/10</p>
             <p style="margin:5px 0;color:#555">{item.get('begruendung','')}</p>
-            <p style="margin:5px 0;color:#555;font-size: 8px">Quelle: {item.get('_quelle','')}</p>
+            <p style="margin:5px 0;color:#555;font-size: 12px">Quelle: {item.get('_quelle','')}</p>
         </div>
         """  
 

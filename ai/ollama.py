@@ -32,6 +32,11 @@ async def frage_ollama(prompt: str, ollama_url: str, modell: str) -> str:
         if response.status_code != 200:
             print(f"  ⚠️  Ollama HTTP {response.status_code}")
             return ""
+        
+        if response.status_code == 404:
+            print(f"  ⚠️  Ollama 404 – URL falsch: {ollama_url}")
+            print(f"  ⚠️  Verfügbare Endpoints: {httpx.get(ollama_url.replace('/api/generate','/')).text[:200]}")
+            return ""
         return response.json().get("response", "").strip()
     except Exception as e:
         print(f"  ⚠️  Ollama-Fehler: {type(e).__name__}: {e}")

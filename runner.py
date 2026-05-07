@@ -48,7 +48,7 @@ async def run_fuer_einen_user():
     try:
         result = subprocess.run(
             [sys.executable, "main.py", "--config", str(tmp),  "--user_email", user["email"]],
-            timeout=800
+            timeout=1800
         )
         if result.returncode == 0:
             print(f"✅ {user['email']}: fertig")

@@ -2,7 +2,7 @@ import pymongo # type: ignore
 import datetime
 import os 
 
-from config_defaults import MONGO_URL
+from database.config_defaults import MONGO_URL
 from dotenv import load_dotenv
 
 load_dotenv()

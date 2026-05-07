@@ -215,7 +215,7 @@ class TestExtractMeasurementsHabilleurRealWorldExamples:
         # Alle wichtigen Maße sollten vorhanden sein
         assert result["schulterbreite"] == 46
         assert result["aermellaenge"] == 67  # 65 + 2
-        assert result["jackenlänge"] == 75
+        assert result["jackenlaenge"] == 75
         assert result["achselbreite"] == 55
         assert result["gabelhoehe"] == 30
         assert result["hosenlaenge"] == 110  # 108 + 2
@@ -282,3 +282,6 @@ class TestExtractMeasurementsHabilleurEdgeCases:
         assert result["schulterbreite"] == 44
         # Ärmellänge ohne Addition
         assert result["aermellaenge"] == 60
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

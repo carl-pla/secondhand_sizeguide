@@ -14,12 +14,22 @@ damit die Tests ohne laufende Dienste funktionieren.
 import json
 import pytest 
 import os
+import sys
+from pathlib import Path
 from unittest.mock import patch
+
+# Füge das Wurzelverzeichnis des Projekts zum Python-Pfad hinzu
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 """WICHTIG FÜR .ENV VARIABLEN, VON DER KERNDATEI HIER, WERDEN DIE INFOS ALS MOCK AN ALLE VERTEILT!!!"""
 @pytest.fixture(autouse=True)
-def mock_env_vars():
-    """Gaukelt dem System Umgebungsvariablen vor."""
+def mock_env_vars(request):
+    """Gaukelt dem System Umgebungsvariablen vor - nicht für test_main."""
+    # Skip für test_main.py um pytest capture Probleme zu vermeiden
+    if "test_main" in str(request.node.fspath):
+        yield
+        return
+    
     with patch.dict(os.environ, {
         "MAIL_PASSWORD": "dummy_password",
         "MONGO_URL": "mongodb://localhost:27017",

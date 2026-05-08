@@ -105,15 +105,16 @@ ollama pull llama3.2:3b [ODER] llama3.1:8b
 
 (Ersteres leichter und schneller (Immer per GitHub Actions genutzt), letzteres genauer und langsamer)
 
-# 9. MongoDB Access einrichten und für Teammitglied ermöglichen
+(# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
 Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
 Host:
 --> In MongoDB Atlas Cloud auf Database Access
 --> Klicken: Add New Database User
---> Einrichtung der jeweiligen Person: username + password
---> Unter Network Access die IP 0.0.0.0/0 einfügen, damit GitHub Actions Zugriff hat
+--> Einrichtung der jeweiligen Person: db_username + db_password
+
 Client:
 --> nimmt den erhaltenen Connectionstring (Host fügt deine Credentials in den Link ein)
+--> mongodb+srv://<db_username>:<db_password>@secondhandguide.az2roej.mongodb.net/
 --> In Github Secrets eintragen unter MONGO_URL (settings -> secrets & variables -> Actions)
 
 # 10. Github Secrets eintragen
@@ -157,15 +158,16 @@ ollama pull llama3.2:3b [ODER] llama3.1:8b
 
 (Ersteres leichter und schneller (Immer für GitHub Actions genutzt), letzteres genauer und langsamer)
 
-# 9. MongoDB Access einrichten und für Teammitglied ermöglichen
+(# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
 Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
 Host:
 --> In MongoDB Atlas Cloud auf Database Access
 --> Klicken: Add New Database User
---> Einrichtung der jeweiligen Person: username + password
---> Unter Network Access die IP 0.0.0.0/0 einfügen, damit GitHub Actions Zugriff hat
+--> Einrichtung der jeweiligen Person: db_username + db_password
+
 Client:
---> Nimmt den erhaltenen Connectionstring (Host fügt deine Credentials in den Link ein)
+--> nimmt den erhaltenen Connectionstring (Host fügt deine Credentials in den Link ein)
+--> mongodb+srv://<db_username>:<db_password>@secondhandguide.az2roej.mongodb.net/
 --> In Github Secrets eintragen unter MONGO_URL (settings -> secrets & variables -> Actions)
 
 # 10. Github Secrets eintragen

@@ -96,10 +96,10 @@ def sende_email(html_content, empfaenger: str):
     print(f"Sende Newsletter an {empfaenger}...")
     msg = MIMEMultipart("alternative")
     heute = datetime.now().strftime("%d.%m.%Y")
-    msg["Subject"] = f"🛍️ Deine Vinted Deals – {heute}"
+    msg["Subject"] = f"Deine Matchfit News – {heute}"
     msg["From"]    = MAIL_FROM
     msg["To"]      = empfaenger
-    msg["Reply-To"] = MAIL_FROM
+    msg["Reply-To"] = empfaenger
 
     plain_text = re.sub(r"<[^>]+>", "", html_content)
     msg.attach(MIMEText(plain_text, "plain"))

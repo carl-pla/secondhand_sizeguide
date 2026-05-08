@@ -151,11 +151,13 @@ ollama pull llama3.2:3b [ODER] llama3.1:8b
 
 (# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
 Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
---> Klicke oben links auf das Project-Feld (neben dem MongoDB-Logo) und wähle Project Settings.
---> Gehe im linken Menü auf Project Access Manager > Project Access.
---> Klicke auf den Button Invite.
---> Gib die E-Mail-Adresse der Person ein.
---> Rollen-Wahl:Project Read Only: Kann nur gucken, Project Member: Kann fast alles, Project Owner: Hat volle Kontrolle 
+Host:
+--> In MongoDB Atlas Cloud auf Database Access
+--> Klicken: Add New Database User
+--> Einrichtung der jeweiligen Person: username + password
+Client:
+--> nimmt den erhaltenen Connectionstring (Host fügt deine Credentials in den Link ein)
+--> In Github Secrets eintragen unter MONGO_URL (settings -> secrets & variables -> Actions)
 
 # 10. Dashboard starten
 streamlit run dashboard/dashboard.py

@@ -105,17 +105,14 @@ ollama pull llama3.2:3b [ODER] llama3.1:8b
 
 (Ersteres leichter und schneller (Immer per GitHub Actions genutzt), letzteres genauer und langsamer)
 
-(# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
-Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
-Host:
---> In MongoDB Atlas Cloud auf Database Access
---> Klicken: Add New Database User
---> Einrichtung der jeweiligen Person: db_username + db_password
-
-Client:
---> nimmt den erhaltenen Connectionstring (Host fügt deine Credentials in den Link ein)
---> mongodb+srv://<db_username>:<db_password>@secondhandguide.az2roej.mongodb.net/
---> In Github Secrets eintragen unter MONGO_URL (settings -> secrets & variables -> Actions)
+(# 9. Eigene MongoDB Instanz erstellen  (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
+--> Gehe auf https://cloud.mongodb.com
+--> Erstelle eine Organisation und ein Projekt mit dem Titel "Secondhand_sizeguide"
+--> Cluster erstellen und konfigurieren: "Build a Cluster"
+--> Security Features: User anlegen, IP-Zugriff einstellen auf 0.0.0.0/0, sodass Github Actions Zugriff hat
+--> Verbindung zur Database herstellen mit "connect"
+--> du wählst eine Methode: wir benutzen die Option für vscode; der erstellte connectionstring soll in Github Secrets eingetragen werden
+   (settings -> secrets & variables -> Actions)
 
 # 10. Github Secrets eintragen
 Alle Werte, die auch im .env sind, als separate Secrets eintragen (MAIL_FROM bestimmt, über welche Email-Adresse der Newsletter verschickt wird)
@@ -158,17 +155,14 @@ ollama pull llama3.2:3b [ODER] llama3.1:8b
 
 (Ersteres leichter und schneller (Immer für GitHub Actions genutzt), letzteres genauer und langsamer)
 
-(# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
-Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
-Host:
---> In MongoDB Atlas Cloud auf Database Access
---> Klicken: Add New Database User
---> Einrichtung der jeweiligen Person: db_username + db_password
-
-Client:
---> nimmt den erhaltenen Connectionstring (Host fügt deine Credentials in den Link ein)
---> mongodb+srv://<db_username>:<db_password>@secondhandguide.az2roej.mongodb.net/
---> In Github Secrets eintragen unter MONGO_URL (settings -> secrets & variables -> Actions)
+(# 9. Eigene MongoDB Instanz erstellen  (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
+--> Gehe auf https://cloud.mongodb.com
+--> Erstelle eine Organisation und ein Projekt mit dem Titel "Secondhand_sizeguide"
+--> Cluster erstellen und konfigurieren: "Build a Cluster"
+--> Security Features: User anlegen, IP-Zugriff einstellen auf 0.0.0.0/0, sodass Github Actions Zugriff hat
+--> Verbindung zur Database herstellen mit "connect"
+--> du wählst eine Methode: wir benutzen die Option für vscode; der erstellte connectionstring soll in Github Secrets eingetragen werden
+   (settings -> secrets & variables -> Actions)
 
 # 10. Github Secrets eintragen
 Alle Werte, die auch im .env sind, als separate Secrets eintragen (MAIL_FROM bestimmt, über welche Email-Adresse der Newsletter verschickt wird)

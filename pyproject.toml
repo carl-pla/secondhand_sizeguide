@@ -1,8 +1,14 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "datascienceprojekt"
 version = "0.1.0"
+dependencies = []
 
-[tool.setuptools.packages.find]
-where = ["."]
+[tool.setuptools]
+packages = ["ai", "dashboard", "database", "notification", "scraper", "src_ebay"]
 
+[tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -31,6 +31,7 @@ def mock_env_vars(request):
         return
     
     with patch.dict(os.environ, {
+        "MAIL_FROM": "test@example.com",
         "MAIL_PASSWORD": "dummy_password",
         "MONGO_URL": "mongodb://localhost:27017",
         "OLLAMA_HOST": "http://localhost:11434"

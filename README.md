@@ -74,6 +74,8 @@ Empfohlen für Entwicklung und schnelles Testen.
 #### macOS
 
 ```bash
+# 0. Repository auf deinen GitHub Account forken per Button
+
 # 1. Repository klonen
 git clone https://github.com/[dein-user]/secondhand_sizeguide.git
 cd secondhand_sizeguide
@@ -101,23 +103,31 @@ OLLAMA_HOST=0.0.0.0:11434 ollama serve
 # 8. KI-Modell laden (einmalig)
 ollama pull llama3.2:3b [ODER] llama3.1:8b
 
-(Ersteres leichter und schneller, letzteres genauer und langsamer)
+(Ersteres leichter und schneller (Immer per GitHub Actions genutzt), letzteres genauer und langsamer)
 
-(# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
+# 9. MongoDB Access einrichten und für Teammitglied ermöglichen
 Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
---> Klicke oben links auf das Project-Feld (neben dem MongoDB-Logo) und wähle Project Settings.
---> Gehe im linken Menü auf Project Access Manager > Project Access.
---> Klicke auf den Button Invite.
---> Gib die E-Mail-Adresse der Person ein.
---> Rollen-Wahl:Project Read Only: Kann nur gucken, Project Member: Kann fast alles, Project Owner: Hat volle Kontrolle 
+Host:
+--> In MongoDB Atlas Cloud auf Database Access
+--> Klicken: Add New Database User
+--> Einrichtung der jeweiligen Person: username + password
+--> Unter Network Access die IP 0.0.0.0/0 einfügen, damit GitHub Actions Zugriff hat
+Client:
+--> nimmt den erhaltenen Connectionstring (Host fügt deine Credentials in den Link ein)
+--> In Github Secrets eintragen unter MONGO_URL (settings -> secrets & variables -> Actions)
 
-# 10. Dashboard starten
+# 10. Github Secrets eintragen
+Alle Werte, die auch im .env sind, als separate Secrets eintragen (MAIL_FROM bestimmt, über welche Email-Adresse der Newsletter verschickt wird)
+
+# 11. Dashboard starten
 streamlit run dashboard/dashboard.py
 ```
 
 #### Windows (PowerShell)
 
 ```powershell
+# 0. Repository auf deinen GitHub Account forken per Button
+
 # 1. Repository klonen
 git clone https://github.com/[dein-user]/secondhand_sizeguide.git
 cd secondhand_sizeguide
@@ -145,17 +155,23 @@ $env:OLLAMA_HOST="0.0.0.0:11434"; ollama serve
 # 8. KI-Modell laden (einmalig)
 ollama pull llama3.2:3b [ODER] llama3.1:8b
 
-(Ersteres leichter und schneller, letzteres genauer und langsamer)
+(Ersteres leichter und schneller (Immer für GitHub Actions genutzt), letzteres genauer und langsamer)
 
-(# 9. MongoDB Access für Teammitglied ermöglichen (Entwicklerstand von überall Zugriff: 0.0.0.0/0))
+# 9. MongoDB Access einrichten und für Teammitglied ermöglichen
 Zugriff auf das Atlas Dashboard (für Team-Mitglieder --> Cluster Verwaltung)
---> Klicke oben links auf das Project-Feld (neben dem MongoDB-Logo) und wähle Project Settings.
---> Gehe im linken Menü auf Project Access Manager > Project Access.
---> Klicke auf den Button Invite.
---> Gib die E-Mail-Adresse der Person ein.
---> Rollen-Wahl:Project Read Only: Kann nur gucken, Project Member: Kann fast alles, Project Owner: Hat volle Kontrolle 
+Host:
+--> In MongoDB Atlas Cloud auf Database Access
+--> Klicken: Add New Database User
+--> Einrichtung der jeweiligen Person: username + password
+--> Unter Network Access die IP 0.0.0.0/0 einfügen, damit GitHub Actions Zugriff hat
+Client:
+--> Nimmt den erhaltenen Connectionstring (Host fügt deine Credentials in den Link ein)
+--> In Github Secrets eintragen unter MONGO_URL (settings -> secrets & variables -> Actions)
 
-# 10. Dashboard starten
+# 10. Github Secrets eintragen
+Alle Werte, die auch im .env sind, als separate Secrets eintragen (MAIL_FROM bestimmt, über welche Email-Adresse der Newsletter verschickt wird)
+
+# 11. Dashboard starten
 streamlit run dashboard/dashboard.py
 ```
 
@@ -176,6 +192,8 @@ Windows: Setze die Umgebungsvariable OLLAMA_HOST auf 0.0.0.0 in den Systemeigens
 2. Container-Start
 
 ```bash
+# 0. Repository auf deinen GitHub Account forken per Button
+
 # 1. Repository klonen
 git clone https://github.com/[dein-user]/secondhand_sizeguide.git
 cd secondhand_sizeguide
@@ -185,7 +203,10 @@ cp .env.example .env
 # WICHTIG: Setze OLLAMA_BASE_URL=http://localhost:11434
 # WICHTIG: Setze MONGO_URL auf deinen Atlas Connection String
 
-# 3. Streamlit Container starten
+# 3. Schritte für Ollama, MongoDB und GitHub Secrets ausführen
+Siehe Schritte 7 - 10 aus dem lokalen Setup
+
+# 4. Streamlit Container starten
 docker compose up --build
 ```
 **Dashboard:** http://localhost:8501  
@@ -415,6 +436,14 @@ Um die Konnektivität zwischen GitHub Actions (Newsletter-Versand) und MongoDB A
 **Ursache:** runner.py iteriert sequentiell über alle User --> Gesamtzeit summiert sich auf potenziell 100+ Minuten
 **Lösung:** load-users liest alle User-IDs aus MongoDB, JSON-Array, für jeden User einen eigenen parallelen Job über runner_single.py
 **Learning:** Unabhängige Aufgaben über N Datensätze (Scraping, API-Calls, DB-Writes) sollten nie sequentiell laufen 
+
+**Problem:** `llama3.1:8b` benötigt ~6 GB RAM. GitHub Actions Runner hat nur 7 GB gesamt —
+zu wenig für Modell + Python + Playwright gleichzeitig.
+Symptom: `ReadTimeout` / `HTTP 404` bei allen Ollama-Requests → 0 Empfehlungen → keine Email.
+**Lösung:**
+1. **Kleineres Modell in CI**: `llama3.2:3b` (2 GB) via `OLLAMA_MODELL` Umgebungsvariable.
+   Lokal läuft weiterhin `llama3.1:8b`.
+2. **Semaphore**: `asyncio.Semaphore(2)` in `main.py` — max. 2 parallele Ollama-Requests.
 
 ---
 

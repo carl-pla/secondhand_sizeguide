@@ -251,7 +251,6 @@ Alle Einstellungen werden über das Streamlit Dashboard gesetzt und in `secrets/
 | `pause_zwischen_artikeln` | Anti-Ban Pause (Sek.) | `[4, 7]` |
 | Weitere Parameter für Ebay und Habilleur hier nicht aufgelistet |
 
-**Für CI/CD:** Den Inhalt von `secrets/config.json` als GitHub Secret `VINTED_CONFIG` hinterlegen.
 
 ---
 

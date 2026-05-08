@@ -96,7 +96,7 @@ def sende_email(html_content, empfaenger: str):
     print(f"Sende Newsletter an {empfaenger}...")
     msg = MIMEMultipart("alternative")
     heute = datetime.now().strftime("%d.%m.%Y")
-    msg["Subject"] = f"🛍️ Deine Vinted Deals – {heute}"
+    msg["Subject"] = f"🛍️ Deine Secondhand Deals – {heute}"
     msg["From"]    = MAIL_FROM
     msg["To"]      = empfaenger
     msg["Reply-To"] = MAIL_FROM

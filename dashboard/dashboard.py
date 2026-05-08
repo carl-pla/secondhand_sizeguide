@@ -880,13 +880,30 @@ elif "Newsletter" in seite:
     email = st.text_input("Deine Email-Adresse")
 
     st.markdown("**Deine Präferenzen** (aus den Einstellungen):")
+    
+    # Zeile 1: Größe, Max. Preis, Quelle
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown(f'<div class="metric-card"><div class="metric-label">Größe</div><div class="metric-value">{config["groesse"]}</div></div>', unsafe_allow_html=True)
     with col2:
         st.markdown(f'<div class="metric-card"><div class="metric-label">Max. Preis</div><div class="metric-value">{config["max_preis"]}€</div></div>', unsafe_allow_html=True)
     with col3:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Quelle</div><div class="metric-value">{config.get("quelle", "vinted").capitalize()}</div></div>', unsafe_allow_html=True)
+    
+    # Zeile 2: Kategorie, Stile für Vinted, Min. Empfehlung
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Kategorie</div><div class="metric-value">{config.get("kategorie", "—")}</div></div>', unsafe_allow_html=True)
+    with col2:
         st.markdown(f'<div class="metric-card"><div class="metric-label">Stile für Vinted</div><div class="metric-value">{", ".join(config.get("stile", []))}</div></div>', unsafe_allow_html=True)
+    with col3:
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Min. Empfehlung</div><div class="metric-value">{config.get("min_empfehlung", 6)}</div></div>', unsafe_allow_html=True)
+    
+    # Zeile 3: Suchbegriffe für eBay
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        suchbegriffe = config.get("suchbegriffe", "")
+        st.markdown(f'<div class="metric-card"><div class="metric-label">Suchbegriffe (eBay)</div><div class="metric-value">{suchbegriffe if suchbegriffe else "—"}</div></div>', unsafe_allow_html=True)
 
     st.caption("💡 Passe deine Präferenzen unter Einstellungen an, bevor du dich registrierst.")
     st.markdown("---")
@@ -929,7 +946,11 @@ elif "Newsletter" in seite:
         if users:
             st.caption(f"{len(users)} aktive Abonnenten")
             for u in users:
-                st.markdown(f"- **{u['email']}** | {u['groesse']} | max {u['max_preis']}€ | {', '.join(u.get('stile', []))}")
+                quelle = u.get("quelle", "vinted").capitalize()
+                kategorie = u.get("kategorie", "—")
+                min_empfehlung = u.get("min_empfehlung", 6)
+                suchbegriffe = u.get("suchbegriffe", "")
+                st.markdown(f"- **{u['email']}** | {u['groesse']} | max {u['max_preis']}€ | {', '.join(u.get('stile', []))} | 📌 {quelle} | 📂 {kategorie} | ⭐ {min_empfehlung} | 🔍 {suchbegriffe if suchbegriffe else '—'}")
         else:
             st.info("Noch keine Abonnenten.")
     except Exception as e:

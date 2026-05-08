@@ -15,9 +15,6 @@ Der Finder durchsucht basierend auf der Auswahl des Users Vinted, Ebay und Habil
 4. [Konfiguration](#konfiguration)
 5. [Workflow & Features](#workflow--features)
 6. [CI/CD & Newsletter](#cicd--newsletter)
-7. [Projektentwicklung — Probleme & Learnings](#projektentwicklung--probleme--learnings)
-8. [Stand der Dinge](#stand-der-dinge)
-9. [Ausarbeitung Projektarbeit](#ausarbeitung-projektarbeit)
 
 ---
 
